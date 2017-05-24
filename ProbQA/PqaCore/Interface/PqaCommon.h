@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../PqaCore/Interface/PqaCore.h"
+
 namespace ProbQA {
 
 // PQA - Probabilistic Question Answering

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PqaErrors.h"
-#include "PqaCommon.h"
-#include "PqaCore.h"
+#include "../PqaCore/Interface/PqaErrors.h"
+#include "../PqaCore/Interface/PqaCommon.h"
+#include "../PqaCore/Interface/PqaCore.h"
 
 namespace ProbQA {
 

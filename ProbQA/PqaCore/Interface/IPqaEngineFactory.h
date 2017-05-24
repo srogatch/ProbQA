@@ -1,15 +1,16 @@
 #pragma once
 
-#include "IPqaEngine.h"
-#include "PqaCommon.h"
-#include "PqaCore.h"
+#include "../PqaCore/Interface/IPqaEngine.h"
+#include "../PqaCore/Interface/PqaErrors.h"
+#include "../PqaCore/Interface/PqaCommon.h"
+#include "../PqaCore/Interface/PqaCore.h"
 
 namespace ProbQA {
 
 class PQACORE_API IPqaEngineFactory {
 public:
-  virtual IPqaEngine* CreateCpuEngine(PrecisionDefinition precDef) = 0;
-  virtual IPqaEngine* CreateCudaEngine(PrecisionDefinition precDef) = 0;
+  virtual IPqaEngine* CreateCpuEngine(PqaError& err, PrecisionDefinition precDef) = 0;
+  virtual IPqaEngine* CreateCudaEngine(PqaError& err, PrecisionDefinition precDef) = 0;
 };
 
 extern "C" PQACORE_API IPqaEngineFactory& GetPqaEngineFactory();

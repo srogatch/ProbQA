@@ -141,9 +141,9 @@
     <ClInclude Include="Interface\IPqaEngine.h" />
     <ClInclude Include="Interface\IPqaEngineFactory.h" />
     <ClInclude Include="Interface\PqaCommon.h" />
-    <ClInclude Include="PqaCore.h" />
+    <ClInclude Include="Interface\PqaCore.h" />
+    <ClInclude Include="Interface\PqaErrors.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
-    <ClInclude Include="PqaErrors.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>

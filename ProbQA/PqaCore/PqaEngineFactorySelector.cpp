@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "PqaEngineBaseFactory.h"
-#include "PqaCore.h"
+#include "../PqaCore/Interface/PqaCore.h"
 
 namespace ProbQA {
 

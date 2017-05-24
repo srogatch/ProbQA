@@ -2,9 +2,7 @@
 //
 
 #include "stdafx.h"
-#include "PqaCore.h"
-
-#include "IPqaEngine.h"
+#include "../PqaCore/Interface/PqaCore.h"
 
 
 // This is an example of an exported variable

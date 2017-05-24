@@ -27,12 +27,6 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PqaCore.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PqaErrors.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PqaEngineBaseFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -43,6 +37,12 @@
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
     <ClInclude Include="Interface\PqaCommon.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\PqaErrors.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\PqaCore.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
   </ItemGroup>
