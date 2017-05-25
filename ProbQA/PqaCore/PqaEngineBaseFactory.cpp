@@ -4,6 +4,8 @@
 #include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/DoubleNumber.h"
 
+using namespace SRPlat;
+
 namespace ProbQA {
 
 IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) {
@@ -12,21 +14,23 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
   case TPqaPrecisionType::Double:
     return new CpuEngine<DoubleNumber>(engDef);
   default:
-    err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams("ProbQA Engine on CPU for precision"
-      " except double."));
+    err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+      "ProbQA Engine on CPU for precision except double.")));
     return nullptr;
   }
 }
 
 IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) {
   //TODO: implement
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams("ProbQA Engine on CUDA."));
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+    "ProbQA Engine on CUDA.")));
   return nullptr;
 }
 
-IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) {
+IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDefinition& engDef) {
   //TODO: implement
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams("ProbQA Engine over a grid."));
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+    "ProbQA Engine over a grid.")));
   return nullptr;
 }
 

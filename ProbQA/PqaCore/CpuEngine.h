@@ -2,10 +2,12 @@
 
 #include "../PqaCore/Interface/IPqaEngine.h"
 #include "../PqaCore/Interface/PqaCommon.h"
+#include "../PqaCore/PqaNumber.h"
 
 namespace ProbQA {
 
-template<typename taNumber> class CpuEngine : public IPqaEngine {
+template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
+  static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
 public:
   explicit CpuEngine(const EngineDefinition& engDef);
 
@@ -44,5 +46,9 @@ public:
 
   virtual PqaError ReleaseCompactionResult(CompactionResult &cr) override;
 };
+
+template<typename taNumber> inline CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef) {
+  //TODO: implement
+}
 
 } // namespace ProbQA
