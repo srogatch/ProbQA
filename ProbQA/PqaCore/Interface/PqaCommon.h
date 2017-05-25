@@ -21,9 +21,21 @@ enum TPqaPrecisionType : uint64_t {
 
 struct PrecisionDefinition {
   TPqaPrecisionType _type : 4;
+  //// Number of mantissa and exponent bytes, to be used in template instantiation.
   uint64_t _mantissa : 28;
   uint64_t _exponent : 16;
   uint64_t _reserved : 16;
+};
+
+struct EngineDimensions {
+  TPqaId _nAnswers;
+  TPqaId _nQuestions;
+  TPqaId _nTargets;
+};
+
+struct EngineDefinition {
+  EngineDimensions _dims;
+  PrecisionDefinition _prec;
 };
 
 struct AnsweredQuestion {

@@ -138,10 +138,13 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CpuEngine.h" />
+    <ClInclude Include="DoubleNumber.h" />
     <ClInclude Include="Interface\IPqaEngine.h" />
     <ClInclude Include="Interface\IPqaEngineFactory.h" />
     <ClInclude Include="Interface\PqaCommon.h" />
     <ClInclude Include="Interface\PqaCore.h" />
+    <ClInclude Include="Interface\PqaErrorParams.h" />
     <ClInclude Include="Interface\PqaErrors.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="stdafx.h" />
@@ -165,12 +168,18 @@
     <ClCompile Include="PqaCore.cpp" />
     <ClCompile Include="PqaEngineBaseFactory.cpp" />
     <ClCompile Include="PqaEngineFactorySelector.cpp" />
+    <ClCompile Include="PqaErrors.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SRPlatform\SRPlatform.vcxproj">
+      <Project>{66ebbc7d-97c5-4a7e-84d8-623da032f3d3}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

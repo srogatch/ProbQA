@@ -7,8 +7,9 @@ namespace ProbQA {
 
 class PqaEngineBaseFactory : public IPqaEngineFactory {
 public:
-  IPqaEngine* CreateCpuEngine(PqaError& err, PrecisionDefinition precDef) override;
-  IPqaEngine* CreateCudaEngine(PqaError& err, PrecisionDefinition precDef) override;
+  IPqaEngine* CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) override;
+  IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) override;
+  IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) override;
 };
 
 } // namespace ProbQA
