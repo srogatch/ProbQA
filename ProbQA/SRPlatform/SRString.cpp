@@ -18,6 +18,9 @@ void SRString::setSameData(const char* const pData) {
   }
 }
 
+SRString::SRString() : _pData(nullptr), _bOwned(false), _length(0) {
+}
+
 SRString::SRString(const char *const pData, const bool bOwned, const size_t length)
   : _pData(pData), _bOwned(bOwned ? 1 : 0) {
   if (length == std::string::npos) {
@@ -85,8 +88,13 @@ SRString SRString::MakeUnowned(const char *const pData, size_t length) {
   return SRString(pData, false, length);
 }
 
-std::string SRString::ToString() {
+std::string SRString::ToString() const {
   return std::string(_pData, _length);
+}
+
+size_t SRString::GetData(const char* &outData) const {
+  outData = _pData;
+  return _length;
 }
 
 } // namespace SRPlat

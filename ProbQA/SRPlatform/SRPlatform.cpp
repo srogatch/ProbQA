@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "../SRPlatform/Interface/SRPlatform.h"
+#include "../SRPlatform/Interface/SRMessageBuilder.h"
 
 // This is an example of an exported variable
 SRPLATFORM_API int nSRPlatform=0;

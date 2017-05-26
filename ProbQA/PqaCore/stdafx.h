@@ -16,5 +16,6 @@
 #include <memory>
 #include <type_traits>
 
+#include "../SRPlatform/Interface/SRException.h"
 
 // TODO: reference additional headers your program requires here

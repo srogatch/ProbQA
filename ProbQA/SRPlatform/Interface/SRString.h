@@ -9,8 +9,8 @@ namespace SRPlat {
 //NOTE: the string may not contain a null terminator.
 class SRPLATFORM_API SRString final {
   const char *_pData;
+  uint64_t _length : 63; // let it occupy bits 0..62 so to avoid a shift operation on access
   uint64_t _bOwned : 1;
-  uint64_t _length : 63;
 
 private: // methods
   SRString(const char *const pData, const bool bOwned, const size_t length);
@@ -18,6 +18,7 @@ private: // methods
   void setSameData(const char* const pData);
 
 public: // methods
+  SRString();
   SRString(const SRString& fellow);
   SRString& operator=(const SRString& fellow);
   SRString(SRString&& fellow);
@@ -28,7 +29,10 @@ public: // methods
   static SRString MakeClone(const char *const pData, size_t length = std::string::npos);
   static SRString MakeUnowned(const char *const pData, size_t length = std::string::npos);
 
-  std::string ToString();
+  std::string ToString() const;
+  // Returns the length of the data. Stores the pointer in the output parameter. Note that data may not be
+  //   null-terminated.
+  size_t GetData(const char* &outData) const;
 };
 
 } // namespace SRPlat

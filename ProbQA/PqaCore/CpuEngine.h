@@ -8,6 +8,8 @@ namespace ProbQA {
 
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
+
+  uint64_t _nQuestionsAsked = 0;
 public:
   explicit CpuEngine(const EngineDefinition& engDef);
 
@@ -46,9 +48,5 @@ public:
 
   virtual PqaError ReleaseCompactionResult(CompactionResult &cr) override;
 };
-
-template<typename taNumber> inline CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef) {
-  //TODO: implement
-}
 
 } // namespace ProbQA

@@ -9,15 +9,28 @@ using namespace SRPlat;
 namespace ProbQA {
 
 IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) {
-  //TODO: implement
-  switch (engDef._prec._type) {
-  case TPqaPrecisionType::Double:
-    return new CpuEngine<DoubleNumber>(engDef);
-  default:
-    err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-      "ProbQA Engine on CPU for precision except double.")));
-    return nullptr;
+  try {
+    std::unique_ptr<IPqaEngine> pEngine;
+    switch (engDef._prec._type) {
+    case TPqaPrecisionType::Double:
+      pEngine.reset(new CpuEngine<DoubleNumber>(engDef));
+      break;
+    default:
+      //TODO: implement
+      err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+        "ProbQA Engine on CPU for precision except double.")));
+      return nullptr;
+    }
+    err.Release();
+    return pEngine.release();
   }
+  catch (SRException &ex) {
+    err.SetFromException(std::move(ex));
+  }
+  catch (std::exception& ex) {
+    err.SetFromException(ex);
+  }
+  return nullptr;
 }
 
 IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) {

@@ -138,6 +138,8 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\SRException.h" />
+    <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRString.h" />
     <ClInclude Include="stdafx.h" />
@@ -158,6 +160,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="SRException.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRString.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -12,6 +12,8 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <exception>
+#include <sstream>
 #include <string>
 
 // TODO: reference additional headers your program requires here

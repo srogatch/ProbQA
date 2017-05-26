@@ -2,3 +2,8 @@
 /ProbQA/Debug
 /ProbQA/PqaCore/Debug
 /ProbQA/SRPlatform/Debug
+/ProbQA/x64
+/ProbQA/PqaClient/Debug
+/ProbQA/PqaClient/x64
+/ProbQA/PqaCore/x64
+/ProbQA/SRPlatform/x64

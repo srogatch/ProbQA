@@ -7,7 +7,9 @@ namespace ProbQA {
 
 enum class PqaErrorCode : int64_t {
   None = 0,
-  NotImplemented = 1
+  NotImplemented = 1, // NotImplementedErrorParams
+  SRException = 2, // CommonExceptionErrorParams
+  StdException = 3 // CommonExceptionErrorParams
 };
 
 class PQACORE_API IPqaErrorParams {
@@ -20,11 +22,13 @@ public:
 class PQACORE_API PqaError {
   PqaErrorCode _code;
   IPqaErrorParams *_pParams;
+  SRPlat::SRString _message;
 
 public:
   PqaError() : _code(PqaErrorCode::None), _pParams(nullptr) { }
   //TODO: collect call stack
-  PqaError(PqaErrorCode code, IPqaErrorParams *pParams) : _code(code), _pParams(pParams) { }
+  PqaError(PqaErrorCode code, IPqaErrorParams *pParams, SRPlat::SRString message = SRPlat::SRString())
+    : _code(code), _pParams(pParams), _message(message) { }
   PqaError& operator=(const PqaError& fellow) = delete;
   PqaError(const PqaError& fellow) = delete;
   PqaError& operator=(PqaError&& fellow);
@@ -34,8 +38,12 @@ public:
   bool isOk() const { return _code == PqaErrorCode::None; }
   PqaErrorCode GetCode() const { return _code; }
   IPqaErrorParams* GetParams() const { return _pParams; }
+  const SRPlat::SRString& GetMessage() const { return _message; }
   IPqaErrorParams* DetachParams();
   void Release();
+
+  void SetFromException(SRPlat::SRException &&ex);
+  void SetFromException(const std::exception &ex);
 };
 
 } // namespace ProbQA

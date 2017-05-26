@@ -147,6 +147,7 @@
     <ClInclude Include="Interface\PqaErrorParams.h" />
     <ClInclude Include="Interface\PqaErrors.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
+    <ClInclude Include="PqaException.h" />
     <ClInclude Include="PqaNumber.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -171,6 +172,7 @@
     <ClCompile Include="PqaEngineBaseFactory.cpp" />
     <ClCompile Include="PqaEngineFactorySelector.cpp" />
     <ClCompile Include="PqaErrors.cpp" />
+    <ClCompile Include="PqaException.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
