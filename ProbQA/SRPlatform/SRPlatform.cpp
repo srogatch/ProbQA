@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "../SRPlatform/Interface/SRPlatform.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
+#include "../SRPlatform/Interface/SRAlignedAllocator.h"
 
 // This is an example of an exported variable
 SRPLATFORM_API int nSRPlatform=0;

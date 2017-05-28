@@ -9,6 +9,7 @@ typedef int64_t TPqaId;
 const TPqaId cInvalidPqaId = -1;
 
 typedef double TPqaAmount;
+inline double to_double(TPqaAmount amount) { return amount; }
 
 enum TPqaPrecisionType : uint64_t {
   None = 0,
@@ -36,6 +37,7 @@ struct EngineDimensions {
 struct EngineDefinition {
   EngineDimensions _dims;
   PrecisionDefinition _prec;
+  TPqaAmount _initAmount = 1;
 };
 
 struct AnsweredQuestion {

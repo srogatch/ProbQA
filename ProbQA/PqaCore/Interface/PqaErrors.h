@@ -9,7 +9,8 @@ enum class PqaErrorCode : int64_t {
   None = 0,
   NotImplemented = 1, // NotImplementedErrorParams
   SRException = 2, // CommonExceptionErrorParams
-  StdException = 3 // CommonExceptionErrorParams
+  StdException = 3, // CommonExceptionErrorParams
+  InsufficientEngineDimensions = 4
 };
 
 class PQACORE_API IPqaErrorParams {

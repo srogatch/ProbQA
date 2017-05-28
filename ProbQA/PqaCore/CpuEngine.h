@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../PqaCore/Interface/IPqaEngine.h"
+#include "../PqaCore/GapTracker.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/PqaNumber.h"
 
@@ -9,7 +10,21 @@ namespace ProbQA {
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
 
+public: // constants
+  static const TPqaId cMinAnswers = 2;
+  static const TPqaId cMinQuestions = 1;
+  static const TPqaId cMinTargets = 2;
+  static const size_t cDataAlign = sizeof(__m256);
+
+private: // variables
+  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>>> _mA; // matrix
+  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>> _vB; // vector
+  GapTracker<TPqaId> _questionGaps;
+  GapTracker<TPqaId> _targetGaps;
+  EngineDimensions _dims;
+  taNumber _initAmount;
   uint64_t _nQuestionsAsked = 0;
+  
 public:
   explicit CpuEngine(const EngineDefinition& engDef);
 

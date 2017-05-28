@@ -21,4 +21,21 @@ public:
   const SRPlat::SRString& GetExceptionTypeName() { return _etn; }
 };
 
+class PQACORE_API InsufficientEngineDimensionsErrorParams : public IPqaErrorParams {
+public: // variables
+  const TPqaId _nAnswers;
+  const TPqaId _minAnswers;
+  const TPqaId _nQuestions;
+  const TPqaId _minQuestions;
+  const TPqaId _nTargets;
+  const TPqaId _minTargets;
+public: // methods
+  InsufficientEngineDimensionsErrorParams(const TPqaId nAnswers, const TPqaId minAnswers,
+    const TPqaId nQuestions, const TPqaId minQuestions, const TPqaId nTargets, const TPqaId minTargets)
+    : _nAnswers(nAnswers), _minAnswers(minAnswers), _nQuestions(nQuestions), _minQuestions(minQuestions),
+    _nTargets(nTargets), _minTargets(minTargets)
+  {
+  }
+};
+
 } // namespace ProbQA

@@ -7,7 +7,26 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef) {
+template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
+  : _initAmount(engDef._initAmount), _dims(engDef._dims)
+{
+  if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
+  {
+    throw PqaException(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
+      _dims._nAnswers, cMinAnswers, _dims._nQuestions, cMinQuestions, _dims._nTargets, cMinTargets));
+  }
+  _mA.resize(_dims._nAnswers);
+  for (TPqaId i = 0; i < _dims._nAnswers; i++) {
+    _mA[i].resize(_dims._nQuestions);
+    for (TPqaId j = 0; j < _dims._nQuestions; j++) {
+      _mA[i][j].resize(_dims._nTargets, _initAmount);
+    }
+  }
+  _vB.resize(_dims._nTargets, _initAmount);
+
+  _questionGaps.GrowTo(_dims._nQuestions);
+  _targetGaps.GrowTo(_dims._nTargets);
+
   throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)")));
 }

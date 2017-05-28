@@ -12,6 +12,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <sstream>
 #include <string>

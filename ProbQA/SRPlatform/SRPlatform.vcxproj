@@ -138,6 +138,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\SRAlignedAllocator.h" />
     <ClInclude Include="Interface\SRException.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRPlatform.h" />

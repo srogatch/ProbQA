@@ -11,11 +11,17 @@
 // Windows Header Files:
 #include <windows.h>
 
+#include <immintrin.h>
+
+#include <cassert>
 #include <cstdint>
-#include <string>
+#include <cstdlib>
 #include <memory>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 #include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/SRAlignedAllocator.h"
 
 // TODO: reference additional headers your program requires here
