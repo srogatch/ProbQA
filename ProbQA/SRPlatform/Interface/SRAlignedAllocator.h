@@ -5,10 +5,10 @@ namespace SRPlat {
 // Based on:
 //   https://gist.github.com/donny-dont/1471329#file-aligned_allocator-cpp
 //   https://blogs.msdn.microsoft.com/vcblog/2008/08/28/the-mallocator/
+//   https://stackoverflow.com/questions/12942548/making-stdvector-allocate-aligned-memory : improved construct()?
 // See also:
 //   https://www.codeproject.com/Articles/4795/C-Standard-Allocator-An-Introduction-and-Implement
 //   https://stackoverflow.com/questions/8456236/how-is-a-vectors-data-aligned
-//   https://stackoverflow.com/questions/12942548/making-stdvector-allocate-aligned-memory : improved construct()?
 template <typename T, std::size_t Alignment>
 class SRAlignedAllocator {
 public:
@@ -22,20 +22,21 @@ public:
   typedef std::size_t size_type;
   typedef ptrdiff_t difference_type;
 
-  T * address(T& r) const {
+  typedef std::true_type propagate_on_container_move_assignment;
+
+  T * address(T& r) const noexcept {
     return &r;
   }
 
-  const T * address(const T& s) const {
+  const T * address(const T& s) const noexcept {
     return &s;
   }
 
-  std::size_t max_size() const {
+  std::size_t max_size() const noexcept {
     // The following has been carefully written to be independent of
     // the definition of size_t and to avoid signed/unsigned warnings.
     return (static_cast<std::size_t>(0) - static_cast<std::size_t>(1)) / sizeof(T);
   }
-
 
   //// The following must be the same for all allocators.
   template <typename U>
@@ -43,36 +44,22 @@ public:
     typedef SRAlignedAllocator<U, Alignment> other;
   };
 
-  bool operator!=(const SRAlignedAllocator& other) const {
-    return !(*this == other);
-  }
-
-  void construct(T * const p, const T& t) const {
+  template <class U, class ...Args> void construct(U* p, Args&&... args) const {
     void * const pv = static_cast<void *>(p);
-    new (pv) T(t);
+    ::new (pv) U(std::forward<Args>(args)...);
   }
 
   void destroy(T * const p) const {
     p->~T();
   }
 
-  // Returns true if and only if storage allocated from *this
-  // can be deallocated from other, and vice versa.
-  // Always returns true for stateless allocators.
-  bool operator==(const SRAlignedAllocator& other) const {
-    return true;
-  }
-
-
   // Default constructor, copy constructor, rebinding constructor, and destructor.
   // Empty for stateless allocators.
-  SRAlignedAllocator() { }
+  SRAlignedAllocator() noexcept { }
 
-  SRAlignedAllocator(const SRAlignedAllocator&) { }
+  template <typename U> SRAlignedAllocator(const SRAlignedAllocator<U, Alignment>&) noexcept { }
 
-  template <typename U> SRAlignedAllocator(const SRAlignedAllocator<U, Alignment>&) { }
-
-  ~SRAlignedAllocator() { }
+  ~SRAlignedAllocator() noexcept { }
 
 
   // The following will be different for each allocator.
@@ -130,5 +117,15 @@ public:
 private:
   SRAlignedAllocator& operator=(const SRAlignedAllocator&);
 };
+
+template <typename T, std::size_t TAlign, typename U, std::size_t UAlign> inline
+bool operator== (const SRAlignedAllocator<T, TAlign>&, const SRAlignedAllocator<U, UAlign>&) noexcept {
+  return TAlign == UAlign;
+}
+
+template <typename T, std::size_t TAlign, typename U, std::size_t UAlign> inline
+bool operator!= (const SRAlignedAllocator<T, TAlign>&, const SRAlignedAllocator<U, UAlign>&) noexcept {
+  return TAlign != UAlign;
+}
 
 } // namespace SRPlat
