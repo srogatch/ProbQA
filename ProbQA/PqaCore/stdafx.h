@@ -19,11 +19,13 @@
 #include <cstdlib>
 #include <memory>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <vector>
 
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
+#include "../SRPlatform/Interface/SRLock.h"
 
 // TODO: reference additional headers your program requires here
