@@ -11,10 +11,12 @@
 // Windows Header Files:
 #include <windows.h>
 
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <sstream>
 #include <string>
+#include <thread>
 
 // TODO: reference additional headers your program requires here

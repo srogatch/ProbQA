@@ -13,6 +13,7 @@
 
 #include <immintrin.h>
 
+#include <atomic>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -23,5 +24,6 @@
 
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
+#include "../SRPlatform/Interface/SRSpinSync.h"
 
 // TODO: reference additional headers your program requires here

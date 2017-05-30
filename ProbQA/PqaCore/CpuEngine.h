@@ -2,6 +2,7 @@
 
 #include "../PqaCore/Interface/IPqaEngine.h"
 #include "../PqaCore/GapTracker.h"
+#include "../PqaCore/MaintenanceSwitch.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/PqaNumber.h"
 

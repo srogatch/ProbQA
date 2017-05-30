@@ -42,6 +42,12 @@
     <ClInclude Include="Interface\SRAlignedAllocator.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRLock.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRSpinSync.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
