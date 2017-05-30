@@ -5,10 +5,10 @@
 #include "../SRPlatform/Interface/SRPlatform.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
-#include "../SRPlatform/Interface/SRSpinLock.h"
+#include "../SRPlatform/Interface/SRSpinSync.h"
 
 namespace SRPlat {
-  constexpr size_t test1 = sizeof(SRSpinLock<1>);
+  constexpr size_t test1 = sizeof(SRSpinSync<1>);
 }
 
 // This is an example of an exported variable
