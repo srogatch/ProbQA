@@ -16,6 +16,9 @@
     <Filter Include="Header Files\Interface">
       <UniqueIdentifier>{e092ad18-691b-4f03-ad20-cf3ffca13e03}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Interface\Exceptions">
+      <UniqueIdentifier>{2e89992a-94c8-44ee-89c5-1dd7ce278b5e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -51,6 +54,27 @@
     <ClInclude Include="Interface\SRFastManualResetEvent.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRSmartHandle.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\ISRLogger.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRDefaultLogger.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="DbgLogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRUtils.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRLoggerFactory.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Exceptions\SRDefaultLoggerExceptions.h">
+      <Filter>Header Files\Interface\Exceptions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -66,6 +90,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SRException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SRDefaultLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DbgLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SRUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

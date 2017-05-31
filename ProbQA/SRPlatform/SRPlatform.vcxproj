@@ -138,18 +138,26 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DbgLogger.h" />
+    <ClInclude Include="Interface\Exceptions\SRDefaultLoggerExceptions.h" />
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
     <ClInclude Include="Interface\SRException.h" />
     <ClInclude Include="Interface\SRFastManualResetEvent.h" />
     <ClInclude Include="Interface\SRLock.h" />
+    <ClInclude Include="Interface\ISRLogger.h" />
+    <ClInclude Include="Interface\SRDefaultLogger.h" />
+    <ClInclude Include="Interface\SRLoggerFactory.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRSpinSync.h" />
     <ClInclude Include="Interface\SRString.h" />
+    <ClInclude Include="Interface\SRSmartHandle.h" />
+    <ClInclude Include="Interface\SRUtils.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DbgLogger.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -164,9 +172,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="SRDefaultLogger.cpp" />
     <ClCompile Include="SRException.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRString.cpp" />
+    <ClCompile Include="SRUtils.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

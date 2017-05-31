@@ -6,6 +6,7 @@
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
+#include "../SRPlatform/Interface/SRSmartHandle.h"
 
 namespace SRPlat {
   constexpr size_t test1 = sizeof(SRSpinSync<1>);

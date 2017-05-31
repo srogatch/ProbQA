@@ -5,7 +5,7 @@
 
 namespace SRPlat {
 
-// Can't inherit from std::exception because 
+// Can't inherit from std::exception because that's not DLL-exported (causes compiler warning)
 class SRPLATFORM_API SRException {
   SRString _message;
 public:

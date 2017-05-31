@@ -23,6 +23,9 @@ public:
   typedef ptrdiff_t difference_type;
 
   typedef std::true_type propagate_on_container_move_assignment;
+  //TODO: how shall the below be?
+  //typedef std::true_type propagate_on_container_copy_assignment;
+  //typedef std::true_type propagate_on_container_swap;
 
   T * address(T& r) const noexcept {
     return &r;

@@ -38,4 +38,11 @@ public: // methods
   }
 };
 
+class PQACORE_API MaintenanceModeErrorParams : public IPqaErrorParams {
+  uint8_t _activeMode;
+public:
+  explicit MaintenanceModeErrorParams(const uint8_t activeMode) : _activeMode(activeMode) { }
+  uint8_t GetActiveMode() const { return _activeMode; }
+};
+
 } // namespace ProbQA

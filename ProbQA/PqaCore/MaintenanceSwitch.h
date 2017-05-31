@@ -18,6 +18,8 @@ private: // variables
   TSync _sync;
 
 public: // methods
+  static uint8_t ToUInt8(const Mode mode) { return static_cast<uint8_t>(mode); }
+
   explicit MaintenanceSwitch(Mode initMode);
   // Try to acquire the lock for a regular/maintenance-only operation, which delays the opposite mode until finished.
   // If the opposite mode is in progress, this method fails returning |false|.
@@ -29,13 +31,10 @@ public: // methods
   Mode EnterAgnostic();
   void LeaveAgnostic();
 
-  // Request to start maintenance: deny new regular operations and wait for current regular operations to finish.
-  // Returns |false| if it is already in maintenance.
-  bool EnableMaintenance();
-  // Request to stop maintenance: deny new maintenance operations and wait for the current maintenance operations to
-  //   finish.
-  // Returns |false| it is already out of maintenance.
-  bool DisableMaintenance();
+  // Request to switch to another (maintenance/regular) mode: deny new operations of the current mode and wait for
+  //   current operations of the current mode to finish, then switch to the new mode.
+  // Throws if it is already in the target mode or in the process of state change.
+  template <Mode taMode> void SwitchMode();
 };
 
 } // namespace ProbQA
