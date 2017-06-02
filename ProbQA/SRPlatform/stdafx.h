@@ -13,8 +13,10 @@
 
 #include <atomic>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <queue>
 #include <sstream>
 #include <string>
 #include <thread>

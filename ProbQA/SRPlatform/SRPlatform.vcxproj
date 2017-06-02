@@ -139,8 +139,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DbgLogger.h" />
+    <ClInclude Include="FileLogger.h" />
     <ClInclude Include="Interface\Exceptions\SRDefaultLoggerExceptions.h" />
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
+    <ClInclude Include="Interface\SRConditionVariable.h" />
+    <ClInclude Include="Interface\SRCriticalSection.h" />
     <ClInclude Include="Interface\SRException.h" />
     <ClInclude Include="Interface\SRFastManualResetEvent.h" />
     <ClInclude Include="Interface\SRLock.h" />
@@ -172,8 +175,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="FileLogger.cpp" />
+    <ClCompile Include="SRConditionVariable.cpp" />
+    <ClCompile Include="SRCriticalSection.cpp" />
     <ClCompile Include="SRDefaultLogger.cpp" />
     <ClCompile Include="SRException.cpp" />
+    <ClCompile Include="SRLoggerFactory.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRString.cpp" />
     <ClCompile Include="SRUtils.cpp" />
