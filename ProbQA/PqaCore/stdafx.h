@@ -27,5 +27,7 @@
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
 #include "../SRPlatform/Interface/SRLock.h"
+#include "../SRPlatform/Interface/SRCriticalSection.h"
+#include "../SRPlatform/Interface/SRConditionVariable.h"
 
 // TODO: reference additional headers your program requires here

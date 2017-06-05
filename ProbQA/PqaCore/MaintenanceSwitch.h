@@ -9,13 +9,51 @@ public: // types
     Regular = 1,
     Maintenance = 2
   };
-  typedef SRPlat::SRSpinSync<32> TSync;
+
+  class AgnosticLock {
+    MaintenanceSwitch *_pMs;
+    Mode _mode;
+  public:
+    explicit AgnosticLock(MaintenanceSwitch& ms) : _pMs(&ms) {
+      _mode = _pMs->EnterAgnostic();
+    }
+    ~AgnosticLock() {
+      if (_pMs != nullptr) {
+        _pMs->LeaveAgnostic();
+      }
+    }
+    void EarlyRelease() {
+      _pMs->LeaveAgnostic();
+      _pMs = nullptr;
+    }
+    Mode GetMode() const {
+      return _mode;
+    }
+  };
+
+  // Object must be instantiated only after TryEnterSpecific() succeeds.
+  template <Mode taMode> class SpecificLeaver {
+    MaintenanceSwitch *_pMs;
+  public:
+    explicit SpecificLeaver(MaintenanceSwitch& ms) : _pMs(&ms) { }
+    void EarlyRelease() {
+      _pMs->LeaveSpecific<taMode>();
+      _pMs = nullptr;
+    }
+    ~SpecificLeaver() {
+      if (_pMs != nullptr) {
+        _pMs->LeaveSpecific<taMode>();
+      }
+    }
+  };
 
 private: // variables
+  SRPlat::SRCriticalSection _cs;
+  SRPlat::SRConditionVariable _canSwitch;
+  SRPlat::SRConditionVariable _canEnter;
   uint64_t _nUsing : 32; // number of users of the current state - regular or maintenance
   uint64_t _curMode : 2; // current mode - regular or maintenance
   uint64_t _bModeChangeRequested : 1;
-  TSync _sync;
 
 public: // methods
   static uint8_t ToUInt8(const Mode mode) { return static_cast<uint8_t>(mode); }

@@ -22,6 +22,7 @@ private: // variables
   std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>> _vB; // vector
   GapTracker<TPqaId> _questionGaps;
   GapTracker<TPqaId> _targetGaps;
+  MaintenanceSwitch _maintSwitch;
   EngineDimensions _dims;
   taNumber _initAmount;
   uint64_t _nQuestionsAsked = 0;

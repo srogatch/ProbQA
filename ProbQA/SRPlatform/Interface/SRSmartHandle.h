@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../SRPlatform/Interface/SRMacros.h"
+
 namespace SRPlat {
 
 typedef HANDLE SRHandle;
@@ -12,7 +14,7 @@ public:
   ~SRSmartHandle() {
     if (_srh != taEmpty) {
       if (!CloseHandle(_srh)) {
-        //TODO: GetLastError() and log it, because we shouldn't throw exceptions from destructors
+        SR_DLOG_WINFAIL_GLE(Error);
       }
     }
   }

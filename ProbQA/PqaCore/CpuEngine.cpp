@@ -8,7 +8,7 @@ using namespace SRPlat;
 namespace ProbQA {
 
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
-  : _initAmount(engDef._initAmount), _dims(engDef._dims)
+  : _initAmount(engDef._initAmount), _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular)
 {
   if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
   {
@@ -27,14 +27,16 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   _questionGaps.GrowTo(_dims._nQuestions);
   _targetGaps.GrowTo(_dims._nTargets);
 
-  throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)")));
+  //throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+  //  "CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
-  const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount) 
+  const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   // This method should increase the counter of questions asked by the number of questions in this training.
+  _nQuestionsAsked += nQuestions;
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::Train")));
 }

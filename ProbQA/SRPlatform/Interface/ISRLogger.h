@@ -43,3 +43,7 @@ inline string to_string(const SRPlat::ISRLogger::Severity s) {
 }
 
 } // namespace std
+
+namespace SRPlat {
+
+} // namespace SRPlat

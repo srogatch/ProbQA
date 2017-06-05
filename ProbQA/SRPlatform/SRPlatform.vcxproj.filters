@@ -87,6 +87,12 @@
     <ClInclude Include="Interface\Exceptions\SRFileLoggerExceptions.h">
       <Filter>Header Files\Interface\Exceptions</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRMacros.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRReaderWriterSync.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -123,6 +129,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FileLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SRReaderWriterSync.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

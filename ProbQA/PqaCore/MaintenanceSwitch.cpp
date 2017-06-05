@@ -13,7 +13,7 @@ MaintenanceSwitch::MaintenanceSwitch(Mode initMode)
 }
 
 template <MaintenanceSwitch::Mode taMode> bool MaintenanceSwitch::TryEnterSpecific() {
-  SRLock<TSync> sl(_sync);
+  SRLock<SRCriticalSection> csl(_cs);
   if (static_cast<Mode>(_curMode) == taMode && !_bModeChangeRequested) {
     _nUsing++;
     return true;
@@ -27,11 +27,18 @@ template bool MaintenanceSwitch::TryEnterSpecific<MaintenanceSwitch::Mode::Maint
 template bool MaintenanceSwitch::TryEnterSpecific<MaintenanceSwitch::Mode::Regular>();
 
 template <MaintenanceSwitch::Mode taMode> void MaintenanceSwitch::LeaveSpecific() {
-  SRLock<TSync> sl(_sync);
-  assert(static_cast<Mode>(_curMode) == taMode);
-  assert(_nUsing >= 1);
-  if ((--_nUsing) == 0 && _bModeChangeRequested) {
-    //TODO: notify of the possibility to change state now.
+  bool bWake = false;
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    assert(static_cast<Mode>(_curMode) == taMode);
+    assert(_nUsing >= 1);
+    if ((--_nUsing) == 0 && _bModeChangeRequested) {
+      // Notify of the possibility to switch mode now.
+      bWake = true;
+    }
+  }
+  if (bWake) {
+    _canSwitch.WakeAll();
   }
 }
 
@@ -39,44 +46,52 @@ template void MaintenanceSwitch::LeaveSpecific<MaintenanceSwitch::Mode::Maintena
 template void MaintenanceSwitch::LeaveSpecific<MaintenanceSwitch::Mode::Regular>();
 
 MaintenanceSwitch::Mode MaintenanceSwitch::EnterAgnostic() {
-  {
-    SRLock<TSync> sl(_sync);
-    if (!_bModeChangeRequested) {
-      _nUsing++;
-      return static_cast<Mode>(_curMode);
-    }
+  SRLock<SRCriticalSection> csl(_cs);
+  // Wait till mode switch request is fullfilled.
+  while (_bModeChangeRequested) {
+    _canEnter.Wait(_cs);
   }
-  //TODO: otherwise, wait till state change request is fullfilled.
+  _nUsing++;
+  return static_cast<Mode>(_curMode);
 }
 
 void MaintenanceSwitch::LeaveAgnostic() {
-  SRLock<TSync> sl(_sync);
-  assert(_nUsing >= 1);
-  if ((--_nUsing) == 0 && _bModeChangeRequested) {
-    //TODO: notify of the possibility to change state now.
+  bool bWake = false;
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    assert(_nUsing >= 1);
+    if ((--_nUsing) == 0 && _bModeChangeRequested) {
+      // Notify of the possibility to switch mode now.
+      bWake = true;
+    }
+  }
+  if (bWake) {
+    _canSwitch.WakeAll();
   }
 }
 
 template <MaintenanceSwitch::Mode taMode> void MaintenanceSwitch::SwitchMode() {
   {
-    SRLock<TSync> sl(_sync);
+    SRLock<SRCriticalSection> csl(_cs);
     if (_bModeChangeRequested) {
       uint8_t activeMode = ToUInt8(static_cast<Mode>(_curMode));
-      sl.EarlyRelease();
+      csl.EarlyRelease();
       throw PqaException(PqaErrorCode::MaintenanceModeChangeInProgress, new MaintenanceModeErrorParams(activeMode));
     }
     if (static_cast<Mode>(_curMode) == taMode) {
-      sl.EarlyRelease();
+      csl.EarlyRelease();
       throw PqaException(PqaErrorCode::MaintenanceModeAlreadyThis, new MaintenanceModeErrorParams(ToUInt8(taMode)));
     }
-    if (_nUsing == 0) {
-      _curMode = static_cast<uint64_t>(taMode);
-      return;
+    if (_nUsing > 0) {
+      _bModeChangeRequested = 1;
+      while (_nUsing > 0) {
+        _canSwitch.Wait(_cs);
+      }
     }
-    _bModeChangeRequested = 1;
-    //TODO: reset the event while in the lock
+    _curMode = static_cast<uint64_t>(taMode);
+    _bModeChangeRequested = 0;
   }
-  //TODO: implement
+  _canEnter.WakeAll();
 }
 
 template void MaintenanceSwitch::SwitchMode<MaintenanceSwitch::Mode::Maintenance>();

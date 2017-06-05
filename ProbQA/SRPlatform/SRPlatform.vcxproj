@@ -151,8 +151,10 @@
     <ClInclude Include="Interface\ISRLogger.h" />
     <ClInclude Include="Interface\SRDefaultLogger.h" />
     <ClInclude Include="Interface\SRLoggerFactory.h" />
+    <ClInclude Include="Interface\SRMacros.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
+    <ClInclude Include="Interface\SRReaderWriterSync.h" />
     <ClInclude Include="Interface\SRSpinSync.h" />
     <ClInclude Include="Interface\SRString.h" />
     <ClInclude Include="Interface\SRSmartHandle.h" />
@@ -183,6 +185,7 @@
     <ClCompile Include="SRException.cpp" />
     <ClCompile Include="SRLoggerFactory.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
+    <ClCompile Include="SRReaderWriterSync.cpp" />
     <ClCompile Include="SRString.cpp" />
     <ClCompile Include="SRUtils.cpp" />
     <ClCompile Include="stdafx.cpp">

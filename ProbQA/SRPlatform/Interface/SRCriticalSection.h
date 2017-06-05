@@ -10,6 +10,12 @@ class SRPLATFORM_API SRCriticalSection {
 public:
   explicit SRCriticalSection();
   explicit SRCriticalSection(const uint32_t spinCount);
+
+  SRCriticalSection(const SRCriticalSection&) = delete;
+  SRCriticalSection& operator=(const SRCriticalSection&) = delete;
+  SRCriticalSection(SRCriticalSection&&) = delete;
+  SRCriticalSection& operator=(SRCriticalSection&&) = delete;
+
   ~SRCriticalSection();
   void Acquire(); // Enter
   void Release(); // Leave
