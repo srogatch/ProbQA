@@ -14,6 +14,7 @@
 #include <windows.h>
 
 #include <atomic>
+#include <cinttypes>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>

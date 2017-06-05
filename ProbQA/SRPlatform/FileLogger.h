@@ -8,7 +8,7 @@ namespace SRPlat {
 
 class FileLogger : public ISRLogger {
 public: // constants
-  uint32_t cMaxEnqueuedLen = 1024 * 1024;
+  static const uint32_t cMaxEnqueuedLen = 1024 * 1024;
 private: // variables
   //// Cache-sensitive data
   SRCriticalSection _cs;
@@ -22,8 +22,6 @@ private: // variables
   //// Cache-insensitive data
   std::thread _thrWriter;
   std::string _fileName;
-
-  static const char* const cShutdownToken;
 
 protected: // Methods
   void WriterEntry();
