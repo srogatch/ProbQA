@@ -18,17 +18,24 @@ public: // constants
   static const size_t cDataAlign = sizeof(__m256);
 
 private: // variables
-  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>>> _mA; // matrix
-  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>> _vB; // vector
+  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>>> _cA; // cube A
+  std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>> _mD; // matrix D
+  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>> _vB; // vector B
   GapTracker<TPqaId> _questionGaps;
   GapTracker<TPqaId> _targetGaps;
-  MaintenanceSwitch _maintSwitch;
   EngineDimensions _dims;
   taNumber _initAmount;
   uint64_t _nQuestionsAsked = 0;
-  
+  MaintenanceSwitch _maintSwitch;
+  SRPlat::SRReaderWriterSync _rws;
+  std::vector<std::thread> _workers;
+
+private: // methods
+  void WorkerEntry();
+
 public:
   explicit CpuEngine(const EngineDefinition& engDef);
+  virtual ~CpuEngine() override;
 
   virtual PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount = 1) override;

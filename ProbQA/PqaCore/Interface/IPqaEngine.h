@@ -7,6 +7,9 @@
 namespace ProbQA {
 
 class PQACORE_API IPqaEngine {
+public:
+  virtual ~IPqaEngine() { }
+
   // A possibility to train the knowledge base without running a quiz.
   virtual PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount = 1) = 0;

@@ -26,7 +26,7 @@ public:
 };
 
 template<bool taExclusive> class SRRWLock {
-  SRReaderWriterSync _pRws;
+  SRReaderWriterSync *_pRws;
 public:
   explicit SRRWLock(SRReaderWriterSync& rws) : _pRws(&rws) {
     _pRws->Acquire<taExclusive>();

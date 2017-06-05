@@ -9,8 +9,19 @@ class DoubleNumber : public PqaNumber {
 public:
   explicit DoubleNumber() { }
   explicit DoubleNumber(TPqaAmount init) : _value(to_double(init)) { }
-  DoubleNumber& Mul(const DoubleNumber& fellow) { _value *= fellow._value; return *this; }
-  DoubleNumber& Add(const DoubleNumber& fellow) { _value += fellow._value; return *this; }
+  DoubleNumber& Mul(const DoubleNumber& fellow) { 
+    _value *= fellow._value;
+    return *this;
+  }
+  DoubleNumber& Add(const DoubleNumber& fellow) {
+    _value += fellow._value;
+    return *this;
+  }
+  DoubleNumber operator*(const int64_t fellow) {
+    DoubleNumber answer;
+    answer._value = _value * fellow;
+    return answer; 
+  }
 };
 
 static_assert(sizeof(DoubleNumber) == sizeof(double), "To allow AVX2 and avoid unaligned access penalties.");

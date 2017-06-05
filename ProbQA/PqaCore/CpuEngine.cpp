@@ -15,11 +15,20 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
     throw PqaException(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
       _dims._nAnswers, cMinAnswers, _dims._nQuestions, cMinQuestions, _dims._nTargets, cMinTargets));
   }
-  _mA.resize(_dims._nAnswers);
+
+  //// Init matrix D
+  taNumber initMD = _initAmount * _dims._nAnswers;
+  _mD.resize(_dims._nQuestions);
+  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
+    _mD[i].resize(_dims._nTargets, initMD);
+  }
+
+  //// Init cube A
+  _cA.resize(_dims._nAnswers);
   for (TPqaId i = 0; i < _dims._nAnswers; i++) {
-    _mA[i].resize(_dims._nQuestions);
+    _cA[i].resize(_dims._nQuestions);
     for (TPqaId j = 0; j < _dims._nQuestions; j++) {
-      _mA[i][j].resize(_dims._nTargets, _initAmount);
+      _cA[i][j].resize(_dims._nTargets, _initAmount);
     }
   }
   _vB.resize(_dims._nTargets, _initAmount);
@@ -27,14 +36,31 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   _questionGaps.GrowTo(_dims._nQuestions);
   _targetGaps.GrowTo(_dims._nTargets);
 
+  unsigned int nWorkers = std::thread::hardware_concurrency();
+  for (unsigned int i = 0; i < nWorkers; i++) {
+    _workers.emplace_back(&CpuEngine<taNumber>::WorkerEntry, this);
+  }
   //throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
   //  "CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)")));
+}
+
+template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {
+  //TODO: shutdown worker threads
+  //TODO: implement
+}
+
+template<typename taNumber> void CpuEngine<taNumber>::WorkerEntry() {
+  for (;;) {
+    //TODO: implement
+  }
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<true> rwl(_rws);
+
   // This method should increase the counter of questions asked by the number of questions in this training.
   _nQuestionsAsked += nQuestions;
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(

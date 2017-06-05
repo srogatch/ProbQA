@@ -29,5 +29,6 @@
 #include "../SRPlatform/Interface/SRLock.h"
 #include "../SRPlatform/Interface/SRCriticalSection.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
+#include "../SRPlatform/Interface/SRReaderWriterSync.h"
 
 // TODO: reference additional headers your program requires here
