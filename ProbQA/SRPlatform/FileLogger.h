@@ -9,6 +9,7 @@ namespace SRPlat {
 class FileLogger : public ISRLogger {
 public: // constants
   static const uint32_t cMaxEnqueuedLen = 1024 * 1024;
+  static const uint32_t cFileBufferBytes = 1024 * 1024;
 private: // variables
   //// Cache-sensitive data
   SRCriticalSection _cs;

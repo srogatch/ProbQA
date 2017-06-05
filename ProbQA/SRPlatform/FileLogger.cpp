@@ -6,12 +6,30 @@
 
 namespace SRPlat {
 
+#define FPRINTF_LOG_VARS \
+  SRString sTime = SRUtils::PrintUtcTime<false>(); \
+  const char *pdTime; \
+  size_t lenTime = sTime.GetData(pdTime);
+
+#define FPRINTF_LOG_PREFIX "%.*s [%s] "
+
+#define FPRINTF_LOG_FIRSTPARAMS(severity) \
+  static_cast<int>(lenTime), pdTime, std::to_string(ISRLogger::Severity::severity).c_str()
+
 FileLogger::FileLogger(const SRString& baseName) : _bShutdown(0), _enqueuedLen(0)
 {
   _fileName = baseName.ToString() + SRUtils::PrintUtcDate().ToString() + ".log";
   _fpout = fopen(_fileName.c_str(), "at");
   if (_fpout == nullptr) {
     throw SRCannotOpenLogFileException(_fileName);
+  }
+  if (setvbuf(_fpout, nullptr, _IOFBF, cFileBufferBytes) != 0) {
+    SRString sTime = SRUtils::PrintUtcTime<false>();
+    const char *pdTime;
+    size_t lenTime = sTime.GetData(pdTime);
+    fprintf(_fpout, "%.*s [%s] Failed to set file buffer to %" PRIu32 " bytes. Logging may be slow.\n",
+      static_cast<int>(lenTime), pdTime, std::to_string(ISRLogger::Severity::Error).c_str(), cFileBufferBytes);
+    fflush(_fpout);
   }
   _thrWriter = std::thread(&FileLogger::WriterEntry, this);
 }
@@ -68,8 +86,9 @@ void FileLogger::WriterEntry() {
         SRString sTime = SRUtils::PrintUtcTime<false>();
         const char *pdTime;
         size_t lenTime = sTime.GetData(pdTime);
-        fprintf(_fpout, "%.*s %s Enqueued length %" PRIu64 " is smaller than token length %" PRIu64 ". Setting enqueued"
-          " length to 0.\n", static_cast<int>(lenTime), pdTime, std::to_string(ISRLogger::Severity::Critical).c_str(),
+        fprintf(_fpout, "%.*s [%s] Enqueued length %" PRIu64 " is smaller than token length %" PRIu64 ". Setting"
+          " enqueued length to 0.\n", static_cast<int>(lenTime), pdTime,
+          std::to_string(ISRLogger::Severity::Critical).c_str(),
           static_cast<uint64_t>(_enqueuedLen), static_cast<uint64_t>(token.size()));
         bFlush = true;
 
