@@ -7,6 +7,7 @@ namespace SRPlat {
 class DbgLogger : public ISRLogger {
 public:
   virtual bool Log(const Severity s, const SRString& message) override;
+  virtual SRString GetFileName() override;
 };
 
 } // namespace SRPlat

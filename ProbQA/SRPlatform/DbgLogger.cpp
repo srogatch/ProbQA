@@ -10,4 +10,8 @@ bool DbgLogger::Log(const Severity s, const SRString& message) {
   return true; // Actually we don't know its fate because the above WinAPI call is void
 }
 
+SRString DbgLogger::GetFileName() {
+  return SRString::MakeUnowned("Debugger Output Window");
+}
+
 } // namespace SRPlat
