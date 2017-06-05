@@ -25,6 +25,8 @@ public: // methods
   SRString& operator=(SRString&& fellow);
   ~SRString();
 
+  explicit SRString(const std::string& source);
+
   static SRString MakeOwned(const char *const pData, size_t length = std::string::npos);
   static SRString MakeClone(const char *const pData, size_t length = std::string::npos);
   static SRString MakeUnowned(const char *const pData, size_t length = std::string::npos);

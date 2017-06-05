@@ -9,6 +9,7 @@ namespace SRPlat {
 class SRPLATFORM_API SRException {
   SRString _message;
 public:
+  //TODO: collect stack trace
   explicit SRException(SRString &&message);
   virtual ~SRException() {}
   virtual SRString GetMsg() const;

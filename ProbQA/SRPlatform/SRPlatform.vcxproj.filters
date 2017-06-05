@@ -84,6 +84,9 @@
     <ClInclude Include="Interface\SRConditionVariable.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Exceptions\SRFileLoggerExceptions.h">
+      <Filter>Header Files\Interface\Exceptions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
