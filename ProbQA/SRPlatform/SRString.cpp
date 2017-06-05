@@ -74,7 +74,6 @@ SRString::~SRString() {
 }
 
 SRString::SRString(const std::string& source) : SRString(DupData(source.c_str(), source.size()), true, source.size()) {
-  int a = WM_COMMAND;
 }
 
 SRString SRString::MakeOwned(const char *const pData, size_t length) {
@@ -90,10 +89,6 @@ SRString SRString::MakeClone(const char *const pData, size_t length) {
 
 SRString SRString::MakeUnowned(const char *const pData, size_t length) {
   return SRString(pData, false, length);
-}
-
-std::string SRString::ToString() const {
-  return std::string(_pData, _length);
 }
 
 size_t SRString::GetData(const char* &outData) const {

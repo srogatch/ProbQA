@@ -31,7 +31,11 @@ public: // methods
   static SRString MakeClone(const char *const pData, size_t length = std::string::npos);
   static SRString MakeUnowned(const char *const pData, size_t length = std::string::npos);
 
-  std::string ToString() const;
+  // Must be inline, in order to use std::string from the same module.
+  std::string ToString() const {
+    return std::string(_pData, _length);
+  }
+
   // Returns the length of the data. Stores the pointer in the output parameter. Note that data may not be
   //   null-terminated.
   size_t GetData(const char* &outData) const;

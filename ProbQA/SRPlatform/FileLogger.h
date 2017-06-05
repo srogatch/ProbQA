@@ -31,7 +31,7 @@ protected: // Methods
 public: // Methods
   explicit FileLogger(const SRString& baseName);
   virtual ~FileLogger() override;
-  virtual bool Log(const Severity s, const SRString& message) override;
+  virtual bool Log(const Severity sev, const SRString& message) override;
   virtual SRString GetFileName() override;
 };
 

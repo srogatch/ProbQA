@@ -6,15 +6,15 @@
 
 namespace SRPlat {
 
-#define FPRINTF_LOG_VARS \
-  SRString sTime = SRUtils::PrintUtcTime<false>(); \
-  const char *pdTime; \
-  size_t lenTime = sTime.GetData(pdTime);
+#define FPRINTF_LOG_PREPARE_TIME \
+  SRString sTimeMacro = SRUtils::PrintUtcTime<false>(); \
+  const char *pdTimeMacro; \
+  size_t lenTimeMacro = sTimeMacro.GetData(pdTimeMacro);
 
 #define FPRINTF_LOG_PREFIX "%.*s [%s] "
 
-#define FPRINTF_LOG_FIRSTPARAMS(severity) \
-  static_cast<int>(lenTime), pdTime, std::to_string(ISRLogger::Severity::severity).c_str()
+#define FPRINTF_LOG_FIRST_PARAMS(severityVar) \
+  static_cast<int>(lenTimeMacro), pdTimeMacro, std::to_string(ISRLogger::Severity::severityVar).c_str()
 
 FileLogger::FileLogger(const SRString& baseName) : _bShutdown(0), _enqueuedLen(0)
 {
@@ -24,11 +24,9 @@ FileLogger::FileLogger(const SRString& baseName) : _bShutdown(0), _enqueuedLen(0
     throw SRCannotOpenLogFileException(_fileName);
   }
   if (setvbuf(_fpout, nullptr, _IOFBF, cFileBufferBytes) != 0) {
-    SRString sTime = SRUtils::PrintUtcTime<false>();
-    const char *pdTime;
-    size_t lenTime = sTime.GetData(pdTime);
-    fprintf(_fpout, "%.*s [%s] Failed to set file buffer to %" PRIu32 " bytes. Logging may be slow.\n",
-      static_cast<int>(lenTime), pdTime, std::to_string(ISRLogger::Severity::Error).c_str(), cFileBufferBytes);
+    FPRINTF_LOG_PREPARE_TIME
+    fprintf(_fpout, FPRINTF_LOG_PREFIX "Failed to set file buffer to %" PRIu32 " bytes. Logging may be slow.\n",
+      FPRINTF_LOG_FIRST_PARAMS(Error), cFileBufferBytes);
     fflush(_fpout);
   }
   _thrWriter = std::thread(&FileLogger::WriterEntry, this);
@@ -40,8 +38,30 @@ FileLogger::~FileLogger() {
   fclose(_fpout);
 }
 
-bool FileLogger::Log(const Severity s, const SRString& message) {
-  //TODO: implement
+bool FileLogger::Log(const Severity sev, const SRString& message) {
+  SRString sTime = SRUtils::PrintUtcTime<true>();
+  std::string fullMessage = sTime.ToString() + " [" + std::to_string(sev) + "] " + message.ToString();
+  bool bNotifyPoppers;
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    for (;;) {
+      if (_bShutdown) {
+        csl.EarlyRelease();
+        throw SRLoggerShutDownException(fullMessage);
+      }
+      if (_enqueuedLen < cMaxEnqueuedLen) {
+        break;
+      }
+      _canPush.Wait(_cs);
+    }
+    _enqueuedLen += fullMessage.size();
+    _qu.push(std::move(fullMessage));
+    bNotifyPoppers = (_qu.size() == 1);
+  }
+  if (bNotifyPoppers) {
+    _canPop.WakeAll();
+  }
+  return true;
 }
 
 SRString FileLogger::GetFileName() {
@@ -83,12 +103,9 @@ void FileLogger::WriterEntry() {
       const bool bWasSaturated = (_enqueuedLen >= cMaxEnqueuedLen);
       if (token.size() > _enqueuedLen) {
         //TODO: shall this logging be moved out of critical section?
-        SRString sTime = SRUtils::PrintUtcTime<false>();
-        const char *pdTime;
-        size_t lenTime = sTime.GetData(pdTime);
-        fprintf(_fpout, "%.*s [%s] Enqueued length %" PRIu64 " is smaller than token length %" PRIu64 ". Setting"
-          " enqueued length to 0.\n", static_cast<int>(lenTime), pdTime,
-          std::to_string(ISRLogger::Severity::Critical).c_str(),
+        FPRINTF_LOG_PREPARE_TIME
+        fprintf(_fpout, FPRINTF_LOG_PREFIX "Enqueued length %" PRIu64 " is smaller than token length %" PRIu64 "."
+          " Setting enqueued length to 0.\n", FPRINTF_LOG_FIRST_PARAMS(Critical),
           static_cast<uint64_t>(_enqueuedLen), static_cast<uint64_t>(token.size()));
         bFlush = true;
 

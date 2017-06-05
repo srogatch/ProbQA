@@ -10,4 +10,11 @@ public:
     SRException(SRString::MakeUnowned("Cannot open log file.")) { }
 };
 
+class SRPLATFORM_API SRLoggerShutDownException : public SRException {
+  SRString _unloggedMsg;
+public:
+  explicit SRLoggerShutDownException(const std::string& unloggedMsg) : _unloggedMsg(unloggedMsg),
+    SRException(SRString::MakeUnowned("Cannot log because the logger is shut(ting) down .")) { }
+};
+
 } // namespace SRPlat

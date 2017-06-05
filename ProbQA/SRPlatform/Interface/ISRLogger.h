@@ -17,7 +17,7 @@ public: // Methods
   virtual ~ISRLogger() { }
   // Returns |false| if an error occurs while logging: a chance for the app to print to screen, show a dialog,
   //   terminate, etc.
-  virtual bool Log(const Severity s, const SRString& message) = 0;
+  virtual bool Log(const Severity sev, const SRString& message) = 0;
   virtual SRString GetFileName() = 0;
 };
 
