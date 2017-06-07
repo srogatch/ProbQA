@@ -12,7 +12,8 @@ enum class PqaErrorCode : int64_t {
   StdException = 3, // CommonExceptionErrorParams
   InsufficientEngineDimensions = 4,
   MaintenanceModeChangeInProgress = 5, // MaintenanceModeErrorParams
-  MaintenanceModeAlreadyThis = 6 // MaintenanceModeErrorParams
+  MaintenanceModeAlreadyThis = 6, // MaintenanceModeErrorParams
+  ObjectShutDown = 7 // the object is shut(ting) down
 };
 
 class PQACORE_API IPqaErrorParams {

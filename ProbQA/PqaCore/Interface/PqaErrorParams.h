@@ -8,7 +8,8 @@ namespace ProbQA {
 class PQACORE_API NotImplementedErrorParams : public IPqaErrorParams {
   SRPlat::SRString _feature;
 public:
-  NotImplementedErrorParams(const SRPlat::SRString& feature) : _feature(feature) { }
+  explicit NotImplementedErrorParams(SRPlat::SRString&& feature) : _feature(std::forward<SRPlat::SRString>(feature))
+  { }
   const SRPlat::SRString& GetFeature() { return _feature; }
 };
 
@@ -43,6 +44,15 @@ class PQACORE_API MaintenanceModeErrorParams : public IPqaErrorParams {
 public:
   explicit MaintenanceModeErrorParams(const uint8_t activeMode) : _activeMode(activeMode) { }
   uint8_t GetActiveMode() const { return _activeMode; }
+};
+
+class PQACORE_API ObjectShutDownErrorParams : public IPqaErrorParams {
+  SRPlat::SRString _rejectedOp;
+public:
+  explicit ObjectShutDownErrorParams(SRPlat::SRString&& rejectedOp)
+    : _rejectedOp(std::forward<SRPlat::SRString>(rejectedOp))
+  { }
+  const SRPlat::SRString& GetRejectedOp() { return _rejectedOp; }
 };
 
 } // namespace ProbQA

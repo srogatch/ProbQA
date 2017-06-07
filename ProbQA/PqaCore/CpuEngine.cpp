@@ -8,7 +8,8 @@ using namespace SRPlat;
 namespace ProbQA {
 
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
-  : _initAmount(engDef._initAmount), _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular)
+  : _initAmount(engDef._initAmount), _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular),
+  _shutdownRequested(0), _isShutDown(0)
 {
   if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
   {
@@ -16,14 +17,7 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
       _dims._nAnswers, cMinAnswers, _dims._nQuestions, cMinQuestions, _dims._nTargets, cMinTargets));
   }
 
-  //// Init matrix D
-  taNumber initMD = _initAmount * _dims._nAnswers;
-  _mD.resize(_dims._nQuestions);
-  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
-    _mD[i].resize(_dims._nTargets, initMD);
-  }
-
-  //// Init cube A
+  //// Init cube A: A[ao][q][t] is weight for answer option |ao| for question |q| for target |t|
   _cA.resize(_dims._nAnswers);
   for (TPqaId i = 0; i < _dims._nAnswers; i++) {
     _cA[i].resize(_dims._nQuestions);
@@ -31,6 +25,17 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
       _cA[i][j].resize(_dims._nTargets, _initAmount);
     }
   }
+
+  //// Init matrix D: D[q][t] is the sum of weigths over all answers for question |q| for target |t|. In the other
+  ////   words, D[q][t] is A[0][q][t] + A[1][q][t] + ... + A[K-1][q][t], where K is the number of answer options.
+  //// Note that D is subject to summation errors, thus its regular recomputation is desired.
+  taNumber initMD = _initAmount * _dims._nAnswers;
+  _mD.resize(_dims._nQuestions);
+  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
+    _mD[i].resize(_dims._nTargets, initMD);
+  }
+
+  //// Init vector B: the sums of weights over all trainings for each target
   _vB.resize(_dims._nTargets, _initAmount);
 
   _questionGaps.GrowTo(_dims._nQuestions);
@@ -45,6 +50,16 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
 }
 
 template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {
+  Shutdown();
+}
+
+template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* const saveFilePath) {
+  if (!_maintSwitch.Shutdown()) {
+   //TODO: return an error saying that the engine seems already shut down.
+  }
+  // By this moment, all operations must have shut down and no new operations can be started.
+  SRRWLock<true> rwl(_rws);
+
   //TODO: shutdown worker threads
   //TODO: implement
 }

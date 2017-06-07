@@ -26,9 +26,13 @@ private: // variables
   EngineDimensions _dims;
   taNumber _initAmount;
   uint64_t _nQuestionsAsked = 0;
-  MaintenanceSwitch _maintSwitch;
-  SRPlat::SRReaderWriterSync _rws;
+  
+  //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
+  MaintenanceSwitch _maintSwitch; // first-entry lock
+  SRPlat::SRReaderWriterSync _rws; // second-entry lock
+
   std::vector<std::thread> _workers;
+  uint64_t _shutdownRequested : 1;
 
 private: // methods
   void WorkerEntry();
@@ -71,6 +75,8 @@ public:
   virtual PqaError Compact(CompactionResult &cr) override;
 
   virtual PqaError ReleaseCompactionResult(CompactionResult &cr) override;
+
+  virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override;
 };
 
 } // namespace ProbQA
