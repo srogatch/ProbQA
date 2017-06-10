@@ -72,6 +72,7 @@ public:
   // Shutdown the engine, optionally saving the data to the given file path. The engine can't be brought back to
   //   operational state after this method is called.
   virtual PqaError Shutdown(const char* const saveFilePath = nullptr) = 0;
+  virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) = 0;
 };
 
 } // namespace ProbQA

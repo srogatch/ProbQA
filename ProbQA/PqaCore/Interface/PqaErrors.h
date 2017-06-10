@@ -6,7 +6,7 @@
 namespace ProbQA {
 
 enum class PqaErrorCode : int64_t {
-  None = 0,
+  None = 0, // Success
   NotImplemented = 1, // NotImplementedErrorParams
   SRException = 2, // CommonExceptionErrorParams
   StdException = 3, // CommonExceptionErrorParams
@@ -16,11 +16,14 @@ enum class PqaErrorCode : int64_t {
   ObjectShutDown = 7 // the object is shut(ting) down
 };
 
+SRPlat::SRString ToSRString(const PqaErrorCode pec);
+
 class PQACORE_API IPqaErrorParams {
 public:
   // For memory deallocation in the same module where it was allocated.
   void Release();
   virtual ~IPqaErrorParams() { }
+  virtual SRPlat::SRString ToString() = 0;
 };
 
 class PQACORE_API PqaError {
@@ -48,6 +51,8 @@ public:
 
   void SetFromException(SRPlat::SRException &&ex);
   void SetFromException(const std::exception &ex);
+
+  SRPlat::SRString ToString(const bool withParams);
 };
 
 } // namespace ProbQA

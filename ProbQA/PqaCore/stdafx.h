@@ -30,5 +30,8 @@
 #include "../SRPlatform/Interface/SRCriticalSection.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"
+#include "../SRPlatform/Interface/ISRLogger.h"
+#include "../SRPlatform/Interface/SRDefaultLogger.h"
+#include "../SRPlatform/Interface/SRLogStream.h"
 
 // TODO: reference additional headers your program requires here

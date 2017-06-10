@@ -10,7 +10,7 @@
 #define SRPLATFORM_API __declspec(dllexport)
 #else
 #define SRPLATFORM_API __declspec(dllimport)
-#endif
+#endif // SRPLATFORM_EXPORTS
 
 // This class is exported from the SRPlatform.dll
 class SRPLATFORM_API CSRPlatform {

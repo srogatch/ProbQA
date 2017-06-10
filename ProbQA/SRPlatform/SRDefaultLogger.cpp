@@ -54,8 +54,8 @@ void DefaultLoggerImpl::Init(const SRString& baseName) {
   ISRLogger *pOther = nullptr;
   if (!_pFileLogger.compare_exchange_strong(pOther, pFileLogger, std::memory_order_release, std::memory_order_relaxed))
   {
-    SRString message = SRMessageBuilder()("Detected concurrent initialization of"
-      " the default logger, with the previous file logger at address ")(pOther).GetOwnedSRString();
+    SRString message = SRMessageBuilder("Detected concurrent initialization of the default logger, with the previous"
+      " file logger at address ")(static_cast<const void*>(pOther)).GetOwnedSRString();
     // This is doubtful, but I think if we created the file and then immediately abandon it, we should note why.
     pFileLogger->Log(ISRLogger::Severity::Error, message);
     delete pFileLogger;

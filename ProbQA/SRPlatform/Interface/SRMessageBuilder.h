@@ -6,27 +6,53 @@
 namespace SRPlat {
 
 class SRMessageBuilder {
-  std::stringstream _ss;
+  std::string _buf;
 public:
   explicit SRMessageBuilder() {}
+  explicit SRMessageBuilder(const char* const pInit) : _buf(pInit) { }
   
   template<typename T> SRMessageBuilder& operator()(const T& arg) {
-    _ss << arg;
+    _buf.append(arg);
     return *this;
   }
 
-  //NOTE: don't do the following, because temporary string gets deallocated:
-  //  return _ss.str().c_str();
+  template<> SRMessageBuilder& operator()(const SRString& srs) {
+    const char* pData;
+    size_t len = srs.GetData(pData);
+    _buf.append(pData, len);
+    return *this;
+  }
+
+  SRMessageBuilder& operator()(const void* const ptr) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "0x%p", ptr);
+    _buf.append(buf);
+    return *this;
+  }
+
+  SRMessageBuilder& operator()(const int64_t val) {
+    _buf += std::to_string(val);
+    return *this;
+  }
+
+  SRMessageBuilder& AppendChar(char ch) {
+    _buf += ch;
+    return *this;
+  }
 
   // Get the string suitable only for the current module (EXE/DLL)
-  std::string GetString() {
-    return _ss.str();
+  const std::string& GetString() {
+    return _buf;
   }
 
   // Get the string suitable for passing between modules
   SRString GetOwnedSRString() {
-    std::string s = _ss.str();
-    return SRString::MakeClone(s.c_str(), s.size());
+    return SRString::MakeClone(_buf.c_str(), _buf.size());
+  }
+
+  // Get the string usable until modification or destruction of this builder.
+  SRString GetUnownedSRString() {
+    return SRString::MakeUnowned(_buf.c_str(), _buf.size());
   }
 };
 

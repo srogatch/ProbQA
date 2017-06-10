@@ -7,9 +7,11 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+#define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
+
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
   : _initAmount(engDef._initAmount), _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular),
-  _shutdownRequested(0), _isShutDown(0)
+  _shutdownRequested(0), _pLogger(SRDefaultLogger::Get())
 {
   if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
   {
@@ -50,7 +52,19 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
 }
 
 template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {
-  Shutdown();
+  PqaError pqaErr = Shutdown();
+  if (!pqaErr.isOk()) {
+    CELOG(Error) << "Failed CpuEngine::Shutdown(): " << pqaErr.ToString(true);
+  }
+  //TODO: implement
+}
+
+template<typename taNumber> PqaError CpuEngine<taNumber>::SetLogger(ISRLogger *pLogger) {
+  if (pLogger == nullptr) {
+    pLogger = SRDefaultLogger::Get();
+  }
+  _pLogger.store(pLogger, std::memory_order_release);
+  return PqaError();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* const saveFilePath) {
@@ -62,6 +76,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
 
   //TODO: shutdown worker threads
   //TODO: implement
+  return PqaError();
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::WorkerEntry() {

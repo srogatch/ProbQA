@@ -10,7 +10,12 @@ class PQACORE_API NotImplementedErrorParams : public IPqaErrorParams {
 public:
   explicit NotImplementedErrorParams(SRPlat::SRString&& feature) : _feature(std::forward<SRPlat::SRString>(feature))
   { }
+
   const SRPlat::SRString& GetFeature() { return _feature; }
+
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("Feature=")(_feature).GetOwnedSRString();
+  }
 };
 
 class PQACORE_API CommonExceptionErrorParams : public IPqaErrorParams {
@@ -20,6 +25,10 @@ public:
     _etn = SRPlat::SRString::MakeUnowned(typeid(ex).name());
   }
   const SRPlat::SRString& GetExceptionTypeName() { return _etn; }
+  
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("ExceptionType=")(_etn).GetOwnedSRString();
+  }
 };
 
 class PQACORE_API InsufficientEngineDimensionsErrorParams : public IPqaErrorParams {
@@ -35,7 +44,11 @@ public: // methods
     const TPqaId nQuestions, const TPqaId minQuestions, const TPqaId nTargets, const TPqaId minTargets)
     : _nAnswers(nAnswers), _minAnswers(minAnswers), _nQuestions(nQuestions), _minQuestions(minQuestions),
     _nTargets(nTargets), _minTargets(minTargets)
-  {
+  { }
+
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("[nAnswers=")(_nAnswers)(" of ")(_minAnswers)("] [nQuestions=")(_nQuestions)(" of ")
+      (_minQuestions)("] [nTargets=")(_nTargets)(" of ")(_minTargets).AppendChar(']').GetOwnedSRString();
   }
 };
 
@@ -44,6 +57,10 @@ class PQACORE_API MaintenanceModeErrorParams : public IPqaErrorParams {
 public:
   explicit MaintenanceModeErrorParams(const uint8_t activeMode) : _activeMode(activeMode) { }
   uint8_t GetActiveMode() const { return _activeMode; }
+
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("ActiveMode=#")(int64_t(_activeMode)).GetOwnedSRString();
+  }
 };
 
 class PQACORE_API ObjectShutDownErrorParams : public IPqaErrorParams {
@@ -53,6 +70,10 @@ public:
     : _rejectedOp(std::forward<SRPlat::SRString>(rejectedOp))
   { }
   const SRPlat::SRString& GetRejectedOp() { return _rejectedOp; }
+
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("RejectedOperation=")(_rejectedOp).GetOwnedSRString();
+  }
 };
 
 } // namespace ProbQA

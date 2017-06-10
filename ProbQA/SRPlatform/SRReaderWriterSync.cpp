@@ -3,27 +3,27 @@
 
 namespace SRPlat {
 
-template<> void SRReaderWriterSync::Acquire<true>() {
+template<> SRPLATFORM_API void SRReaderWriterSync::Acquire<true>() {
   AcquireSRWLockExclusive(&_block);
 }
 
-template<> void SRReaderWriterSync::Acquire<false>() {
+template<> SRPLATFORM_API void SRReaderWriterSync::Acquire<false>() {
   AcquireSRWLockShared(&_block);
 }
 
-template<> bool SRReaderWriterSync::TryAcquire<true>() {
+template<> SRPLATFORM_API bool SRReaderWriterSync::TryAcquire<true>() {
   return TryAcquireSRWLockExclusive(&_block);
 }
 
-template<> bool SRReaderWriterSync::TryAcquire<false>() {
+template<> SRPLATFORM_API bool SRReaderWriterSync::TryAcquire<false>() {
   return TryAcquireSRWLockShared(&_block);
 }
 
-template<> void SRReaderWriterSync::Release<true>() {
+template<> SRPLATFORM_API void SRReaderWriterSync::Release<true>() {
   ReleaseSRWLockExclusive(&_block);
 }
 
-template<> void SRReaderWriterSync::Release<false>() {
+template<> SRPLATFORM_API void SRReaderWriterSync::Release<false>() {
   ReleaseSRWLockShared(&_block);
 }
 

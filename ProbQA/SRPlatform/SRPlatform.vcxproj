@@ -151,6 +151,7 @@
     <ClInclude Include="Interface\ISRLogger.h" />
     <ClInclude Include="Interface\SRDefaultLogger.h" />
     <ClInclude Include="Interface\SRLoggerFactory.h" />
+    <ClInclude Include="Interface\SRLogStream.h" />
     <ClInclude Include="Interface\SRMacros.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRPlatform.h" />

@@ -34,6 +34,8 @@ private: // variables
   std::vector<std::thread> _workers;
   uint64_t _shutdownRequested : 1;
 
+  std::atomic<SRPlat::ISRLogger*> _pLogger;
+
 private: // methods
   void WorkerEntry();
 
@@ -77,6 +79,7 @@ public:
   virtual PqaError ReleaseCompactionResult(CompactionResult &cr) override;
 
   virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override;
+  virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) override;
 };
 
 } // namespace ProbQA

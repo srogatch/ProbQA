@@ -7,6 +7,7 @@ namespace SRPlat {
 // A string for DLL/EXE interoperability. The class is not intended for string modification, but rather just for passing
 //   constant string between modules.
 //NOTE: the string may not contain a null terminator.
+//TODO: why is this final?
 class SRPLATFORM_API SRString final {
   const char *_pData;
   uint64_t _length : 63; // let it occupy bits 0..62 so to avoid a shift operation on access

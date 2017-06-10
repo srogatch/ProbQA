@@ -6,6 +6,31 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+SRPlat::SRString ToSRString(const PqaErrorCode pec) {
+  switch (pec) {
+  case PqaErrorCode::None:
+    return SRString::MakeUnowned("Success");
+  case PqaErrorCode::NotImplemented:
+    return SRString::MakeUnowned("Not implemented");
+  case PqaErrorCode::SRException:
+    return SRString::MakeUnowned("SRException");
+  case PqaErrorCode::StdException:
+    return SRString::MakeUnowned("std::exception");
+  case PqaErrorCode::InsufficientEngineDimensions:
+    return SRString::MakeUnowned("Insufficient engine dimensions");
+  case PqaErrorCode::MaintenanceModeChangeInProgress:
+    return SRString::MakeUnowned("Maintenance mode change is in progress");
+  case PqaErrorCode::MaintenanceModeAlreadyThis:
+    return SRString::MakeUnowned("Maintenance mode is already this");
+  case PqaErrorCode::ObjectShutDown:
+    return SRString::MakeUnowned("Object is shut(ting) down.");
+  default: {
+    std::string message("Unhandled");
+    message += std::to_string(static_cast<int64_t>(pec));
+    return SRString::MakeClone(message.c_str(), message.size());
+  } }
+}
+
 void IPqaErrorParams::Release() {
   delete this;
 }
@@ -64,6 +89,23 @@ void PqaError::SetFromException(const std::exception &ex) {
   _code = PqaErrorCode::StdException;
   _message = SRString::MakeClone(ex.what());
   _pParams = new CommonExceptionErrorParams(ex);
+}
+
+SRString PqaError::ToString(const bool withParams) {
+  SRMessageBuilder mb;
+  mb.AppendChar('[')(ToSRString(_code))("] [")(_message);
+  if (!withParams) {
+    return mb.AppendChar(']').GetOwnedSRString();
+  }
+  mb("] [");
+  if (_pParams == nullptr) {
+    mb("nullptr");
+  }
+  else {
+    mb(_pParams->ToString());
+  }
+  mb.AppendChar(']');
+  return mb.GetOwnedSRString();
 }
 
 } // namespace ProbQA

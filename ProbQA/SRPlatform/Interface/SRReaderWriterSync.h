@@ -16,9 +16,9 @@ public:
   SRReaderWriterSync(SRReaderWriterSync&&) = delete;
   SRReaderWriterSync& operator=(SRReaderWriterSync&&) = delete;
 
-  template<bool taExclusive> void Acquire();
-  template<bool taExclusive> bool TryAcquire();
-  template<bool taExclusive> void Release();
+  template<bool taExclusive> SRPLATFORM_API void Acquire();
+  template<bool taExclusive> SRPLATFORM_API bool TryAcquire();
+  template<bool taExclusive> SRPLATFORM_API void Release();
 
   void Acquire(const bool bExclusive);
   bool TryAcquire(const bool bExclusive);
