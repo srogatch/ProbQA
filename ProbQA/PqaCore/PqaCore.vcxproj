@@ -138,6 +138,9 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CESubtask.h" />
+    <ClInclude Include="CESubtaskCompleter.h" />
+    <ClInclude Include="CETask.h" />
     <ClInclude Include="CpuEngine.h" />
     <ClInclude Include="DoubleNumber.h" />
     <ClInclude Include="GapTracker.h" />
@@ -155,6 +158,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CETask.cpp" />
     <ClCompile Include="CpuEngine.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>

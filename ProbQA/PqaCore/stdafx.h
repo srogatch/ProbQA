@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
+#include <queue>
 #include <string>
 #include <thread>
 #include <type_traits>

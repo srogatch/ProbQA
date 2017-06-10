@@ -8,6 +8,8 @@
 
 namespace ProbQA {
 
+template<typename taNumber> class CESubtask;
+
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
 
@@ -17,6 +19,9 @@ public: // constants
   static const TPqaId cMinTargets = 2;
   static const size_t cDataAlign = sizeof(__m256);
 
+private: // types
+  typedef SRPlat::SRSpinSync<32> TStpSync;
+
 private: // variables
   std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>>> _cA; // cube A
   std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>> _mD; // matrix D
@@ -24,22 +29,31 @@ private: // variables
   GapTracker<TPqaId> _questionGaps;
   GapTracker<TPqaId> _targetGaps;
   EngineDimensions _dims;
-  taNumber _initAmount;
-  uint64_t _nQuestionsAsked = 0;
+  uint64_t _nQuestionsAsked = 0; // Guarded by _rws
   
   //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
   MaintenanceSwitch _maintSwitch; // first-entry lock
   SRPlat::SRReaderWriterSync _rws; // second-entry lock
+  SRPlat::SRCriticalSection _csWorkers; // third-entry lock
+  // SubTask Pool Sync
+  TStpSync _stpSync; // fourth-entry lock
 
+  uint8_t _shutdownRequested : 1; // guarded by _csWorkers
+
+  SRPlat::SRConditionVariable _haveWork;
+  std::queue<CESubtask<taNumber>*> _quWork;
+
+  std::vector<std::vector<CESubtask<taNumber>*>> _stPool;
+
+  //// Cache-insensitive data
   std::vector<std::thread> _workers;
-  uint64_t _shutdownRequested : 1;
-
   std::atomic<SRPlat::ISRLogger*> _pLogger;
-
 private: // methods
   void WorkerEntry();
+  void RunSubtask(CESubtask<taNumber> &ceSt);
+  CESubtask<taNumber>* CreateSubtask(const typename CESubtask<taNumber>::Kind kind);
 
-public:
+public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);
   virtual ~CpuEngine() override;
 
@@ -80,6 +94,11 @@ public:
 
   virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override;
   virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) override;
+
+public: // Internal interface methods
+  SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
+  void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
+  CESubtask<taNumber>* AcqireSubtask(const typename CESubtask<taNumber>::Kind kind);
 };
 
 } // namespace ProbQA
