@@ -76,18 +76,21 @@ public:
   }
 };
 
-class PQACORE_API IndexTooLargeErrorParams : public IPqaErrorParams {
+class PQACORE_API IndexOutOfRangeErrorParams : public IPqaErrorParams {
   TPqaId _subjIndex;
+  TPqaId _minIndex;
   TPqaId _maxIndex;
 public:
-  explicit IndexTooLargeErrorParams(const TPqaId subjIndex, const TPqaId maxIndex)
-    : _subjIndex(subjIndex), _maxIndex(maxIndex)
+  explicit IndexOutOfRangeErrorParams(const TPqaId subjIndex, const TPqaId minIndex, const TPqaId maxIndex)
+    : _subjIndex(subjIndex), _minIndex(minIndex), _maxIndex(maxIndex)
   { }
   TPqaId GetSubjIndex() const { return _subjIndex; }
+  TPqaId GetMinIndex() const { return _minIndex; }
   TPqaId GetMaxIndex() const { return  _maxIndex; }
 
   virtual SRPlat::SRString ToString() override {
-    return SRPlat::SRMessageBuilder("subjIndex=")(_subjIndex)(" out of ")(_maxIndex).GetOwnedSRString();
+    return SRPlat::SRMessageBuilder("subjIndex=")(_subjIndex)(" not in ")(_minIndex)("...")(_maxIndex)
+      .GetOwnedSRString();
   }
 };
 

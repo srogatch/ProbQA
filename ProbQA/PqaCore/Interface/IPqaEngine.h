@@ -11,6 +11,7 @@ public:
   virtual ~IPqaEngine() { }
 
   // A possibility to train the knowledge base without running a quiz.
+  // |pAQs| must not contain duplicate questions.
   virtual PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount = 1) = 0;
 

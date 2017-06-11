@@ -178,14 +178,21 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   if (nQuestions * (TPqaId(_workers.size()) << cLogSimdWidth) <= _dims._nQuestions) {
     std::unordered_set<TPqaId> seen(size_t(nQuestions)+1);
     for (TPqaId i = 0; i < nQuestions; i++) {
-      if (pAQs[i]._iQuestion >= _dims._nQuestions) {
+      if (pAQs[i]._iQuestion < 0 || pAQs[i]._iQuestion >= _dims._nQuestions) {
         const TPqaId nKB = _dims._nQuestions;
         rwl.EarlyRelease();
-        return PqaError(PqaErrorCode::IndexTooLarge, new IndexTooLargeErrorParams(pAQs[i]._iQuestion, nKB),
-          SRString::MakeUnowned("Question index exceeds the number of questions in the KB."));
+        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(pAQs[i]._iQuestion, 0, nKB-1),
+          SRString::MakeUnowned("Question index is not in KB range."));
+      }
+      if (pAQs[i]._iAnswer < 0 || pAQs[i]._iAnswer >= _dims._nAnswers) {
+        const TPqaId nKB = _dims._nAnswers;
+        rwl.EarlyRelease();
+        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(pAQs[i]._iAnswer, 0, nKB - 1),
+          SRString::MakeUnowned("Answer index is not in KB range."));
       }
       auto emplRes = seen.emplace(pAQs[i]._iQuestion);
       if (!emplRes.second) {
+
       }
     }
   }

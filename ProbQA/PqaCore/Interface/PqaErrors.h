@@ -14,7 +14,7 @@ enum class PqaErrorCode : int64_t {
   MaintenanceModeChangeInProgress = 5, // MaintenanceModeErrorParams
   MaintenanceModeAlreadyThis = 6, // MaintenanceModeErrorParams
   ObjectShutDown = 7, // ObjectShutDownErrorParams . The object is shut(ting) down
-  IndexTooLarge = 8 // IndexTooLargeErrorParams
+  IndexOutOfRange = 8 // IndexOutOfRangeErrorParams
 };
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);
