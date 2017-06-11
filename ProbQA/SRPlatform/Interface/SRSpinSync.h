@@ -1,6 +1,19 @@
 #pragma once
 
+#include "../SRPlatform/Interface/SRPlatform.h"
+
 namespace SRPlat {
+
+class SRPLATFORM_API SRSpinStatistics {
+  template <uint32_t YP> friend class SRSpinSync;
+
+private: // methods
+  // Returns the total number of spins together with the current spin
+  static uint64_t OnContention();
+
+public: // methods
+  static uint64_t TotalContention();
+};
 
 template<uint32_t taYieldPeriod> class SRSpinSync {
   std::atomic_flag _af = ATOMIC_FLAG_INIT;
@@ -8,6 +21,7 @@ public:
   void Acquire() {
     uint32_t nSpins = 0;
     while (_af.test_and_set(std::memory_order_acquire)) {
+      SRSpinStatistics::OnContention();
       nSpins++;
       if (nSpins >= taYieldPeriod) {
         nSpins = 0;

@@ -2,9 +2,6 @@
 #include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/PqaException.h"
-#include "../PqaCore/CESubtaskCompleter.h"
-#include "../PqaCore/CETask.h"
-#include "../PqaCore/CESubtask.h"
 
 using namespace SRPlat;
 
@@ -106,11 +103,7 @@ template<typename taNumber> void CpuEngine<taNumber>::ReleaseSubtask(CESubtask<t
   int64_t kind = static_cast<int64_t>(pSubtask->GetKind());
   int64_t poolSize = static_cast<int64_t>(_stPool.size());
   if (kind >= poolSize) {
-    stpsl.EarlyRelease();
-    CELOG(Error) << "In " __FUNCTION__ " CESubtask kind " << kind << " exceeds the number of kinds in the pool "
-      << poolSize;
-    delete pSubtask;
-    return;
+    _stPool.resize(kind + 1);
   }
   _stPool[kind].push_back(pSubtask);
 }
@@ -121,18 +114,25 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubt
   switch (kind) {
   case CESubtask<taNumber>::Kind::None:
     CELOG(Critical) << "Requested to create a subtask of kind None";
-    break;
+    return nullptr;
     //TODO: implement
   default:
-    CELOG(Critical) << "Requested to create a subtask of unhandled kind #" + static_cast<int64_t>(ceSt.GetKind());
-    break;
+    CELOG(Critical) << "Requested to create a subtask of unhandled kind #" + static_cast<int64_t>(kind);
+    return nullptr;
   }
 }
 
 template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::AcqireSubtask(
   const typename CESubtask<taNumber>::Kind kind)
 {
-
+  SRLock<TStpSync> stpsl(_stpSync);
+  int64_t iKind = static_cast<int64_t>(kind);
+  if (iKind >= _stPool.size() || _stPool[iKind].size() == 0) {
+    return CreateSubtask(kind);
+  }
+  CESubtask<taNumber> *answer = _stPool[iKind].back();
+  _stPool[iKind].pop_back();
+  return answer;
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNumber> &ceSt) {

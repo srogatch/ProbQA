@@ -4,7 +4,7 @@
 #include "stdafx.h"
 
 
-int main()
+int __cdecl main()
 {
   const int64_t nIterations = 10 * 1000 * 1000;
   HANDLE hEvent = CreateEvent(nullptr, true, true, nullptr);

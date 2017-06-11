@@ -137,5 +137,8 @@
     <ClCompile Include="SRReaderWriterSync.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SRSpinSync.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

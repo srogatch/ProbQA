@@ -5,10 +5,11 @@
 #include "../PqaCore/MaintenanceSwitch.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/PqaNumber.h"
+#include "../PqaCore/CESubtaskCompleter.h"
+#include "../PqaCore/CETask.h"
+#include "../PqaCore/CESubtask.h"
 
 namespace ProbQA {
-
-template<typename taNumber> class CESubtask;
 
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
