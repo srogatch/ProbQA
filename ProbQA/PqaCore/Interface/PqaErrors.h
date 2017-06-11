@@ -13,7 +13,8 @@ enum class PqaErrorCode : int64_t {
   InsufficientEngineDimensions = 4,
   MaintenanceModeChangeInProgress = 5, // MaintenanceModeErrorParams
   MaintenanceModeAlreadyThis = 6, // MaintenanceModeErrorParams
-  ObjectShutDown = 7 // the object is shut(ting) down
+  ObjectShutDown = 7, // ObjectShutDownErrorParams . The object is shut(ting) down
+  IndexTooLarge = 8 // IndexTooLargeErrorParams
 };
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);

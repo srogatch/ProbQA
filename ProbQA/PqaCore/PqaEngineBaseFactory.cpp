@@ -34,6 +34,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
 }
 
 IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) {
+  (void)engDef; //TODO: remove when implemented
   //TODO: implement
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "ProbQA Engine on CUDA.")));
@@ -41,6 +42,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDe
 }
 
 IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDefinition& engDef) {
+  (void)engDef; //TODO: remove when implemented
   //TODO: implement
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "ProbQA Engine over a grid.")));

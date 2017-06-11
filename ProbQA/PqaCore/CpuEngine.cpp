@@ -21,11 +21,11 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
 
   taNumber initAmount(engDef._initAmount);
   //// Init cube A: A[ao][q][t] is weight for answer option |ao| for question |q| for target |t|
-  _cA.resize(_dims._nAnswers);
-  for (TPqaId i = 0; i < _dims._nAnswers; i++) {
-    _cA[i].resize(_dims._nQuestions);
-    for (TPqaId j = 0; j < _dims._nQuestions; j++) {
-      _cA[i][j].resize(_dims._nTargets, initAmount);
+  _cA.resize(size_t(_dims._nAnswers));
+  for (size_t i = 0, iEn= size_t(_dims._nAnswers); i < iEn; i++) {
+    _cA[i].resize(size_t(_dims._nQuestions));
+    for (size_t j = 0, jEn= size_t(_dims._nQuestions); j < jEn; j++) {
+      _cA[i][j].resize(size_t(_dims._nTargets), initAmount);
     }
   }
 
@@ -33,19 +33,19 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   ////   words, D[q][t] is A[0][q][t] + A[1][q][t] + ... + A[K-1][q][t], where K is the number of answer options.
   //// Note that D is subject to summation errors, thus its regular recomputation is desired.
   taNumber initMD = initAmount * _dims._nAnswers;
-  _mD.resize(_dims._nQuestions);
-  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
-    _mD[i].resize(_dims._nTargets, initMD);
+  _mD.resize(size_t(_dims._nQuestions));
+  for (size_t i = 0, iEn=size_t(_dims._nQuestions); i < iEn; i++) {
+    _mD[i].resize(size_t(_dims._nTargets), initMD);
   }
 
   //// Init vector B: the sums of weights over all trainings for each target
-  _vB.resize(_dims._nTargets, initAmount);
+  _vB.resize(size_t(_dims._nTargets), initAmount);
 
   _questionGaps.GrowTo(_dims._nQuestions);
   _targetGaps.GrowTo(_dims._nTargets);
 
-  int64_t nWorkers = std::thread::hardware_concurrency();
-  for (int64_t i = 0; i < nWorkers; i++) {
+  const uint32_t nWorkers = std::thread::hardware_concurrency();
+  for (uint32_t i = 0; i < nWorkers; i++) {
     _workers.emplace_back(&CpuEngine<taNumber>::WorkerEntry, this);
   }
   //throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
@@ -57,8 +57,8 @@ template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {
   if (!pqaErr.isOk() && pqaErr.GetCode() != PqaErrorCode::ObjectShutDown) {
     CELOG(Error) << "Failed CpuEngine::Shutdown(): " << pqaErr.ToString(true);
   }
-  for (int64_t i = 0, iEn = _stPool.size(); i < iEn; i++) {
-    for (int64_t j = 0, jEn = _stPool[i].size(); j < jEn; j++) {
+  for (size_t i = 0, iEn = _stPool.size(); i < iEn; i++) {
+    for (size_t j = 0, jEn = _stPool[i].size(); j < jEn; j++) {
       delete _stPool[i][j];
     }
   }
@@ -90,7 +90,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
     _shutdownRequested = 1;
     _haveWork.WakeAll();
   }
-  for (int64_t i = 0, iEn = _workers.size(); i < iEn; i++) {
+  for (size_t i = 0, iEn = _workers.size(); i < iEn; i++) {
     _workers[i].join();
   }
 
@@ -100,8 +100,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
 template<typename taNumber> void CpuEngine<taNumber>::ReleaseSubtask(CESubtask<taNumber> *pSubtask) {
   // With a subtask pool, avoid memory alloc/free bottlenecks
   SRLock<TStpSync> stpsl(_stpSync);
-  int64_t kind = static_cast<int64_t>(pSubtask->GetKind());
-  int64_t poolSize = static_cast<int64_t>(_stPool.size());
+  size_t kind = static_cast<size_t>(pSubtask->GetKind());
+  size_t poolSize = _stPool.size();
   if (kind >= poolSize) {
     _stPool.resize(kind + 1);
   }
@@ -126,7 +126,7 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::AcqireSubt
   const typename CESubtask<taNumber>::Kind kind)
 {
   SRLock<TStpSync> stpsl(_stpSync);
-  int64_t iKind = static_cast<int64_t>(kind);
+  size_t iKind = static_cast<size_t>(kind);
   if (iKind >= _stPool.size() || _stPool[iKind].size() == 0) {
     return CreateSubtask(kind);
   }
@@ -168,9 +168,30 @@ template<typename taNumber> void CpuEngine<taNumber>::WorkerEntry() {
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
+  (void)iTarget; (void)amount; //TODO: remove when implemented
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<true> rwl(_rws);
 
+  //// Check that there are no duplicate questions passed in pAQs. This code must be reader-writer locked, because
+  ////   we are validating the input before modifying the KB, so noone must change the KB in between.
+  // In case both are zero, run the single-threaded version
+  if (nQuestions * (TPqaId(_workers.size()) << cLogSimdWidth) <= _dims._nQuestions) {
+    std::unordered_set<TPqaId> seen(size_t(nQuestions)+1);
+    for (TPqaId i = 0; i < nQuestions; i++) {
+      if (pAQs[i]._iQuestion >= _dims._nQuestions) {
+        const TPqaId nKB = _dims._nQuestions;
+        rwl.EarlyRelease();
+        return PqaError(PqaErrorCode::IndexTooLarge, new IndexTooLargeErrorParams(pAQs[i]._iQuestion, nKB),
+          SRString::MakeUnowned("Question index exceeds the number of questions in the KB."));
+      }
+      auto emplRes = seen.emplace(pAQs[i]._iQuestion);
+      if (!emplRes.second) {
+      }
+    }
+  }
+  else {
+
+  }
   // This method should increase the counter of questions asked by the number of questions in this training.
   _nQuestionsAsked += nQuestions;
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
@@ -186,18 +207,21 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err, const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs) 
 {
+  (void)nQuestions; (void)pAQs; //TODO: remove when implemented
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::ResumeQuiz")));
   return cInvalidPqaId;
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& err, const TPqaId iQuiz) {
+  (void)iQuiz; //TODO: remove when implemented
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));
   return cInvalidPqaId;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) {
+  (void)iQuiz; (void)iAnswer; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::RecordAnswer")));
 }
@@ -205,6 +229,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RecordAnswer(const TPq
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError& err, const TPqaId iQuiz,
   const TPqaId maxCount, RatedTarget *pDest) 
 {
+  (void)iQuiz; (void)maxCount; (void)pDest; //TODO: remove when implemented
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::ListTopTargets")));
   return cInvalidPqaId;
@@ -213,27 +238,32 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget,
   const TPqaAmount amount) 
 {
+  (void)iQuiz; (void)iTarget; (void)amount; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::RecordQuizTarget")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqaId iQuiz) {
+  (void)iQuiz; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::ReleaseQuiz")));
 }
 
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* const filePath, const bool bDoubleBuffer) {
+  (void)filePath; (void)bDoubleBuffer; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::SaveKB")));
 }
 
 template<typename taNumber> uint64_t CpuEngine<taNumber>::GetTotalQuestionsAsked(PqaError& err) {
   err.Release();
+  SRRWLock<false> rwsl(_rws);
   return _nQuestionsAsked;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const bool forceQuizes) {
+  (void)forceQuizes; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::StartMaintenance")));
 }
@@ -244,54 +274,64 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::FinishMaintenance() {
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::AddQuestion(PqaError& err, const TPqaAmount initialAmount) {
+  (void)initialAmount; //TODO: remove when implemented
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::AddQuestion")));
   return cInvalidPqaId;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) {
+  (void)nQuestions; (void)pAqps; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::AddQuestions")));
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::AddTarget(PqaError& err, const TPqaAmount initialAmount) {
+  (void)initialAmount; //TODO: remove when implemented
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::AddTarget")));
   return cInvalidPqaId;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::AddTargets(TPqaId nTargets, AddTargetParam *pAtps) {
+  (void)nTargets; (void)pAtps; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::AddTargets")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveQuestion(const TPqaId iQuestion) {
+  (void)iQuestion; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::RemoveQuestion")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds)
 {
+  (void)nQuestions; (void)pQIds; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::RemoveQuestions")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTarget(const TPqaId iTarget) {
+  (void)iTarget; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::RemoveTarget")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) {
+  (void)nTargets; (void)pTIds; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::RemoveTargets")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResult &cr) {
+  (void)cr; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::Compact")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseCompactionResult(CompactionResult &cr) {
+  (void)cr; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::ReleaseCompactionResult")));
 }

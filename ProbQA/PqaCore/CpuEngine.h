@@ -19,6 +19,7 @@ public: // constants
   static const TPqaId cMinQuestions = 1;
   static const TPqaId cMinTargets = 2;
   static const size_t cDataAlign = sizeof(__m256);
+  static const size_t cLogSimdWidth = 8; // AVX2, 256 bits
 
 private: // types
   typedef SRPlat::SRSpinSync<32> TStpSync;

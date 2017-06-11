@@ -23,7 +23,9 @@ SRPlat::SRString ToSRString(const PqaErrorCode pec) {
   case PqaErrorCode::MaintenanceModeAlreadyThis:
     return SRString::MakeUnowned("Maintenance mode is already this");
   case PqaErrorCode::ObjectShutDown:
-    return SRString::MakeUnowned("Object is shut(ting) down.");
+    return SRString::MakeUnowned("Object is shut(ting) down");
+  case PqaErrorCode::IndexTooLarge:
+    return SRString::MakeUnowned("Index is too large");
   default: {
     std::string message("Unhandled");
     message += std::to_string(static_cast<int64_t>(pec));

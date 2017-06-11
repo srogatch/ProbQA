@@ -76,4 +76,19 @@ public:
   }
 };
 
+class PQACORE_API IndexTooLargeErrorParams : public IPqaErrorParams {
+  TPqaId _subjIndex;
+  TPqaId _maxIndex;
+public:
+  explicit IndexTooLargeErrorParams(const TPqaId subjIndex, const TPqaId maxIndex)
+    : _subjIndex(subjIndex), _maxIndex(maxIndex)
+  { }
+  TPqaId GetSubjIndex() const { return _subjIndex; }
+  TPqaId GetMaxIndex() const { return  _maxIndex; }
+
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("subjIndex=")(_subjIndex)(" out of ")(_maxIndex).GetOwnedSRString();
+  }
+};
+
 } // namespace ProbQA

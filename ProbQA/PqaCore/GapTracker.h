@@ -35,7 +35,7 @@ public:
   // Grow to the specified length setting the new items as not gaps.
   void GrowTo(const taId newLength) {
     assert(newLength >= taId(_isGap.size()));
-    _isGap.resize(newLength, false);
+    _isGap.resize(size_t(newLength), false);
   }
 
   // Client access to the gaps vector, e.g. to sort it and then make compaction.

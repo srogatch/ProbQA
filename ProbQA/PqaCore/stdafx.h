@@ -22,6 +22,7 @@
 #include <string>
 #include <thread>
 #include <type_traits>
+#include <unordered_set>
 #include <vector>
 
 #include "../SRPlatform/Interface/SRException.h"
