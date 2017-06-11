@@ -75,6 +75,12 @@
     <ClInclude Include="CESubtaskCompleter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CETrainTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskDistrib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

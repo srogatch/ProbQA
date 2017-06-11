@@ -2,6 +2,7 @@
 #include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/PqaException.h"
+#include "../PqaCore/CETrainTask.h"
 
 using namespace SRPlat;
 
@@ -115,6 +116,8 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubt
   case CESubtask<taNumber>::Kind::None:
     CELOG(Critical) << "Requested to create a subtask of kind None";
     return nullptr;
+  case CESubtask<taNumber>::Kind::TrainDistrib:
+    return new CETrainSubtaskDistrib<taNumber>();
     //TODO: implement
   default:
     CELOG(Critical) << "Requested to create a subtask of unhandled kind #" + static_cast<int64_t>(kind);
@@ -122,7 +125,7 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubt
   }
 }
 
-template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::AcqireSubtask(
+template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::AcquireSubtask(
   const typename CESubtask<taNumber>::Kind kind)
 {
   SRLock<TStpSync> stpsl(_stpSync);
@@ -139,6 +142,9 @@ template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNum
   switch (ceSt.GetKind()) {
   case CESubtask<taNumber>::Kind::None:
     CELOG(Critical) << "Worker has received a subtask of kind None";
+    break;
+  case CESubtask<taNumber>::Kind::TrainDistrib:
+    RunTrainDistrib(dynamic_cast<CETrainSubtaskDistrib<taNumber>&>(ceSt));
     break;
     //TODO: implement
   default:
@@ -165,34 +171,95 @@ template<typename taNumber> void CpuEngine<taNumber>::WorkerEntry() {
   }
 }
 
+template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd) {
+  CETrainTask<taNumber> *pTask = static_cast<CETrainTask<taNumber>*>(tsd._pTask);
+  for (const AnsweredQuestion *pAQ = tsd._pFirst; pAQ < tsd._pLim; pAQ++) {
+    //TODO: check ranges
+    TPqaId iBucket = pAQ->_iQuestion % _workers.size();
+    TPqaId iPrev = pTask->_iPrev.fetch_add(1);
+    TPqaId expected = pTask->_last[iBucket].load(std::memory_order_acquire);
+    while (!pTask->_last[iBucket].compare_exchange_weak(expected, iPrev, std::memory_order_acq_rel));
+    pTask->_prev[iPrev] = expected;
+  }
+}
+
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
-  (void)iTarget; (void)amount; //TODO: remove when implemented
+  if (nQuestions < 0) {
+    //TODO: report error
+  }
+  if (amount <= 0) {
+    //TODO: report error
+  }
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<true> rwl(_rws);
 
-  //// Check that there are no duplicate questions passed in pAQs. This code must be reader-writer locked, because
-  ////   we are validating the input before modifying the KB, so noone must change the KB in between.
+  if (iTarget < 0 || iTarget >= _dims._nTargets) {
+    //TODO: report error
+  }
+
+  //// This code must be reader-writer locked, because we are validating the input before modifying the KB, so noone
+  ////   must change the KB in between.
+
+  const size_t nWorkers = _workers.size();
+  CETrainTask<taNumber> trainTask(this);
+  trainTask._prev.reset(new TPqaId[nQuestions]);
+  trainTask._last.reset(new std::atomic<TPqaId>[nWorkers]);
+  for (size_t i = 0; i < nWorkers; i++) {
+    trainTask._last[i].store(cInvalidPqaId, std::memory_order_relaxed);
+  }
+  {
+    lldiv_t perWorker = div((long long)nQuestions, (long long)nWorkers);
+    TPqaId nextStart = 0;
+    SRLock<SRCriticalSection> csl(_csWorkers);
+    size_t i = 0;
+    for (; i < nWorkers && nextStart < nQuestions; i++) {
+      TPqaId curStart = nextStart;
+      nextStart += perWorker.quot;
+      if ((long long)i < perWorker.rem) {
+        nextStart++;
+      }
+      assert(nextStart <= nQuestions);
+      auto pSt = dynamic_cast<CETrainSubtaskDistrib<taNumber>*>(AcquireSubtask(CESubtask<taNumber>::Kind::TrainDistrib));
+      if (pSt == nullptr) {
+        //TODO: handle and report error
+      }
+      pSt->_pTask = &trainTask;
+      pSt->_pFirst = pAQs + curStart;
+      pSt->_pLim = pAQs + nextStart;
+      _quWork.push(pSt);
+    }
+    trainTask.IncToDo(i);
+    _haveWork.WakeAll();
+    for (;;) {
+      trainTask._isComplete.Wait(_csWorkers);
+      if (trainTask.GetToDo() == 0) {
+        break;
+      }
+    }
+  }
+
+  //TODO: instead, distribute the AQs into buckets with the number of buckets divisable by the number of workers.
   // In case both are zero, run the single-threaded version
   if (nQuestions * (TPqaId(_workers.size()) << cLogSimdWidth) <= _dims._nQuestions) {
-    std::unordered_set<TPqaId> seen(size_t(nQuestions)+1);
     for (TPqaId i = 0; i < nQuestions; i++) {
-      if (pAQs[i]._iQuestion < 0 || pAQs[i]._iQuestion >= _dims._nQuestions) {
+      const TPqaId iQuestion = pAQs[i]._iQuestion;
+      if (iQuestion < 0 || iQuestion >= _dims._nQuestions) {
         const TPqaId nKB = _dims._nQuestions;
         rwl.EarlyRelease();
-        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(pAQs[i]._iQuestion, 0, nKB-1),
+        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, nKB-1),
           SRString::MakeUnowned("Question index is not in KB range."));
       }
-      if (pAQs[i]._iAnswer < 0 || pAQs[i]._iAnswer >= _dims._nAnswers) {
+      if (_questionGaps.IsGap(iQuestion)) {
+        //TODO: report error
+      }
+      const TPqaId iAnswer = pAQs[i]._iAnswer;
+      if (iAnswer < 0 || iAnswer >= _dims._nAnswers) {
         const TPqaId nKB = _dims._nAnswers;
         rwl.EarlyRelease();
-        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(pAQs[i]._iAnswer, 0, nKB - 1),
+        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, nKB - 1),
           SRString::MakeUnowned("Answer index is not in KB range."));
-      }
-      auto emplRes = seen.emplace(pAQs[i]._iQuestion);
-      if (!emplRes.second) {
-
       }
     }
   }

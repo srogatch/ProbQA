@@ -7,16 +7,16 @@ template <typename taNumber> class CETask;
 template<typename taNumber> class CESubtask {
 public: // types
   enum class Kind : uint8_t {
-    None = 0
+    None = 0,
+    TrainDistrib = 1
   };
 
-private: // variables
+public: // variables
   CETask<taNumber> *_pTask;
 
 public:
   virtual ~CESubtask() { }
   virtual Kind GetKind() = 0;
-  CETask<taNumber>* GetTask() const { return _pTask; }
 };
 
 } // namespace ProbQA

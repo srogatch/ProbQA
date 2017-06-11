@@ -17,7 +17,7 @@ public:
   }
   ~CESubtaskCompleter() {
     if (_pSubtask != nullptr) {
-      _pSubtask->GetTask()->OnSubtaskComplete(_pSubtask);
+      _pSubtask->_pTask->OnSubtaskComplete(_pSubtask);
     }
   }
 };
