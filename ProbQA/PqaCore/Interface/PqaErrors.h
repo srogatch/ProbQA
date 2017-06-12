@@ -13,14 +13,21 @@ enum class PqaErrorCode : int64_t {
   InsufficientEngineDimensions = 4,
   MaintenanceModeChangeInProgress = 5, // MaintenanceModeErrorParams
   MaintenanceModeAlreadyThis = 6, // MaintenanceModeErrorParams
-  ObjectShutDown = 7, // ObjectShutDownErrorParams . The object is shut(ting) down
-  IndexOutOfRange = 8 // IndexOutOfRangeErrorParams
+  // The object is shut(ting) down
+  ObjectShutDown = 7, // ObjectShutDownErrorParams
+  IndexOutOfRange = 8, // IndexOutOfRangeErrorParams
+  Internal = 9, // InternalErrorParams
+  // Aggregate error consisting of multiple errors
+  Aggregate = 10 // AggregateErrorParams
 };
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);
 
 class PQACORE_API IPqaErrorParams {
 public:
+  IPqaErrorParams() { }
+  IPqaErrorParams(const IPqaErrorParams&) = delete;
+  IPqaErrorParams& operator=(const IPqaErrorParams&) = delete;
   // For memory deallocation in the same module where it was allocated.
   void Release();
   virtual ~IPqaErrorParams() { }
@@ -35,7 +42,7 @@ class PQACORE_API PqaError {
 public:
   PqaError() : _code(PqaErrorCode::None), _pParams(nullptr) { }
   //TODO: collect call stack
-  PqaError(PqaErrorCode code, IPqaErrorParams *pParams, SRPlat::SRString message = SRPlat::SRString())
+  PqaError(PqaErrorCode code, IPqaErrorParams *pParams, SRPlat::SRString&& message = SRPlat::SRString())
     : _code(code), _pParams(pParams), _message(message) { }
   PqaError& operator=(const PqaError& fellow) = delete;
   PqaError(const PqaError& fellow) = delete;

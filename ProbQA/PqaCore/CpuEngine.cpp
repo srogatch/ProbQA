@@ -3,6 +3,7 @@
 #include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/PqaException.h"
 #include "../PqaCore/CETrainTask.h"
+#include "../PqaCore/InternalErrorHelper.h"
 
 using namespace SRPlat;
 
@@ -173,7 +174,10 @@ template<typename taNumber> void CpuEngine<taNumber>::WorkerEntry() {
 
 template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd) {
   CETrainTask<taNumber> *pTask = static_cast<CETrainTask<taNumber>*>(tsd._pTask);
-  for (const AnsweredQuestion *pAQ = tsd._pFirst; pAQ < tsd._pLim; pAQ++) {
+  if (pTask->IsCancelled()) {
+    return;
+  }
+  for (const AnsweredQuestion *pAQ = tsd._pFirst, *pEn= tsd._pLim; pAQ < pEn; pAQ++) {
     //TODO: check ranges
     TPqaId iBucket = pAQ->_iQuestion % _workers.size();
     TPqaId iPrev = pTask->_iPrev.fetch_add(1);
@@ -192,6 +196,9 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   if (amount <= 0) {
     //TODO: report error
   }
+
+  PqaError resErr;
+
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<true> rwl(_rws);
 
@@ -221,17 +228,29 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
         nextStart++;
       }
       assert(nextStart <= nQuestions);
-      auto pSt = dynamic_cast<CETrainSubtaskDistrib<taNumber>*>(AcquireSubtask(CESubtask<taNumber>::Kind::TrainDistrib));
-      if (pSt == nullptr) {
-        //TODO: handle and report error
+      auto pSt = AcquireSubtask(CESubtask<taNumber>::Kind::TrainDistrib);
+      auto pTsd = dynamic_cast<CETrainSubtaskDistrib<taNumber>*>(pSt);
+      if (pTsd == nullptr) {
+        //TODO: handle and report error. The problem is that some subtasks have been already pushed to the queue, and
+        //  they have a pointer to an object on the stack of the current function.
+        const char* const msg = "Internal error: acquired something other than CETrainSubtaskDistrib for code"
+          " TrainDistrib .";
+        CELOG(Critical) << msg;
+        resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
+        trainTask.Cancel();
+        delete pSt;
+        break;
       }
-      pSt->_pTask = &trainTask;
-      pSt->_pFirst = pAQs + curStart;
-      pSt->_pLim = pAQs + nextStart;
-      _quWork.push(pSt);
+      pTsd->_pTask = &trainTask;
+      pTsd->_pFirst = pAQs + curStart;
+      pTsd->_pLim = pAQs + nextStart;
+      _quWork.push(pTsd);
     }
     trainTask.IncToDo(i);
+  }
+  { // Even if the task has been cancelled, wait till all the workers acknowledge that
     _haveWork.WakeAll();
+    SRLock<SRCriticalSection> csl(_csWorkers);
     for (;;) {
       trainTask._isComplete.Wait(_csWorkers);
       if (trainTask.GetToDo() == 0) {
@@ -239,6 +258,16 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
       }
     }
   }
+  if (!resErr.isOk()) {
+    return resErr;
+  }
+  resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed validating and bucketing the input."));
+  if (!resErr.isOk()) {
+    return resErr;
+  }
+  // Phase 1 complete
+
+  trainTask.PrepareNextPhase();
 
   //TODO: instead, distribute the AQs into buckets with the number of buckets divisable by the number of workers.
   // In case both are zero, run the single-threaded version

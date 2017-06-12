@@ -94,4 +94,27 @@ public:
   }
 };
 
+class PQACORE_API InternalErrorParams : public IPqaErrorParams {
+  const char *_sourceFN;
+  int64_t _line;
+public:
+  explicit InternalErrorParams(const char* const sourceFN, const int64_t line) : _sourceFN(sourceFN), _line(line) { }
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("Internal error at ")(_sourceFN)("(")(_line)(")").GetOwnedSRString();
+  }
+};
+
+class PQACORE_API AggregateErrorParams : public IPqaErrorParams {
+  class Impl;
+  Impl *_pImpl;
+public:
+  explicit AggregateErrorParams();
+  virtual ~AggregateErrorParams() override;
+
+  void Add(PqaError&& pe);
+  size_t Count();
+
+  virtual SRPlat::SRString ToString() override;
+};
+
 } // namespace ProbQA

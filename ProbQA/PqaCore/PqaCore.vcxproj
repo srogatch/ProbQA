@@ -212,6 +212,7 @@
     <ClInclude Include="Interface\PqaCore.h" />
     <ClInclude Include="Interface\PqaErrorParams.h" />
     <ClInclude Include="Interface\PqaErrors.h" />
+    <ClInclude Include="InternalErrorHelper.h" />
     <ClInclude Include="MaintenanceSwitch.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="PqaException.h" />
@@ -240,6 +241,7 @@
     <ClCompile Include="PqaCore.cpp" />
     <ClCompile Include="PqaEngineBaseFactory.cpp" />
     <ClCompile Include="PqaEngineFactorySelector.cpp" />
+    <ClCompile Include="PqaErrorParams.cpp" />
     <ClCompile Include="PqaErrors.cpp" />
     <ClCompile Include="PqaException.cpp" />
     <ClCompile Include="stdafx.cpp">

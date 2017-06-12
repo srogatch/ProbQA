@@ -10,7 +10,7 @@ namespace ProbQA {
 #define CETLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pCe->GetLogger())
 
 template<typename taNumber> CETask<taNumber>::CETask(CpuEngine<taNumber> *pCe, const TPqaId nToDo)
-  : _pCe(pCe), _nToDo(nToDo)
+  : _pCe(pCe), _nToDo(nToDo), _bCancel(false), _pAep(new AggregateErrorParams())
 { }
 
 template<typename taNumber> void CETask<taNumber>::OnSubtaskComplete(CESubtask<taNumber> *pSubtask) {
