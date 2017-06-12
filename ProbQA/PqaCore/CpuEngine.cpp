@@ -21,6 +21,12 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
       _dims._nAnswers, cMinAnswers, _dims._nQuestions, cMinQuestions, _dims._nTargets, cMinTargets));
   }
 
+  _pMemChunks.reset(new std::atomic<void*>[cMemPoolMaxSimds]);
+  //TODO: vectorize/parallelize?
+  for (size_t i = 0; i < cMemPoolMaxSimds; i++) {
+    std::atomic_init(_pMemChunks.get() + i, nullptr);
+  }
+
   taNumber initAmount(engDef._initAmount);
   //// Init cube A: A[ao][q][t] is weight for answer option |ao| for question |q| for target |t|
   _cA.resize(size_t(_dims._nAnswers));
@@ -97,6 +103,42 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   }
 
   return PqaError();
+}
+
+template<typename taNumber> void* CpuEngine<taNumber>::AllocMem(const size_t nBytes) {
+  const size_t iSlot = (nBytes + cSimdBytes - 1) >> (cLogSimdBits - 3);
+  if (iSlot >= cMemPoolMaxSimds) {
+    return _mm_malloc(iSlot * cSimdBytes, cSimdBytes);
+  }
+  if (iSlot <= 0) {
+    return nullptr;
+  }
+  std::atomic<void*>& head = _pMemChunks[iSlot];
+  void *next;
+  void* expected = head.load(std::memory_order_acquire);
+  do {
+    if (expected == nullptr) {
+      return _mm_malloc(iSlot * cSimdBytes, cSimdBytes);
+    }
+    next = *reinterpret_cast<void**>(expected);
+  } while (!head.compare_exchange_weak(expected, next, std::memory_order_acq_rel, std::memory_order_acquire));
+  return expected;
+}
+
+template<typename taNumber> void CpuEngine<taNumber>::ReleaseMem(void *p, const size_t nBytes) {
+  const size_t iSlot = (nBytes + cSimdBytes - 1) >> (cLogSimdBits - 3);
+  if (iSlot >= cMemPoolMaxSimds) {
+    _mm_free(p);
+    return;
+  }
+  if (iSlot <= 0 || p == nullptr) {
+    return;
+  }
+  std::atomic<void*>& head = _pMemChunks[iSlot];
+  void *expected = head.load(std::memory_order_acquire);
+  do {
+    *reinterpret_cast<void**>(p) = expected;
+  } while (!head.compare_exchange_weak(expected, p, std::memory_order_release, std::memory_order_relaxed));
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::ReleaseSubtask(CESubtask<taNumber> *pSubtask) {
@@ -198,6 +240,18 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   }
 
   PqaError resErr;
+  CETrainTask<taNumber> trainTask(this);
+  const size_t ttPrevBytes = sizeof(TPqaId) * nQuestions;
+  // Can't use unique_ptr because we need custom deleter with pointer and size parameters
+  trainTask._prev.reset(new TPqaId[nQuestions]);
+  const size_t nWorkers = _workers.size();
+  const size_t ttLastBytes = sizeof(std::atomic<TPqaId>) * nWorkers;
+  //TODO: take these from a pool instead
+  trainTask._last.reset(new std::atomic<TPqaId>[nWorkers]);
+  for (size_t i = 0; i < nWorkers; i++) {
+    //Better: std::atomic_init(trainTask._last+i, cInvalidPqaId);
+    trainTask._last[i].store(cInvalidPqaId, std::memory_order_relaxed);
+  }
 
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<true> rwl(_rws);
@@ -209,13 +263,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   //// This code must be reader-writer locked, because we are validating the input before modifying the KB, so noone
   ////   must change the KB in between.
 
-  const size_t nWorkers = _workers.size();
-  CETrainTask<taNumber> trainTask(this);
-  trainTask._prev.reset(new TPqaId[nQuestions]);
-  trainTask._last.reset(new std::atomic<TPqaId>[nWorkers]);
-  for (size_t i = 0; i < nWorkers; i++) {
-    trainTask._last[i].store(cInvalidPqaId, std::memory_order_relaxed);
-  }
   {
     lldiv_t perWorker = div((long long)nQuestions, (long long)nWorkers);
     TPqaId nextStart = 0;
@@ -271,7 +318,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
 
   //TODO: instead, distribute the AQs into buckets with the number of buckets divisable by the number of workers.
   // In case both are zero, run the single-threaded version
-  if (nQuestions * (TPqaId(_workers.size()) << cLogSimdWidth) <= _dims._nQuestions) {
+  if (nQuestions * (TPqaId(_workers.size()) << cLogSimdBits) <= _dims._nQuestions) {
     for (TPqaId i = 0; i < nQuestions; i++) {
       const TPqaId iQuestion = pAQs[i]._iQuestion;
       if (iQuestion < 0 || iQuestion >= _dims._nQuestions) {

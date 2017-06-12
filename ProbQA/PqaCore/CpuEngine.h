@@ -19,16 +19,18 @@ public: // constants
   static const TPqaId cMinAnswers = 2;
   static const TPqaId cMinQuestions = 1;
   static const TPqaId cMinTargets = 2;
-  static const size_t cDataAlign = sizeof(__m256);
-  static const size_t cLogSimdWidth = 8; // AVX2, 256 bits
+  static const size_t cSimdBytes = sizeof(__m256); // AVX2, 32 bytes
+  static const size_t cLogSimdBits = 8; // AVX2, 256 bits
+  static const size_t cMemPoolMaxSimds = 1 << 10;
 
 private: // types
   typedef SRPlat::SRSpinSync<32> TStpSync;
+  typedef SRPlat::SRSpinSync<32> TMemPoolSync;
 
 private: // variables
-  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>>> _cA; // cube A
-  std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>>> _mD; // matrix D
-  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cDataAlign>> _vB; // vector B
+  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>>> _cA; // cube A
+  std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>> _mD; // matrix D
+  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>> _vB; // vector B
   GapTracker<TPqaId> _questionGaps;
   GapTracker<TPqaId> _targetGaps;
   EngineDimensions _dims;
@@ -40,15 +42,18 @@ private: // variables
   SRPlat::SRCriticalSection _csWorkers; // third-entry lock
   // SubTask Pool Sync
   TStpSync _stpSync; // fourth-entry lock
-
+  TMemPoolSync _mpSync; // fifth-entry lock
+  
   uint8_t _shutdownRequested : 1; // guarded by _csWorkers
 
   SRPlat::SRConditionVariable _haveWork;
   std::queue<CESubtask<taNumber>*> _quWork;
 
   std::vector<std::vector<CESubtask<taNumber>*>> _stPool;
+  std::unique_ptr<std::atomic<void*>[]> _pMemChunks;
 
   //// Cache-insensitive data
+  // The size of this vector must not change after construction of CpuEngine, because it's accessed without locks.
   std::vector<std::thread> _workers;
   std::atomic<SRPlat::ISRLogger*> _pLogger;
 private: // methods
@@ -57,6 +62,13 @@ private: // methods
   void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
 
   CESubtask<taNumber>* CreateSubtask(const typename CESubtask<taNumber>::Kind kind);
+
+public: // Internal interface methods
+  SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
+  void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
+  CESubtask<taNumber>* AcquireSubtask(const typename CESubtask<taNumber>::Kind kind);
+  void* AllocMem(const size_t nBytes);
+  void ReleaseMem(void *p, const size_t nBytes);
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);
@@ -99,11 +111,6 @@ public: // Client interface methods
 
   virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override;
   virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) override;
-
-public: // Internal interface methods
-  SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
-  void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
-  CESubtask<taNumber>* AcquireSubtask(const typename CESubtask<taNumber>::Kind kind);
 };
 
 } // namespace ProbQA
