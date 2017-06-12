@@ -12,19 +12,13 @@ namespace ProbQA {
 #define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
 
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
-  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular),
-  _shutdownRequested(0), _pLogger(SRDefaultLogger::Get())
+  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular), _shutdownRequested(0),
+  _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> (cLogSimdBits - 3)))
 {
   if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
   {
     throw PqaException(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
       _dims._nAnswers, cMinAnswers, _dims._nQuestions, cMinQuestions, _dims._nTargets, cMinTargets));
-  }
-
-  _pMemChunks.reset(new std::atomic<void*>[cMemPoolMaxSimds]);
-  //TODO: vectorize/parallelize?
-  for (size_t i = 0; i < cMemPoolMaxSimds; i++) {
-    std::atomic_init(_pMemChunks.get() + i, nullptr);
   }
 
   taNumber initAmount(engDef._initAmount);
@@ -103,42 +97,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   }
 
   return PqaError();
-}
-
-template<typename taNumber> void* CpuEngine<taNumber>::AllocMem(const size_t nBytes) {
-  const size_t iSlot = (nBytes + cSimdBytes - 1) >> (cLogSimdBits - 3);
-  if (iSlot >= cMemPoolMaxSimds) {
-    return _mm_malloc(iSlot * cSimdBytes, cSimdBytes);
-  }
-  if (iSlot <= 0) {
-    return nullptr;
-  }
-  std::atomic<void*>& head = _pMemChunks[iSlot];
-  void *next;
-  void* expected = head.load(std::memory_order_acquire);
-  do {
-    if (expected == nullptr) {
-      return _mm_malloc(iSlot * cSimdBytes, cSimdBytes);
-    }
-    next = *reinterpret_cast<void**>(expected);
-  } while (!head.compare_exchange_weak(expected, next, std::memory_order_acq_rel, std::memory_order_acquire));
-  return expected;
-}
-
-template<typename taNumber> void CpuEngine<taNumber>::ReleaseMem(void *p, const size_t nBytes) {
-  const size_t iSlot = (nBytes + cSimdBytes - 1) >> (cLogSimdBits - 3);
-  if (iSlot >= cMemPoolMaxSimds) {
-    _mm_free(p);
-    return;
-  }
-  if (iSlot <= 0 || p == nullptr) {
-    return;
-  }
-  std::atomic<void*>& head = _pMemChunks[iSlot];
-  void *expected = head.load(std::memory_order_acquire);
-  do {
-    *reinterpret_cast<void**>(p) = expected;
-  } while (!head.compare_exchange_weak(expected, p, std::memory_order_release, std::memory_order_relaxed));
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::ReleaseSubtask(CESubtask<taNumber> *pSubtask) {

@@ -35,5 +35,6 @@
 #include "../SRPlatform/Interface/ISRLogger.h"
 #include "../SRPlatform/Interface/SRDefaultLogger.h"
 #include "../SRPlatform/Interface/SRLogStream.h"
+#include "../SRPlatform/Interface/SRMemPool.h"
 
 // TODO: reference additional headers your program requires here

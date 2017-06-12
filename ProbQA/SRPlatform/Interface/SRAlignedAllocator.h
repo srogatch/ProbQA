@@ -36,8 +36,8 @@ public:
   }
 
   std::size_t max_size() const noexcept {
-    // The following has been carefully written to be independent of
-    // the definition of size_t and to avoid signed/unsigned warnings.
+    // The following has been carefully written to be independent of the definition of size_t and to avoid
+    // signed/unsigned warnings.
     return (static_cast<std::size_t>(0) - static_cast<std::size_t>(1)) / sizeof(T);
   }
 
@@ -67,19 +67,15 @@ public:
 
   // The following will be different for each allocator.
   T * allocate(const std::size_t n) const {
-    // The return value of allocate(0) is unspecified.
-    // Mallocator returns NULL in order to avoid depending
-    // on malloc(0)'s implementation-defined behavior
-    // (the implementation can define malloc(0) to return NULL,
-    // in which case the bad_alloc check below would fire).
-    // All allocators can return NULL in this case.
+    // The return value of allocate(0) is unspecified. Mallocator returns NULL in order to avoid depending on
+    // malloc(0)'s implementation-defined behavior (the implementation can define malloc(0) to return NULL, in which
+    // case the bad_alloc check below would fire). All allocators can return NULL in this case.
     if (n == 0) {
       return NULL;
     }
 
-    // All allocators should contain an integer overflow check.
-    // The Standardization Committee recommends that std::length_error
-    // be thrown in the case of integer overflow.
+    // All allocators should contain an integer overflow check. The Standardization Committee recommends that
+    // std::length_error be thrown in the case of integer overflow.
     if (n > max_size()) {
       throw std::length_error("aligned_allocator<T>::allocate() - Integer overflow.");
     }
@@ -110,13 +106,10 @@ public:
   }
 
 
-  // Allocators are not required to be assignable, so
-  // all allocators should have a private unimplemented
-  // assignment operator. Note that this will trigger the
-  // off-by-default (enabled under /Wall) warning C4626
-  // "assignment operator could not be generated because a
-  // base class assignment operator is inaccessible" within
-  // the STL headers, but that warning is useless.
+  // Allocators are not required to be assignable, so all allocators should have a private unimplemented assignment
+  // operator. Note that this will trigger the off-by-default (enabled under /Wall) warning C4626  "assignment operator
+  // could not be generated because a base class assignment operator is inaccessible" within the STL headers, but that
+  // warning is useless.
 private:
   SRAlignedAllocator& operator=(const SRAlignedAllocator&);
 };

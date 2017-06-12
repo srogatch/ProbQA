@@ -8,6 +8,7 @@
 #include "../SRPlatform/Interface/SRSpinSync.h"
 #include "../SRPlatform/Interface/SRSmartHandle.h"
 #include "../SRPlatform/Interface/SRLogStream.h"
+#include "../SRPlatform/Interface/SRMemPool.h"
 
 namespace SRPlat {
   constexpr size_t test1 = sizeof(SRSpinSync<1>);

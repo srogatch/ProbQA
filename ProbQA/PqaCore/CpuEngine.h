@@ -25,7 +25,7 @@ public: // constants
 
 private: // types
   typedef SRPlat::SRSpinSync<32> TStpSync;
-  typedef SRPlat::SRSpinSync<32> TMemPoolSync;
+  typedef SRPlat::SRMemPool<cLogSimdBits, cMemPoolMaxSimds> TMemPool;
 
 private: // variables
   std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>>> _cA; // cube A
@@ -42,7 +42,6 @@ private: // variables
   SRPlat::SRCriticalSection _csWorkers; // third-entry lock
   // SubTask Pool Sync
   TStpSync _stpSync; // fourth-entry lock
-  TMemPoolSync _mpSync; // fifth-entry lock
   
   uint8_t _shutdownRequested : 1; // guarded by _csWorkers
 
@@ -50,7 +49,7 @@ private: // variables
   std::queue<CESubtask<taNumber>*> _quWork;
 
   std::vector<std::vector<CESubtask<taNumber>*>> _stPool;
-  std::unique_ptr<std::atomic<void*>[]> _pMemChunks;
+  TMemPool _memPool;
 
   //// Cache-insensitive data
   // The size of this vector must not change after construction of CpuEngine, because it's accessed without locks.
@@ -67,8 +66,6 @@ public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
   void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
   CESubtask<taNumber>* AcquireSubtask(const typename CESubtask<taNumber>::Kind kind);
-  void* AllocMem(const size_t nBytes);
-  void ReleaseMem(void *p, const size_t nBytes);
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);
