@@ -11,14 +11,18 @@ public:
   explicit SRMessageBuilder() {}
   explicit SRMessageBuilder(const char* const pInit) : _buf(pInit) { }
   
-  template<typename T, typename std::enable_if < !std::is_arithmetic<T>{}, int > ::type = 0>
-  SRMessageBuilder& operator()(const T& arg) {
-    _buf.append(arg);
+  SRMessageBuilder& operator()(const char* const pS) {
+    _buf.append(pS);
     return *this;
   }
-  template<typename T, typename std::enable_if < std::is_arithmetic<T>{}, int > ::type = 0 >
-  SRMessageBuilder& operator()(const T val) {
+
+  template<typename T> SRMessageBuilder& operator()(const T& val) {
     _buf += std::to_string(val);
+    return *this;
+  }
+
+  template<> SRMessageBuilder& operator()(const std::string& s) {
+    _buf.append(s);
     return *this;
   }
 
