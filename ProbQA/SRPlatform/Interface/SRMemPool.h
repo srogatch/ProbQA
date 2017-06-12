@@ -85,7 +85,7 @@ public:
       return;
     }
     if (_totalUnits.load(std::memory_order_relaxed) > _maxTotalUnits.load(std::memory_order_relaxed)) {
-      _totalBytes.fetch_sub(iSlot, std::memory_order_relaxed);
+      _totalUnits.fetch_sub(iSlot, std::memory_order_relaxed);
       _mm_free(p);
       return;
     }

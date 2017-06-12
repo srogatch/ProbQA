@@ -198,17 +198,16 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   }
 
   PqaError resErr;
-  CETrainTask<taNumber> trainTask(this);
-  const size_t ttPrevBytes = sizeof(TPqaId) * nQuestions;
-  // Can't use unique_ptr because we need custom deleter with pointer and size parameters
-  trainTask._prev.reset(new TPqaId[nQuestions]);
   const size_t nWorkers = _workers.size();
-  const size_t ttLastBytes = sizeof(std::atomic<TPqaId>) * nWorkers;
-  //TODO: take these from a pool instead
-  trainTask._last.reset(new std::atomic<TPqaId>[nWorkers]);
+  SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, sizeof(TPqaId) * nQuestions);
+  SRSmartMPP<TMemPool, std::atomic<TPqaId>> ttLast(_memPool, sizeof(std::atomic<TPqaId>) * nWorkers);
+
+  CETrainTask<taNumber> trainTask(this);
+  trainTask._prev = ttPrev.Get();
+  trainTask._last = ttLast.Get();
+  //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
-    //Better: std::atomic_init(trainTask._last+i, cInvalidPqaId);
-    trainTask._last[i].store(cInvalidPqaId, std::memory_order_relaxed);
+    new(trainTask._last+i) std::atomic<TPqaId>(cInvalidPqaId);
   }
 
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
