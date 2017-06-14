@@ -7,8 +7,8 @@ namespace SRPlat {
 // If the unit is 256-bit, then taLogUnitBits should be 8 because 256 == (1<<8) .
 template<uint32_t taLogUnitBits, uint32_t taGranules> class SRMemPool {
 public: // constants
-  static const size_t cLogSimdBits1 = 8;
-  static const size_t cSimdBytes1 = (1 << (cLogSimdBits1 - 3));
+  static const size_t cLogSimdBits = 8;
+  static const size_t cSimdBytes = (1 << (cLogSimdBits - 3));
   static const size_t cUnitBytes = 1 << (taLogUnitBits - 3);
 
 private: // variables
@@ -17,14 +17,14 @@ private: // variables
   std::atomic<size_t> _maxTotalUnits;
 
 public:
-  static_assert((taGranules * sizeof(std::atomic<void*>)) % cSimdBytes1 == 0,
+  static_assert((taGranules * sizeof(std::atomic<void*>)) % cSimdBytes == 0,
     "Choose an even taMaxUnits for SIMD efficiency.");
 
   explicit SRMemPool(const size_t maxTotalUnits = (512 * 1024 * 1024) / cUnitBytes)
     : _totalUnits(0), _maxTotalUnits(maxTotalUnits)
   {
     const size_t nMemChunksBytes = taGranules * sizeof(*_memChunks);
-    _memChunks = static_cast<decltype(_memChunks)>(_mm_malloc(nMemChunksBytes, cSimdBytes1));
+    _memChunks = static_cast<decltype(_memChunks)>(_mm_malloc(nMemChunksBytes, cSimdBytes));
     if (_memChunks == nullptr) {
       throw SRException(SRMessageBuilder(__FUNCTION__ " failed to allocate _memChunks of ")(nMemChunksBytes)(" bytes.")
         .GetOwnedSRString());
@@ -107,7 +107,7 @@ template <typename taMemPool, typename taItem> class SRSmartMPP {
   taItem *_pItem;
   size_t _nBytes;
 public:
-  explicit SRSmartMPP(taMemPool &mp, const size_t nBytes) : _pMp(&mp), _nBytes(nBytes) {
+  explicit SRSmartMPP(taMemPool &mp, const size_t nItems) : _pMp(&mp), _nBytes(nItems * sizeof(taItem)) {
     _pItem = static_cast<taItem*>(_pMp->AllocMem(_nBytes));
   }
 

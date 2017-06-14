@@ -117,4 +117,24 @@ public:
   virtual SRPlat::SRString ToString() override;
 };
 
+class PQACORE_API NegativeCountErrorParams : public IPqaErrorParams {
+  int64_t _count;
+public:
+  explicit NegativeCountErrorParams(const int64_t count) : _count(count) { }
+  int64_t GetCount() const { return _count; }
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("count=")(_count).GetOwnedSRString();
+  }
+};
+
+class PQACORE_API NonPositiveAmountErrorParams : public IPqaErrorParams {
+  TPqaAmount _amount;
+public:
+  explicit NonPositiveAmountErrorParams(const TPqaAmount amount) : _amount(amount) { }
+  TPqaAmount GetAmount() const { return _amount; }
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("amount=")(_amount).GetOwnedSRString();
+  }
+};
+
 } // namespace ProbQA

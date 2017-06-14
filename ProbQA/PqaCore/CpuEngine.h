@@ -19,8 +19,8 @@ public: // constants
   static const TPqaId cMinAnswers = 2;
   static const TPqaId cMinQuestions = 1;
   static const TPqaId cMinTargets = 2;
-  static const size_t cSimdBytes = sizeof(__m256); // AVX2, 32 bytes
   static const size_t cLogSimdBits = 8; // AVX2, 256 bits
+  static const size_t cSimdBytes = 1 << (cLogSimdBits - 3);
   static const size_t cMemPoolMaxSimds = 1 << 10;
 
 private: // types

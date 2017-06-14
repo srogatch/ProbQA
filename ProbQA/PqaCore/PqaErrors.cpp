@@ -28,6 +28,10 @@ SRPlat::SRString ToSRString(const PqaErrorCode pec) {
     return SRString::MakeUnowned("Index is out of range");
   case PqaErrorCode::Aggregate:
     return SRString::MakeUnowned("Aggregate error");
+  case PqaErrorCode::NegativeCount:
+    return SRString::MakeUnowned("The count is negative");
+  case PqaErrorCode::NonPositiveAmount:
+    return SRString::MakeUnowned("The amount is not positive.");
   default: {
     std::string message("Unhandled");
     message += std::to_string(static_cast<int64_t>(pec));

@@ -191,16 +191,19 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
   if (nQuestions < 0) {
-    //TODO: report error
+    return PqaError(PqaErrorCode::NegativeCount, new NegativeCountErrorParams(nQuestions), SRString::MakeUnowned(
+      "|nQuestions| must be non-negative."));
   }
   if (amount <= 0) {
-    //TODO: report error
+    return PqaError(PqaErrorCode::NonPositiveAmount, new NonPositiveAmountErrorParams(amount), SRString::MakeUnowned(
+      "|amount| must be positive."));
   }
 
   PqaError resErr;
   const size_t nWorkers = _workers.size();
-  SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, sizeof(TPqaId) * nQuestions);
-  SRSmartMPP<TMemPool, std::atomic<TPqaId>> ttLast(_memPool, sizeof(std::atomic<TPqaId>) * nWorkers);
+  //// Allocate memory out of locks
+  SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, nQuestions);
+  SRSmartMPP<TMemPool, std::atomic<TPqaId>> ttLast(_memPool, nWorkers);
 
   CETrainTask<taNumber> trainTask(this);
   trainTask._prev = ttPrev.Get();
@@ -209,98 +212,105 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   for (size_t i = 0; i < nWorkers; i++) {
     new(trainTask._last+i) std::atomic<TPqaId>(cInvalidPqaId);
   }
+  //TODO: guard destruction of trainTask._last[i]
+  //struct TrainTaskLastGuard {
+  //  TrainTaskLastGuard()
+  //} trainTaskLastGuard;
 
-  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
-  SRRWLock<true> rwl(_rws);
+  { // Scope for the locks
+    MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+    SRRWLock<true> rwl(_rws);
 
-  if (iTarget < 0 || iTarget >= _dims._nTargets) {
-    //TODO: report error
-  }
-
-  //// This code must be reader-writer locked, because we are validating the input before modifying the KB, so noone
-  ////   must change the KB in between.
-
-  {
-    lldiv_t perWorker = div((long long)nQuestions, (long long)nWorkers);
-    TPqaId nextStart = 0;
-    SRLock<SRCriticalSection> csl(_csWorkers);
-    size_t i = 0;
-    for (; i < nWorkers && nextStart < nQuestions; i++) {
-      TPqaId curStart = nextStart;
-      nextStart += perWorker.quot;
-      if ((long long)i < perWorker.rem) {
-        nextStart++;
-      }
-      assert(nextStart <= nQuestions);
-      auto pSt = AcquireSubtask(CESubtask<taNumber>::Kind::TrainDistrib);
-      auto pTsd = dynamic_cast<CETrainSubtaskDistrib<taNumber>*>(pSt);
-      if (pTsd == nullptr) {
-        //TODO: handle and report error. The problem is that some subtasks have been already pushed to the queue, and
-        //  they have a pointer to an object on the stack of the current function.
-        const char* const msg = "Internal error: acquired something other than CETrainSubtaskDistrib for code"
-          " TrainDistrib .";
-        CELOG(Critical) << msg;
-        resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
-        trainTask.Cancel();
-        delete pSt;
-        break;
-      }
-      pTsd->_pTask = &trainTask;
-      pTsd->_pFirst = pAQs + curStart;
-      pTsd->_pLim = pAQs + nextStart;
-      _quWork.push(pTsd);
+    if (iTarget < 0 || iTarget >= _dims._nTargets) {
+      //TODO: report error
     }
-    trainTask.IncToDo(i);
-  }
-  { // Even if the task has been cancelled, wait till all the workers acknowledge that
-    _haveWork.WakeAll();
-    SRLock<SRCriticalSection> csl(_csWorkers);
-    for (;;) {
-      trainTask._isComplete.Wait(_csWorkers);
-      if (trainTask.GetToDo() == 0) {
-        break;
+
+    //// This code must be reader-writer locked, because we are validating the input before modifying the KB, so noone
+    ////   must change the KB in between.
+
+    {
+      lldiv_t perWorker = div((long long)nQuestions, (long long)nWorkers);
+      TPqaId nextStart = 0;
+      SRLock<SRCriticalSection> csl(_csWorkers);
+      size_t i = 0;
+      for (; i < nWorkers && nextStart < nQuestions; i++) {
+        TPqaId curStart = nextStart;
+        nextStart += perWorker.quot;
+        if ((long long)i < perWorker.rem) {
+          nextStart++;
+        }
+        assert(nextStart <= nQuestions);
+        auto pSt = AcquireSubtask(CESubtask<taNumber>::Kind::TrainDistrib);
+        auto pTsd = dynamic_cast<CETrainSubtaskDistrib<taNumber>*>(pSt);
+        if (pTsd == nullptr) {
+          // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
+          //  they have a pointer to an object on the stack of the current function.
+          const char* const msg = "Internal error: acquired something other than CETrainSubtaskDistrib for code"
+            " TrainDistrib .";
+          CELOG(Critical) << msg;
+          resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
+          trainTask.Cancel();
+          delete pSt;
+          break;
+        }
+        pTsd->_pTask = &trainTask;
+        pTsd->_pFirst = pAQs + curStart;
+        pTsd->_pLim = pAQs + nextStart;
+        _quWork.push(pTsd);
       }
+      trainTask.IncToDo(i);
     }
-  }
-  if (!resErr.isOk()) {
-    return resErr;
-  }
-  resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed validating and bucketing the input."));
-  if (!resErr.isOk()) {
-    return resErr;
-  }
-  // Phase 1 complete
-
-  trainTask.PrepareNextPhase();
-
-  //TODO: instead, distribute the AQs into buckets with the number of buckets divisable by the number of workers.
-  // In case both are zero, run the single-threaded version
-  if (nQuestions * (TPqaId(_workers.size()) << cLogSimdBits) <= _dims._nQuestions) {
-    for (TPqaId i = 0; i < nQuestions; i++) {
-      const TPqaId iQuestion = pAQs[i]._iQuestion;
-      if (iQuestion < 0 || iQuestion >= _dims._nQuestions) {
-        const TPqaId nKB = _dims._nQuestions;
-        rwl.EarlyRelease();
-        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, nKB-1),
-          SRString::MakeUnowned("Question index is not in KB range."));
-      }
-      if (_questionGaps.IsGap(iQuestion)) {
-        //TODO: report error
-      }
-      const TPqaId iAnswer = pAQs[i]._iAnswer;
-      if (iAnswer < 0 || iAnswer >= _dims._nAnswers) {
-        const TPqaId nKB = _dims._nAnswers;
-        rwl.EarlyRelease();
-        return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, nKB - 1),
-          SRString::MakeUnowned("Answer index is not in KB range."));
+    { // Even if the task has been cancelled, wait till all the workers acknowledge that
+      _haveWork.WakeAll();
+      SRLock<SRCriticalSection> csl(_csWorkers);
+      for (;;) {
+        trainTask._isComplete.Wait(_csWorkers);
+        if (trainTask.GetToDo() == 0) {
+          break;
+        }
       }
     }
-  }
-  else {
+    if (!resErr.isOk()) {
+      return resErr;
+    }
+    resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed validating and bucketing the input."));
+    if (!resErr.isOk()) {
+      return resErr;
+    }
+    // Phase 1 complete
 
+    trainTask.PrepareNextPhase();
+
+    //TODO: instead, distribute the AQs into buckets with the number of buckets divisable by the number of workers.
+    // In case both are zero, run the single-threaded version
+    if (nQuestions * (TPqaId(_workers.size()) << cLogSimdBits) <= _dims._nQuestions) {
+      for (TPqaId i = 0; i < nQuestions; i++) {
+        const TPqaId iQuestion = pAQs[i]._iQuestion;
+        if (iQuestion < 0 || iQuestion >= _dims._nQuestions) {
+          const TPqaId nKB = _dims._nQuestions;
+          rwl.EarlyRelease();
+          return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, nKB - 1),
+            SRString::MakeUnowned("Question index is not in KB range."));
+        }
+        if (_questionGaps.IsGap(iQuestion)) {
+          //TODO: report error
+        }
+        const TPqaId iAnswer = pAQs[i]._iAnswer;
+        if (iAnswer < 0 || iAnswer >= _dims._nAnswers) {
+          const TPqaId nKB = _dims._nAnswers;
+          rwl.EarlyRelease();
+          return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, nKB - 1),
+            SRString::MakeUnowned("Answer index is not in KB range."));
+        }
+      }
+    }
+    else {
+
+    }
+    // This method should increase the counter of questions asked by the number of questions in this training.
+    _nQuestionsAsked += nQuestions;
   }
-  // This method should increase the counter of questions asked by the number of questions in this training.
-  _nQuestionsAsked += nQuestions;
+  
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::Train")));
 }

@@ -18,7 +18,9 @@ enum class PqaErrorCode : int64_t {
   IndexOutOfRange = 8, // IndexOutOfRangeErrorParams
   Internal = 9, // InternalErrorParams
   // Aggregate error consisting of multiple errors
-  Aggregate = 10 // AggregateErrorParams
+  Aggregate = 10, // AggregateErrorParams
+  NegativeCount = 11, // NegativeCountErrorParams
+  NonPositiveAmount = 12 // NonPositiveAmountErrorParams
 };
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);

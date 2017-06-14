@@ -10,6 +10,7 @@
 #include <Windows.h>
 
 #include <chrono>
+#include <functional>
 #include <stdio.h>
 #include <tchar.h>
 
