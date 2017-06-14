@@ -72,10 +72,9 @@ void BenchmarkMSVCpp() {
   printf("__finally: %.3lf Ops/sec, var=%lld\n", nIterations / nSec, (long long)var);
 }
 
-template <typename F> class Finally4 {
-  F f;
+template <typename Func> class Finally4 {
+  Func f;
 public:
-  template<typename Func>
   Finally4(Func&& func) : f(std::forward<Func>(func)) {}
   ~Finally4() { f(); }
   Finally4(const Finally4&) = delete;
@@ -93,8 +92,9 @@ void BenchmarkTemplate() {
   const int64_t nIterations = 234567890;
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 0; i < nIterations; i++) {
-    auto&& doFinally = MakeFinally4([&] { var++; });
+    //auto&& doFinally = MakeFinally4([&] { var++; });
     //Finally4 doFinally{ [&] { var++; } };
+    SR_FINALLY([&] { var++; });
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();

@@ -38,7 +38,7 @@ inline string to_string(const SRPlat::ISRLogger::Severity s) {
   case SRPlat::ISRLogger::Severity::Critical:
     return "Critical";
   default:
-    return string("Unhandled") + to_string(int32_t(s));
+    return string("Unhandled") + to_string(static_cast<int32_t>(s));
   }
 }
 

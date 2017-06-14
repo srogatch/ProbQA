@@ -207,6 +207,7 @@
     <ClInclude Include="Interface\SRCriticalSection.h" />
     <ClInclude Include="Interface\SRException.h" />
     <ClInclude Include="Interface\SRFastManualResetEvent.h" />
+    <ClInclude Include="Interface\SRFinally.h" />
     <ClInclude Include="Interface\SRLock.h" />
     <ClInclude Include="Interface\ISRLogger.h" />
     <ClInclude Include="Interface\SRDefaultLogger.h" />

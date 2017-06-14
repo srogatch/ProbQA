@@ -3,15 +3,18 @@
 #include "../SRPlatform/Interface/SRDefaultLogger.h"
 
 // Disable "conditional expression is constant" warning in `do { } while(false);` loops
-#define WHILE_FALSE \
+#define WHILE_FALSE               \
   __pragma(warning(push))         \
   __pragma(warning(disable:4127)) \
-  while(false)					\
+  while(false)                    \
   __pragma(warning(pop))
 
 #define SR_STRINGIZE(x) SR_STRINGIZE2(x)
 #define SR_STRINGIZE2(x) #x
 #define SR_LINE_STRING SR_STRINGIZE(__LINE__)
+
+#define SR_COMBINE2(x, y) x ## y
+#define SR_COMBINE(x, y) SR_COMBINE2(x, y)
 
 #define SR_LOG_WINFAIL(severityVar, loggerVar, lastErrVar) do { \
   (loggerVar)->Log( \

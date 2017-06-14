@@ -12,7 +12,10 @@
 #include <chrono>
 #include <functional>
 #include <stdio.h>
+#include <string>
 #include <tchar.h>
+
+#include "../SRPlatform/Interface/SRFinally.h"
 
 
 // TODO: reference additional headers your program requires here
