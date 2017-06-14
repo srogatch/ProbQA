@@ -15,14 +15,8 @@ public:
   SRFinally& operator=(SRFinally&&) = delete;
 };
 
-template <typename Func> SRFinally<Func> SRMakeFinally(Func&& f) {
-  return { std::forward<Func>(f) };
-}
-
-#define SR_FINALLY(funcVar) \
-  __pragma(warning(push)) \
-  __pragma(warning(disable: 4189)) \
-  auto&& SR_COMBINE(srFinally, __LINE__) = ::SRPlat::SRMakeFinally(funcVar); \
-  __pragma(warning(pop))
-
+#define SR_FINALLY(destructorVar)                                                                         \
+  auto SR_COMBINE(finallyFunc, __LINE) = destructorVar;                                                   \
+  ::SRPlat::SRFinally<decltype(SR_COMBINE(finallyFunc, __LINE))> SR_COMBINE(finallyObj, __LINE__) (       \
+    std::move(SR_COMBINE(finallyFunc, __LINE)));
 }

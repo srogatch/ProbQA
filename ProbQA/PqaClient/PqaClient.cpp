@@ -92,13 +92,26 @@ void BenchmarkTemplate() {
   const int64_t nIterations = 234567890;
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 0; i < nIterations; i++) {
-    //auto&& doFinally = MakeFinally4([&] { var++; });
-    //Finally4 doFinally{ [&] { var++; } };
-    SR_FINALLY([&] { var++; });
+    auto&& doFinally = MakeFinally4([&] { var++; });
+    //C++17: Finally4 doFinally{ [&] { var++; } };
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
   printf("Template: %.3lf Ops/sec, var=%lld\n", nIterations / nSec, (long long)var);
+}
+
+void BenchmarkMacro() {
+  volatile int64_t var = 0;
+  const int64_t nIterations = 234567890;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < nIterations; i++) {
+    SR_FINALLY([&] {
+      var++; 
+    });
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Macro: %.3lf Ops/sec, var=%lld\n", nIterations / nSec, (long long)var);
 }
 
 void BenchmarkEmpty() {
@@ -118,6 +131,7 @@ int __cdecl main() {
   BenchmarkObject();
   BenchmarkMSVCpp();
   BenchmarkTemplate();
+  BenchmarkMacro();
   BenchmarkEmpty();
   return 0;
 }

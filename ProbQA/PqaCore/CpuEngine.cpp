@@ -212,6 +212,12 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   for (size_t i = 0; i < nWorkers; i++) {
     new(trainTask._last+i) std::atomic<TPqaId>(cInvalidPqaId);
   }
+  // &trainTask, &nWorkers
+  SR_FINALLY([&trainTask, &nWorkers] {
+    for (size_t i = 0; i < nWorkers; i++) {
+      trainTask._last[i].~atomic();
+    }
+  })
   //TODO: guard destruction of trainTask._last[i]
   //struct TrainTaskLastGuard {
   //  TrainTaskLastGuard()
