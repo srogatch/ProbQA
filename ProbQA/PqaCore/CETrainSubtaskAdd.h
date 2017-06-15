@@ -9,6 +9,7 @@ public: // constants
   static const Kind _cKind = Kind::TrainAdd;
 
 public: // variables
+  uint32_t _iWorker;
 
 public: // methods
   virtual Kind GetKind() override {

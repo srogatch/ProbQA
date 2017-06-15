@@ -23,11 +23,11 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
 
   taNumber initAmount(engDef._initAmount);
   //// Init cube A: A[ao][q][t] is weight for answer option |ao| for question |q| for target |t|
-  _cA.resize(size_t(_dims._nAnswers));
+  _sA.resize(size_t(_dims._nAnswers));
   for (size_t i = 0, iEn= size_t(_dims._nAnswers); i < iEn; i++) {
-    _cA[i].resize(size_t(_dims._nQuestions));
+    _sA[i].resize(size_t(_dims._nQuestions));
     for (size_t j = 0, jEn= size_t(_dims._nQuestions); j < jEn; j++) {
-      _cA[i][j].resize(size_t(_dims._nTargets), initAmount);
+      _sA[i][j].resize(size_t(_dims._nTargets), initAmount);
     }
   }
 
@@ -257,8 +257,60 @@ template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSub
   }
 }
 
-template<typename taNumber> void CpuEngine<taNumber>::RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa) {
-  //TODO: implement
+//template<typename taNumber> void CpuEngine<taNumber>::RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa) {
+//  //TODO: implement
+//}
+
+template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNumber> &tsa) {
+  CETrainTask<DoubleNumber> &task = static_cast<CETrainTask<DoubleNumber>&>(*tsa._pTask);
+  const CETrainTask<DoubleNumber>& cTask = task; // enable optimizations with const
+  TPqaId iLast = cTask._last[tsa._iWorker];
+  if (iLast == cInvalidPqaId) {
+    return;
+  }
+  const __m256d fullAddend = _mm256_set1_pd(to_double(cTask._amount));
+  __m256d rawCollAddend = fullAddend; // Colliding addend
+  rawCollAddend.m256d_f64[1] += cTask._amount; // amount is added twice to _mD[iQuestion][iTarget]
+  const __m256d& collAddend = rawCollAddend; // enable optimizations with const
+  do {
+    const AnsweredQuestion& aqFirst = cTask._pAQs[iLast];
+    iLast = cTask._prev[iLast];
+    if (iLast == cInvalidPqaId) {
+      // Use SSE instead of AVX here to supposedly reduce the load on the CPU core (better hyperthreading).
+      __m128d sum = _mm_set_pd(
+        _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(),
+        _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].GetValue());
+      sum = _mm_add_pd(sum, *reinterpret_cast<const __m128d*>(&fullAddend));
+      _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m128d_f64[0]);
+      _mD[aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m128d_f64[1]);
+      return;
+    }
+    const AnsweredQuestion& aqSecond = cTask._pAQs[iLast];
+    if (aqFirst._iQuestion == aqSecond._iQuestion) {
+      // Vectorize 3 additions, with twice the amount in element 1
+      __m256d sum = _mm256_set_pd(0,
+        _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].GetValue(),
+        _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(), 
+        _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].GetValue());
+      sum = _mm256_add_pd(sum, collAddend);
+      _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[0]);
+      _mD[aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[1]);
+      _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[2]);
+    }
+    else {
+      // Finally we can vectorize all the 4 additions
+      __m256d sum = _mm256_set_pd(_mD[aqSecond._iQuestion][cTask._iTarget].GetValue(),
+        _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].GetValue(),
+        _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(),
+        _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].GetValue());
+      sum = _mm256_add_pd(sum, fullAddend);
+      _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[0]);
+      _mD[aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[1]);
+      _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[2]);
+      _mD[aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[3]);
+    }
+    iLast = cTask._prev[iLast];
+  } while (iLast != cInvalidPqaId);
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
@@ -279,7 +331,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, nQuestions);
   SRSmartMPP<TMemPool, std::atomic<TPqaId>> ttLast(_memPool, nWorkers);
 
-  CETrainTask<taNumber> trainTask(this, amount);
+  CETrainTask<taNumber> trainTask(this, amount, iTarget, pAQs);
   trainTask._prev = ttPrev.Get();
   trainTask._last = ttLast.Get();
   //TODO: vectorize/parallelize
@@ -357,20 +409,26 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
     trainTask.PrepareNextPhase();
 
     // Phase 2: update KB
-    size_t i = 0;
-    for (; i < nWorkers; i++) {
-      auto pTsa = AcquireSubtask<CETrainSubtaskAdd<taNumber>>();
-      if (pTsa == nullptr) {
-        // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
-        //  they have a pointer to an object on the stack of the current function.
-        const char* const msg = "Internal error: failed to acquire CETrainSubtaskAdd at " SR_FILE_LINE;
-        CELOG(Critical) << msg;
-        resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
-        trainTask.Cancel();
-        break;
+    {
+      SRLock<SRCriticalSection> csl(_csWorkers);
+      size_t i = 0;
+      for (; i < nWorkers; i++) {
+        auto pTsa = AcquireSubtask<CETrainSubtaskAdd<taNumber>>();
+        if (pTsa == nullptr) {
+          // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
+          //  they have a pointer to an object on the stack of the current function.
+          const char* const msg = "Internal error: failed to acquire CETrainSubtaskAdd at " SR_FILE_LINE;
+          CELOG(Critical) << msg;
+          resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
+          trainTask.Cancel();
+          break;
+        }
+        pTsa->_pTask = &trainTask;
+        pTsa->_iWorker = static_cast<decltype(pTsa->_iWorker)>(i);
+        _quWork.push(pTsa);
       }
+      trainTask.IncToDo(i);
     }
-    trainTask.IncToDo(i);
     // Even if the task has been cancelled, wait till all the workers acknowledge that
     WakeWorkersWait(trainTask);
     

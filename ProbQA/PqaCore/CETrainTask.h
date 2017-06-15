@@ -7,13 +7,17 @@ namespace ProbQA {
 
 template<typename taNumber> class CETrainTask : public CETask<taNumber> {
 public: // variables
-  TPqaId *_prev;
-  const TPqaAmount _amount;
   std::atomic<TPqaId> *_last;
+  TPqaId *_prev;
+  const AnsweredQuestion* const _pAQs;
+  const TPqaAmount _amount;
   std::atomic<TPqaId> _iPrev;
-
+  TPqaId _iTarget;
+  
 public: // methods
-  explicit CETrainTask(CpuEngine<taNumber> *pCe, const TPqaAmount amount) : CETask(pCe), _iPrev(0), _amount(amount)
+  explicit CETrainTask(CpuEngine<taNumber> *pCe, const TPqaAmount amount, const TPqaId iTarget,
+    const AnsweredQuestion* const pAQs)
+    : CETask(pCe), _iPrev(0), _amount(amount), _iTarget(iTarget), _pAQs(pAQs)
   { }
   CETrainTask(const CETrainTask&) = delete;
   CETrainTask& operator=(const CETrainTask&) = delete;

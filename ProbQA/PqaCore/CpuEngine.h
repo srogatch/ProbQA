@@ -29,9 +29,12 @@ private: // types
   typedef SRPlat::SRMemPool<cLogSimdBits, cMemPoolMaxSimds> TMemPool;
 
 private: // variables
-  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>>> _cA; // cube A
-  std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>> _mD; // matrix D
-  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>> _vB; // vector B
+  // space A: [iAnswer][iQuestion][iTarget]
+  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>>> _sA;
+  // matrix D: [iQuestion][iTarget]
+  std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>> _mD;
+  // vector B: [iTarget]
+  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>> _vB;
   GapTracker<TPqaId> _questionGaps;
   GapTracker<TPqaId> _targetGaps;
   EngineDimensions _dims;
