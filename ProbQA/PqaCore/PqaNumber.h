@@ -12,6 +12,7 @@ public:
   PqaNumber(TPqaAmount init);
   PqaNumber& Mul(const PqaNumber& fellow);
   PqaNumber& Add(const PqaNumber& fellow);
+  PqaNumber& operator+=(const TPqaAmount amount);
 };
 
 } // namespace ProbQA

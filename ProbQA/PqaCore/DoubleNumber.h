@@ -26,7 +26,10 @@ public:
     answer._value = _value * fellow;
     return answer; 
   }
-
+  DoubleNumber& operator+=(const TPqaAmount amount) {
+    _value += amount;
+    return *this;
+  }
 };
 
 static_assert(sizeof(DoubleNumber) == sizeof(double), "To allow AVX2 and avoid unaligned access penalties.");

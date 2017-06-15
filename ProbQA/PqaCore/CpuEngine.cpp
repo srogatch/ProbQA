@@ -287,7 +287,7 @@ template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNum
     }
     const AnsweredQuestion& aqSecond = cTask._pAQs[iLast];
     if (aqFirst._iQuestion == aqSecond._iQuestion) {
-      // Vectorize 3 additions, with twice the amount in element 1
+      // Vectorize 3 additions, with twice the amount in element #1
       __m256d sum = _mm256_set_pd(0,
         _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].GetValue(),
         _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(), 
@@ -440,7 +440,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
       return resErr;
     }
     
-    //TODO: update target totals |_vB|
+    // Update target totals |_vB|
+    _vB[iTarget] += amount;
 
     // This method should increase the counter of questions asked by the number of questions in this training.
     _nQuestionsAsked += nQuestions;
