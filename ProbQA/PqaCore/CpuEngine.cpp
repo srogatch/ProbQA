@@ -121,17 +121,33 @@ template<typename taNumber> void CpuEngine<taNumber>::DeleteSubtask(CESubtask<ta
   delete pSubtask;
 }
 
-template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::AcquireSubtask(
-  const typename CESubtask<taNumber>::Kind kind)
-{
-  SRLock<TStpSync> stpsl(_stpSync);
-  size_t iKind = static_cast<size_t>(kind);
-  if (iKind >= _stPool.size() || _stPool[iKind].size() == 0) {
-    return CreateSubtask(kind);
+template<typename taNumber> template<typename taSubtask> taSubtask* CpuEngine<taNumber>::AcquireSubtask() {
+  CESubtask<taNumber> *pStGeneric;
+  size_t iKind = static_cast<size_t>(taSubtask::_cKind);
+  {
+    SRLock<TStpSync> stpsl(_stpSync);
+    if (iKind >= _stPool.size() || _stPool[iKind].size() == 0) {
+      stpsl.EarlyRelease();
+      pStGeneric = CreateSubtask(taSubtask::_cKind);
+    }
+    else {
+      pStGeneric = _stPool[iKind].back();
+      _stPool[iKind].pop_back();
+    }
   }
-  CESubtask<taNumber> *answer = _stPool[iKind].back();
-  _stPool[iKind].pop_back();
-  return answer;
+  taSubtask *pStSpecific = dynamic_cast<taSubtask*>(pStGeneric);
+  if (pStSpecific == nullptr) {
+    const char* const sPrologue = "CpuEngine's subtask pool seems broken: a request for subtask ";
+    if (pStGeneric == nullptr) {
+      CELOG(Critical) << sPrologue << iKind << " has returned nullptr.";
+    }
+    else {
+      CELOG(Critical) << sPrologue << iKind << " has returned a subtask of kind " << size_t(pStGeneric->GetKind());
+      DeleteSubtask(pStGeneric);
+    }
+    return nullptr;
+  }
+  return pStSpecific;
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::ReleaseSubtask(CESubtask<taNumber> *pSubtask) {
@@ -181,15 +197,15 @@ template<typename taNumber> void CpuEngine<taNumber>::WorkerEntry() {
     }
     catch (SRException& ex) {
       PqaError err;
-      err.SetFromException(ex);
+      err.SetFromException(std::move(ex));
       CELOG(Critical) << "Worker thread got an SRException not handled at lower levels: " << err.ToString(true);
-      ceStc.Get()->_pTask->AddError(err);
+      ceStc.Get()->_pTask->AddError(std::move(err));
     }
     catch (std::exception& ex) {
       PqaError err;
-      err.SetFromException(ex);
+      err.SetFromException(std::move(ex));
       CELOG(Critical) << "Worker thread got an std::exception not handled at lower levels: " << err.ToString(true);
-      ceStc.Get()->_pTask->AddError(err);
+      ceStc.Get()->_pTask->AddError(std::move(err));
     }
   }
 }
@@ -242,7 +258,7 @@ template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSub
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa) {
-
+  //TODO: implement
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
@@ -310,18 +326,14 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
           nextStart++;
         }
         assert(nextStart <= nQuestions);
-        auto pSt = AcquireSubtask(CESubtask<taNumber>::Kind::TrainDistrib);
-        auto pTsd = dynamic_cast<CETrainSubtaskDistrib<taNumber>*>(pSt);
+        auto pTsd = AcquireSubtask<CETrainSubtaskDistrib<taNumber>>();
         if (pTsd == nullptr) {
           // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
           //  they have a pointer to an object on the stack of the current function.
-          const char* const msg = "Internal error: acquired something other than CETrainSubtaskDistrib for code"
-            " TrainDistrib .";
+          const char* const msg = "Internal error: failed to acquire CETrainSubtaskDistrib in " SR_FILE_LINE;
           CELOG(Critical) << msg;
           resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
           trainTask.Cancel();
-          // Don't return a broken subtask to the pool.
-          DeleteSubtask(pSt);
           break;
         }
         pTsd->_pTask = &trainTask;
@@ -345,23 +357,20 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
     trainTask.PrepareNextPhase();
 
     // Phase 2: update KB
-    for (size_t i = 0; i < nWorkers; i++) {
-      auto pSt = AcquireSubtask(CESubtask<taNumber>::Kind::TrainAdd);
-      auto pTsa = dynamic_cast<CETrainSubtaskAdd<taNumber>*>(pSt);
+    size_t i = 0;
+    for (; i < nWorkers; i++) {
+      auto pTsa = AcquireSubtask<CETrainSubtaskAdd<taNumber>>();
       if (pTsa == nullptr) {
         // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
         //  they have a pointer to an object on the stack of the current function.
-        const char* const msg = "Internal error: acquired something other than CETrainSubtaskAdd for code"
-          " TrainAdd .";
+        const char* const msg = "Internal error: failed to acquire CETrainSubtaskAdd at " SR_FILE_LINE;
         CELOG(Critical) << msg;
         resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
         trainTask.Cancel();
-        // Don't return a broken subtask to the pool.
-        DeleteSubtask(pSt);
         break;
       }
     }
-    trainTask.IncToDo(nWorkers);
+    trainTask.IncToDo(i);
     // Even if the task has been cancelled, wait till all the workers acknowledge that
     WakeWorkersWait(trainTask);
     

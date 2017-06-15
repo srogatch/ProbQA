@@ -68,8 +68,7 @@ private: // methods
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
   void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
-  // template<typename taSubtask> taSubtask* AcquireSubtask();
-  CESubtask<taNumber>* AcquireSubtask(const typename CESubtask<taNumber>::Kind kind);
+  template<typename taSubtask> taSubtask* AcquireSubtask();
   void WakeWorkersWait(CETask<taNumber> &task);
 
 public: // Client interface methods

@@ -5,12 +5,14 @@
 namespace ProbQA {
 
 template<typename taNumber> class CETrainSubtaskAdd : public CESubtask<taNumber> {
-public: // variables
+public: // constants
+  static const Kind _cKind = Kind::TrainAdd;
 
+public: // variables
 
 public: // methods
   virtual Kind GetKind() override {
-    return Kind::TrainAdd;
+    return _cKind;
   }
 };
 
