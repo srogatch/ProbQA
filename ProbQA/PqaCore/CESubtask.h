@@ -8,7 +8,8 @@ template<typename taNumber> class CESubtask {
 public: // types
   enum class Kind : uint8_t {
     None = 0,
-    TrainDistrib = 1
+    TrainDistrib = 1,
+    TrainAdd = 2
   };
 
 public: // variables

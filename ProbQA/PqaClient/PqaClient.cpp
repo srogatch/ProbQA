@@ -92,7 +92,7 @@ void BenchmarkTemplate() {
   const int64_t nIterations = 234567890;
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 0; i < nIterations; i++) {
-    auto&& doFinally = MakeFinally4([&] { var++; });
+    auto&& doFinally = MakeFinally4([&] { var++; }); (void)doFinally;
     //C++17: Finally4 doFinally{ [&] { var++; } };
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
@@ -100,19 +100,19 @@ void BenchmarkTemplate() {
   printf("Template: %.3lf Ops/sec, var=%lld\n", nIterations / nSec, (long long)var);
 }
 
-void BenchmarkMacro() {
-  volatile int64_t var = 0;
-  const int64_t nIterations = 234567890;
-  auto start = std::chrono::high_resolution_clock::now();
-  for (int64_t i = 0; i < nIterations; i++) {
-    SR_FINALLY([&] {
-      var++; 
-    });
-  }
-  auto elapsed = std::chrono::high_resolution_clock::now() - start;
-  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-  printf("Macro: %.3lf Ops/sec, var=%lld\n", nIterations / nSec, (long long)var);
-}
+//void BenchmarkMacro() {
+//  volatile int64_t var = 0;
+//  const int64_t nIterations = 234567890;
+//  auto start = std::chrono::high_resolution_clock::now();
+//  for (int64_t i = 0; i < nIterations; i++) {
+//    SR_FINALLY([&] {
+//      var++; 
+//    });
+//  }
+//  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+//  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+//  printf("Macro: %.3lf Ops/sec, var=%lld\n", nIterations / nSec, (long long)var);
+//}
 
 void BenchmarkEmpty() {
   volatile int64_t var = 0;
@@ -126,13 +126,46 @@ void BenchmarkEmpty() {
   printf("Empty: %.3lf Ops/sec, var=%lld\n", nIterations / nSec, (long long)var);
 }
 
+std::atomic<int64_t> gCounter(0);
+const int64_t gnAtomicIterations = 10 * 1000 * 1000;
+
+void CountingThread() {
+  for (int64_t i = 0; i < gnAtomicIterations; i++) {
+    gCounter.fetch_add(1, std::memory_order_acq_rel);
+  }
+}
+
+void BenchmarkAtomic() {
+  const uint32_t maxThreads = std::thread::hardware_concurrency();
+  std::vector<std::thread> thrs;
+  thrs.reserve(maxThreads + 1);
+
+  for (uint32_t nThreads = 1; nThreads <= maxThreads; nThreads++) {
+    auto start = std::chrono::high_resolution_clock::now();
+    for (uint32_t i = 0; i < nThreads; i++) {
+      thrs.emplace_back(CountingThread);
+    }
+    for (uint32_t i = 0; i < nThreads; i++) {
+      thrs[i].join();
+    }
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+    printf("%d threads: %.3lf Ops/sec, counter=%lld\n", (int)nThreads, (nThreads * gnAtomicIterations) / nSec,
+      (long long)gCounter.load(std::memory_order_acquire));
+
+    thrs.clear();
+    gCounter.store(0, std::memory_order_release);
+  }
+}
+
 int __cdecl main() {
-  BenchmarkFunctor();
-  BenchmarkObject();
-  BenchmarkMSVCpp();
-  BenchmarkTemplate();
-  BenchmarkMacro();
-  BenchmarkEmpty();
+  //BenchmarkFunctor();
+  //BenchmarkObject();
+  //BenchmarkMSVCpp();
+  //BenchmarkTemplate();
+  //BenchmarkMacro();
+  //BenchmarkEmpty();
+  BenchmarkAtomic();
   return 0;
 }
 

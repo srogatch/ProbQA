@@ -201,6 +201,7 @@
     <ClInclude Include="CESubtask.h" />
     <ClInclude Include="CESubtaskCompleter.h" />
     <ClInclude Include="CETask.h" />
+    <ClInclude Include="CETrainSubtaskAdd.h" />
     <ClInclude Include="CETrainSubtaskDistrib.h" />
     <ClInclude Include="CETrainTask.h" />
     <ClInclude Include="CpuEngine.h" />

@@ -99,17 +99,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   return PqaError();
 }
 
-template<typename taNumber> void CpuEngine<taNumber>::ReleaseSubtask(CESubtask<taNumber> *pSubtask) {
-  // With a subtask pool, avoid memory alloc/free bottlenecks
-  SRLock<TStpSync> stpsl(_stpSync);
-  size_t kind = static_cast<size_t>(pSubtask->GetKind());
-  size_t poolSize = _stPool.size();
-  if (kind >= poolSize) {
-    _stPool.resize(kind + 1);
-  }
-  _stPool[kind].push_back(pSubtask);
-}
-
 template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubtask(
   const typename CESubtask<taNumber>::Kind kind)
 {
@@ -119,11 +108,17 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubt
     return nullptr;
   case CESubtask<taNumber>::Kind::TrainDistrib:
     return new CETrainSubtaskDistrib<taNumber>();
+  case CESubtask<taNumber>::Kind::TrainAdd:
+    return new CETrainSubtaskAdd<taNumber>();
     //TODO: implement
   default:
     CELOG(Critical) << "Requested to create a subtask of unhandled kind #" + static_cast<int64_t>(kind);
     return nullptr;
   }
+}
+
+template<typename taNumber> void CpuEngine<taNumber>::DeleteSubtask(CESubtask<taNumber> *pSubtask) {
+  delete pSubtask;
 }
 
 template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::AcquireSubtask(
@@ -139,6 +134,17 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::AcquireSub
   return answer;
 }
 
+template<typename taNumber> void CpuEngine<taNumber>::ReleaseSubtask(CESubtask<taNumber> *pSubtask) {
+  // With a subtask pool, avoid memory alloc/free bottlenecks
+  SRLock<TStpSync> stpsl(_stpSync);
+  size_t kind = static_cast<size_t>(pSubtask->GetKind());
+  size_t poolSize = _stPool.size();
+  if (kind >= poolSize) {
+    _stPool.resize(kind + 1);
+  }
+  _stPool[kind].push_back(pSubtask);
+}
+
 template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNumber> &ceSt) {
   switch (ceSt.GetKind()) {
   case CESubtask<taNumber>::Kind::None:
@@ -147,6 +153,8 @@ template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNum
   case CESubtask<taNumber>::Kind::TrainDistrib:
     RunTrainDistrib(dynamic_cast<CETrainSubtaskDistrib<taNumber>&>(ceSt));
     break;
+  case CESubtask<taNumber>::Kind::TrainAdd:
+    RunTrainAdd(dynamic_cast<CETrainSubtaskAdd<taNumber>&>(ceSt));
     //TODO: implement
   default:
     CELOG(Critical) << "Worker has received a subtask of unhandled kind #" + static_cast<int64_t>(ceSt.GetKind());
@@ -157,18 +165,43 @@ template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNum
 template<typename taNumber> void CpuEngine<taNumber>::WorkerEntry() {
   for (;;) {
     CESubtaskCompleter<taNumber> ceStc;
-    {
-      SRLock<SRCriticalSection> csl(_csWorkers);
-      while (_quWork.size() == 0) {
-        if (_shutdownRequested) {
-          return;
+    try {
+      {
+        SRLock<SRCriticalSection> csl(_csWorkers);
+        while (_quWork.size() == 0) {
+          if (_shutdownRequested) {
+            return;
+          }
+          _haveWork.Wait(_csWorkers);
         }
-        _haveWork.Wait(_csWorkers);
+        ceStc.Set(_quWork.front());
+        _quWork.pop();
       }
-      ceStc.Set(_quWork.front());
-      _quWork.pop();
+      RunSubtask(*ceStc.Get());
     }
-    RunSubtask(*ceStc.Get());
+    catch (SRException& ex) {
+      PqaError err;
+      err.SetFromException(ex);
+      CELOG(Critical) << "Worker thread got an SRException not handled at lower levels: " << err.ToString(true);
+      ceStc.Get()->_pTask->AddError(err);
+    }
+    catch (std::exception& ex) {
+      PqaError err;
+      err.SetFromException(ex);
+      CELOG(Critical) << "Worker thread got an std::exception not handled at lower levels: " << err.ToString(true);
+      ceStc.Get()->_pTask->AddError(err);
+    }
+  }
+}
+
+template<typename taNumber> void CpuEngine<taNumber>::WakeWorkersWait(CETask<taNumber> &task) {
+  _haveWork.WakeAll();
+  SRLock<SRCriticalSection> csl(_csWorkers);
+  for (;;) {
+    task._isComplete.Wait(_csWorkers);
+    if (task.GetToDo() == 0) {
+      break;
+    }
   }
 }
 
@@ -178,13 +211,38 @@ template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSub
     return;
   }
   for (const AnsweredQuestion *pAQ = tsd._pFirst, *pEn= tsd._pLim; pAQ < pEn; pAQ++) {
-    //TODO: check ranges
-    TPqaId iBucket = pAQ->_iQuestion % _workers.size();
-    TPqaId iPrev = pTask->_iPrev.fetch_add(1);
+    // Check ranges
+    const TPqaId iQuestion = pAQ->_iQuestion;
+    if (iQuestion < 0 || iQuestion >= _dims._nQuestions) {
+      const TPqaId nKB = _dims._nQuestions;
+      pTask->AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, nKB - 1),
+        SRString::MakeUnowned("Question index is not in KB range.")));
+      return;
+    }
+    if (_questionGaps.IsGap(iQuestion)) {
+      pTask->AddError(PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iQuestion), SRString::MakeUnowned(
+        "Question index is not in KB (but rather at a gap).")));
+      return;
+    }
+    const TPqaId iAnswer = pAQ->_iAnswer;
+    if (iAnswer < 0 || iAnswer >= _dims._nAnswers) {
+      const TPqaId nKB = _dims._nAnswers;
+      pTask->AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, nKB - 1),
+        SRString::MakeUnowned("Answer index is not in KB range.")));
+      return;
+    }
+    // Sort questions into buckets so that workers in the next phase do not race for data.
+    const TPqaId iBucket = iQuestion % _workers.size();
+    const TPqaId iPrev = pTask->_iPrev.fetch_add(1);
     TPqaId expected = pTask->_last[iBucket].load(std::memory_order_acquire);
-    while (!pTask->_last[iBucket].compare_exchange_weak(expected, iPrev, std::memory_order_acq_rel));
+    while (!pTask->_last[iBucket].compare_exchange_weak(expected, iPrev, std::memory_order_acq_rel,
+      std::memory_order_acquire));
     pTask->_prev[iPrev] = expected;
   }
+}
+
+template<typename taNumber> void CpuEngine<taNumber>::RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa) {
+
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
@@ -205,7 +263,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, nQuestions);
   SRSmartMPP<TMemPool, std::atomic<TPqaId>> ttLast(_memPool, nWorkers);
 
-  CETrainTask<taNumber> trainTask(this);
+  CETrainTask<taNumber> trainTask(this, amount);
   trainTask._prev = ttPrev.Get();
   trainTask._last = ttLast.Get();
   //TODO: vectorize/parallelize
@@ -213,28 +271,34 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
     new(trainTask._last+i) std::atomic<TPqaId>(cInvalidPqaId);
   }
   // &trainTask, &nWorkers
-  SR_FINALLY([&trainTask, &nWorkers] {
+  auto&& ttLastFinally = SRMakeFinally([&pLast = trainTask._last, &nWorkers] {
+    //TODO: vectorize/parallelize
     for (size_t i = 0; i < nWorkers; i++) {
-      trainTask._last[i].~atomic();
+      pLast[i].~atomic();
     }
-  })
-  //TODO: guard destruction of trainTask._last[i]
-  //struct TrainTaskLastGuard {
-  //  TrainTaskLastGuard()
-  //} trainTaskLastGuard;
+  }); (void)ttLastFinally; // prevent warning C4189
 
   { // Scope for the locks
     MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
     SRRWLock<true> rwl(_rws);
 
-    if (iTarget < 0 || iTarget >= _dims._nTargets) {
-      //TODO: report error
-    }
-
     //// This code must be reader-writer locked, because we are validating the input before modifying the KB, so noone
     ////   must change the KB in between.
 
-    {
+    if (iTarget < 0 || iTarget >= _dims._nTargets) {
+      const TPqaId nKB = _dims._nTargets;
+      rwl.EarlyRelease();
+      return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iTarget, 0, nKB - 1),
+        SRString::MakeUnowned("Target index is not in KB range."));
+    }
+
+    if (_targetGaps.IsGap(iTarget)) {
+      rwl.EarlyRelease();
+      return PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iTarget), SRString::MakeUnowned(
+        "Target index is not in KB (but rather at a gap)."));
+    }
+
+    { //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
       lldiv_t perWorker = div((long long)nQuestions, (long long)nWorkers);
       TPqaId nextStart = 0;
       SRLock<SRCriticalSection> csl(_csWorkers);
@@ -256,7 +320,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
           CELOG(Critical) << msg;
           resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
           trainTask.Cancel();
-          delete pSt;
+          // Don't return a broken subtask to the pool.
+          DeleteSubtask(pSt);
           break;
         }
         pTsd->_pTask = &trainTask;
@@ -266,16 +331,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
       }
       trainTask.IncToDo(i);
     }
-    { // Even if the task has been cancelled, wait till all the workers acknowledge that
-      _haveWork.WakeAll();
-      SRLock<SRCriticalSection> csl(_csWorkers);
-      for (;;) {
-        trainTask._isComplete.Wait(_csWorkers);
-        if (trainTask.GetToDo() == 0) {
-          break;
-        }
-      }
-    }
+    // Even if the task has been cancelled, wait till all the workers acknowledge that
+    WakeWorkersWait(trainTask);
     if (!resErr.isOk()) {
       return resErr;
     }
@@ -287,32 +344,37 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
 
     trainTask.PrepareNextPhase();
 
-    //TODO: instead, distribute the AQs into buckets with the number of buckets divisable by the number of workers.
-    // In case both are zero, run the single-threaded version
-    if (nQuestions * (TPqaId(_workers.size()) << cLogSimdBits) <= _dims._nQuestions) {
-      for (TPqaId i = 0; i < nQuestions; i++) {
-        const TPqaId iQuestion = pAQs[i]._iQuestion;
-        if (iQuestion < 0 || iQuestion >= _dims._nQuestions) {
-          const TPqaId nKB = _dims._nQuestions;
-          rwl.EarlyRelease();
-          return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, nKB - 1),
-            SRString::MakeUnowned("Question index is not in KB range."));
-        }
-        if (_questionGaps.IsGap(iQuestion)) {
-          //TODO: report error
-        }
-        const TPqaId iAnswer = pAQs[i]._iAnswer;
-        if (iAnswer < 0 || iAnswer >= _dims._nAnswers) {
-          const TPqaId nKB = _dims._nAnswers;
-          rwl.EarlyRelease();
-          return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, nKB - 1),
-            SRString::MakeUnowned("Answer index is not in KB range."));
-        }
+    // Phase 2: update KB
+    for (size_t i = 0; i < nWorkers; i++) {
+      auto pSt = AcquireSubtask(CESubtask<taNumber>::Kind::TrainAdd);
+      auto pTsa = dynamic_cast<CETrainSubtaskAdd<taNumber>*>(pSt);
+      if (pTsa == nullptr) {
+        // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
+        //  they have a pointer to an object on the stack of the current function.
+        const char* const msg = "Internal error: acquired something other than CETrainSubtaskAdd for code"
+          " TrainAdd .";
+        CELOG(Critical) << msg;
+        resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
+        trainTask.Cancel();
+        // Don't return a broken subtask to the pool.
+        DeleteSubtask(pSt);
+        break;
       }
     }
-    else {
-
+    trainTask.IncToDo(nWorkers);
+    // Even if the task has been cancelled, wait till all the workers acknowledge that
+    WakeWorkersWait(trainTask);
+    
+    if (!resErr.isOk()) {
+      return resErr;
     }
+    resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed adding to KB the given training data."));
+    if (!resErr.isOk()) {
+      return resErr;
+    }
+    
+    //TODO: update target totals |_vB|
+
     // This method should increase the counter of questions asked by the number of questions in this training.
     _nQuestionsAsked += nQuestions;
   }

@@ -137,4 +137,14 @@ public:
   }
 };
 
+class PQACORE_API AbsentIdErrorParams : public IPqaErrorParams {
+  TPqaId _id;
+public:
+  explicit AbsentIdErrorParams(const TPqaId id) : _id(id) { }
+  TPqaId GetId() const { return _id; }
+  virtual SRPlat::SRString ToString() override {
+    return SRPlat::SRMessageBuilder("id=")(_id).GetOwnedSRString();
+  }
+};
+
 } // namespace ProbQA

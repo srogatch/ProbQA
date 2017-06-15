@@ -9,6 +9,7 @@
 #include "../PqaCore/CETask.h"
 #include "../PqaCore/CESubtask.h"
 #include "../PqaCore/CETrainSubtaskDistrib.h"
+#include "../PqaCore/CETrainSubtaskAdd.h"
 
 namespace ProbQA {
 
@@ -59,13 +60,17 @@ private: // methods
   void WorkerEntry();
   void RunSubtask(CESubtask<taNumber> &ceSt);
   void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
+  void RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa);
 
   CESubtask<taNumber>* CreateSubtask(const typename CESubtask<taNumber>::Kind kind);
+  void DeleteSubtask(CESubtask<taNumber> *pSubtask);
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
   void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
+  // template<typename taSubtask> taSubtask* AcquireSubtask();
   CESubtask<taNumber>* AcquireSubtask(const typename CESubtask<taNumber>::Kind kind);
+  void WakeWorkersWait(CETask<taNumber> &task);
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);

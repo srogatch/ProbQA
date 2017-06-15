@@ -20,7 +20,8 @@ enum class PqaErrorCode : int64_t {
   // Aggregate error consisting of multiple errors
   Aggregate = 10, // AggregateErrorParams
   NegativeCount = 11, // NegativeCountErrorParams
-  NonPositiveAmount = 12 // NonPositiveAmountErrorParams
+  NonPositiveAmount = 12, // NonPositiveAmountErrorParams
+  AbsentId = 13 // AbsentIdErrorParams
 };
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);

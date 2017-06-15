@@ -31,7 +31,9 @@ SRPlat::SRString ToSRString(const PqaErrorCode pec) {
   case PqaErrorCode::NegativeCount:
     return SRString::MakeUnowned("The count is negative");
   case PqaErrorCode::NonPositiveAmount:
-    return SRString::MakeUnowned("The amount is not positive.");
+    return SRString::MakeUnowned("The amount is not positive");
+  case PqaErrorCode::AbsentId:
+    return SRString::MakeUnowned("The ID is absent from KB");
   default: {
     std::string message("Unhandled");
     message += std::to_string(static_cast<int64_t>(pec));

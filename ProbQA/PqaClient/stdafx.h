@@ -9,11 +9,14 @@
 
 #include <Windows.h>
 
+#include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <functional>
-#include <stdio.h>
 #include <string>
 #include <tchar.h>
+#include <thread>
+#include <vector>
 
 #include "../SRPlatform/Interface/SRFinally.h"
 
