@@ -87,6 +87,9 @@
     <ClInclude Include="CETrainSubtaskAdd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CETrainTaskNumberSpec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -268,15 +268,15 @@ template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNum
   if (iLast == cInvalidPqaId) {
     return;
   }
-  const __m256d fullAddend = _mm256_set1_pd(to_double(cTask._amount));
-  __m256d rawCollAddend = fullAddend; // Colliding addend
-  rawCollAddend.m256d_f64[1] += cTask._amount; // amount is added twice to _mD[iQuestion][iTarget]
-  const __m256d& collAddend = rawCollAddend; // enable optimizations with const
+  const TPqaId *const cPrev = cTask._prev;
+  // Enable optimizations with const
+  const __m256d& fullAddend = cTask._numSpec._fullAddend;
+  const __m256d& collAddend = cTask._numSpec._collAddend;
   do {
     const AnsweredQuestion& aqFirst = cTask._pAQs[iLast];
-    iLast = cTask._prev[iLast];
+    iLast = cPrev[iLast];
     if (iLast == cInvalidPqaId) {
-      // Use SSE instead of AVX here to supposedly reduce the load on the CPU core (better hyperthreading).
+      // Use SSE2 instead of AVX here to supposedly reduce the load on the CPU core (better hyperthreading).
       __m128d sum = _mm_set_pd(
         _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(),
         _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].GetValue());
@@ -309,8 +309,15 @@ template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNum
       _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[2]);
       _mD[aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[3]);
     }
-    iLast = cTask._prev[iLast];
+    iLast = cPrev[iLast];
   } while (iLast != cInvalidPqaId);
+}
+
+template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTask<DoubleNumber> &tt, const TPqaAmount amount) {
+  const double dAmount = to_double(amount);
+  tt._numSpec._collAddend = tt._numSpec._fullAddend = _mm256_set1_pd(dAmount);
+  // Colliding addend: amount is added twice to _mD[iQuestion][iTarget] .
+  tt._numSpec._collAddend.m256d_f64[1] += dAmount;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
@@ -331,9 +338,10 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, nQuestions);
   SRSmartMPP<TMemPool, std::atomic<TPqaId>> ttLast(_memPool, nWorkers);
 
-  CETrainTask<taNumber> trainTask(this, amount, iTarget, pAQs);
+  CETrainTask<taNumber> trainTask(this, iTarget, pAQs);
   trainTask._prev = ttPrev.Get();
   trainTask._last = ttLast.Get();
+  InitTrainTaskNumSpec(trainTask, amount);
   //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
     new(trainTask._last+i) std::atomic<TPqaId>(cInvalidPqaId);

@@ -8,6 +8,7 @@
 #include "../PqaCore/CESubtaskCompleter.h"
 #include "../PqaCore/CETask.h"
 #include "../PqaCore/CESubtask.h"
+#include "../PqaCore/CETrainTask.h"
 #include "../PqaCore/CETrainSubtaskDistrib.h"
 #include "../PqaCore/CETrainSubtaskAdd.h"
 
@@ -64,6 +65,8 @@ private: // methods
   void RunSubtask(CESubtask<taNumber> &ceSt);
   void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
   void RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa);
+
+  void InitTrainTaskNumSpec(CETrainTask<taNumber> &tt, const TPqaAmount amount);
 
   CESubtask<taNumber>* CreateSubtask(const typename CESubtask<taNumber>::Kind kind);
   void DeleteSubtask(CESubtask<taNumber> *pSubtask);
