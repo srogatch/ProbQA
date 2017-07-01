@@ -50,4 +50,20 @@ template<> SRString SRUtils::PrintUtcTime<false>() {
   return SRString::MakeClone(buffer);
 }
 
+template<> static void SRUtils::FillZeroVects<true>(__m256i *p, const size_t nVects) {
+  const __m256i vZero = _mm256_setzero_si256();
+  for (void *pEn = p + nVects; p < pEn; p++) {
+    _mm256_stream_si256(p, vZero);
+  }
+  //TODO: should here be rather _mm_mfence() ? https://stackoverflow.com/questions/44864033/make-previous-memory-stores-visible-to-subsequent-memory-loads
+  _mm_sfence();
+}
+
+template<> static void SRUtils::FillZeroVects<false>(__m256i *p, const size_t nVects) {
+  const __m256i vZero = _mm256_setzero_si256();
+  for (void *pEn = p + nVects; p < pEn; p++) {
+    _mm256_store_si256(p, vZero);
+  }
+}
+
 } // namespace SRPlat

@@ -3,7 +3,7 @@
 #include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/PqaException.h"
 #include "../PqaCore/CETrainTask.h"
-#include "../PqaCore/InternalErrorHelper.h"
+#include "../PqaCore/ErrorHelper.h"
 
 using namespace SRPlat;
 
@@ -59,11 +59,6 @@ template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {
   if (!pqaErr.isOk() && pqaErr.GetCode() != PqaErrorCode::ObjectShutDown) {
     CELOG(Error) << "Failed CpuEngine::Shutdown(): " << pqaErr.ToString(true);
   }
-  for (size_t i = 0, iEn = _stPool.size(); i < iEn; i++) {
-    for (size_t j = 0, jEn = _stPool[i].size(); j < jEn; j++) {
-      delete _stPool[i][j];
-    }
-  }
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::SetLogger(ISRLogger *pLogger) {
@@ -86,6 +81,12 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   }
   // By this moment, all operations must have shut down and no new operations can be started.
 
+  if (saveFilePath != nullptr) {
+    //TODO: implement
+  }
+
+  //TODO: check the order - perhaps some releases should happen while the workers are still operational
+
   //// Shutdown worker threads
   {
     SRLock<SRCriticalSection> csl(_csWorkers);
@@ -95,6 +96,32 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   for (size_t i = 0, iEn = _workers.size(); i < iEn; i++) {
     _workers[i].join();
   }
+
+  //// Release quizzes
+  for (size_t i = 0; i < _quizzes.size(); i++) {
+    delete _quizzes[i];
+  }
+  _quizzes.clear();
+  _quizGaps.Compact(0);
+
+  //// Release subtask pool
+  for (size_t i = 0, iEn = _stPool.size(); i < iEn; i++) {
+    for (size_t j = 0, jEn = _stPool[i].size(); j < jEn; j++) {
+      delete _stPool[i][j];
+    }
+  }
+  _stPool.clear();
+
+  //// Release KB
+  _sA.clear();
+  _mD.clear();
+  _vB.clear();
+  _questionGaps.Compact(0);
+  _targetGaps.Compact(0);
+  _dims._nAnswers = _dims._nQuestions = _dims._nTargets = 0;
+
+  //// Release memory pool
+  _memPool.FreeAllChunks();
 
   return PqaError();
 }
@@ -171,6 +198,7 @@ template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNum
     break;
   case CESubtask<taNumber>::Kind::TrainAdd:
     RunTrainAdd(dynamic_cast<CETrainSubtaskAdd<taNumber>&>(ceSt));
+    break;
     //TODO: implement
   default:
     CELOG(Critical) << "Worker has received a subtask of unhandled kind #" + static_cast<int64_t>(ceSt.GetKind());
@@ -458,18 +486,35 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   try {
     return TrainInternal(nQuestions, pAQs, iTarget, amount);
   }
-  catch (SRException &ex) {
-    return std::move(PqaError().SetFromException(std::move(ex)));
-  }
-  catch (std::exception &ex) {
-    return std::move(PqaError().SetFromException(ex));
-  }
+  CATCH_TO_ERR_RETURN;
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::StartQuiz")));
+  try {
+    const auto msMode = MaintenanceSwitch::Mode::Regular;
+    if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+      //TODO: return error
+    }
+    MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+    TPqaId quizId;
+    {
+      SRLock<SRCriticalSection> csl(_csQuizReg);
+      quizId = _quizGaps.Acquire();
+      if (quizId >= TPqaId(_quizzes.size())) {
+        assert(quizId == TPqaId(_quizzes.size()));
+        _quizzes.emplace_back(nullptr);
+      }
+    }
+    SRRWLock<false> rwl(_rws);
+    //TODO: implement . This is just a reference stub.
+    _quizzes[quizId] = new CEQuiz<taNumber>();
+    return quizId;
+  }
+  CATCH_TO_ERR_SET(err);
   return cInvalidPqaId;
+  //err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+  //  "CpuEngine<taNumber>::StartQuiz")));
+  //return cInvalidPqaId;
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err, const TPqaId nQuestions,

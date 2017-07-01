@@ -27,6 +27,7 @@
 
 #include "../SRPlatform/Interface/ISRLogger.h"
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
+#include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
 #include "../SRPlatform/Interface/SRCriticalSection.h"
 #include "../SRPlatform/Interface/SRDefaultLogger.h"
@@ -37,5 +38,6 @@
 #include "../SRPlatform/Interface/SRMemPool.h"
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
+#include "../SRPlatform/Interface/SRUtils.h"
 
 // TODO: reference additional headers your program requires here

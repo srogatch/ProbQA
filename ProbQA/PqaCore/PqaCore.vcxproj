@@ -214,7 +214,7 @@
     <ClInclude Include="Interface\PqaCore.h" />
     <ClInclude Include="Interface\PqaErrorParams.h" />
     <ClInclude Include="Interface\PqaErrors.h" />
-    <ClInclude Include="InternalErrorHelper.h" />
+    <ClInclude Include="ErrorHelper.h" />
     <ClInclude Include="MaintenanceSwitch.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="PqaException.h" />
@@ -224,6 +224,7 @@
     <ClInclude Include="CETrainTaskNumberSpec.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CEQuiz.cpp" />
     <ClCompile Include="CETask.cpp" />
     <ClCompile Include="CpuEngine.cpp" />
     <ClCompile Include="dllmain.cpp">

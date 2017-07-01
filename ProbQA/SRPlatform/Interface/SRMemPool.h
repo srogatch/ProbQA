@@ -5,6 +5,7 @@
 namespace SRPlat {
 
 // If the unit is 256-bit, then taLogUnitBits should be 8 because 256 == (1<<8) .
+// This class is thread-safe, except some methods explicitly specified as not thread-safe.
 template<uint32_t taLogUnitBits, uint32_t taGranules> class SRMemPool {
 public: // constants
   static const size_t cLogSimdBits = 8;
@@ -16,9 +17,19 @@ private: // variables
   std::atomic<size_t> _totalUnits;
   std::atomic<size_t> _maxTotalUnits;
 
+private: // methods
+  void FreeChunk(const size_t iSlot) {
+    void *p = _memChunks[iSlot].load(std::memory_order_relaxed);
+    while (p != nullptr) {
+      void *next = *reinterpret_cast<void**>(p);
+      _mm_free(p);
+      p = next;
+    }
+  }
+
 public:
   static_assert((taGranules * sizeof(std::atomic<void*>)) % cSimdBytes == 0,
-    "Choose an even taMaxUnits for SIMD efficiency.");
+    "For SIMD efficiency, choose taGranules divisable by larger power of 2.");
 
   explicit SRMemPool(const size_t maxTotalUnits = (512 * 1024 * 1024) / cUnitBytes)
     : _totalUnits(0), _maxTotalUnits(maxTotalUnits)
@@ -38,15 +49,20 @@ public:
   ~SRMemPool() {
     //TODO: vectorize/parallelize
     for (size_t i = 0; i < taGranules; i++) {
-      void *p = _memChunks[i].load(std::memory_order_relaxed);
-      while (p != nullptr) {
-        void *next = *reinterpret_cast<void**>(p);
-        _mm_free(p);
-        p = next;
-      }
+      FreeChunk(i);
       _memChunks[i].~atomic<void*>();
     }
     _mm_free(_memChunks);
+  }
+
+  // This method is not thread-safe.
+  void FreeAllChunks() {
+    std::atomic_thread_fence(std::memory_order_acquire);
+    for (size_t i = 0; i < taGranules; i++) {
+      FreeChunk(i);
+      _memChunks[i].store(nullptr, std::memory_order_relaxed);
+    }
+    _totalUnits.store(0, std::memory_order_release);
   }
 
   SRMemPool(const SRMemPool&) = delete;
@@ -96,7 +112,7 @@ public:
     } while (!head.compare_exchange_weak(expected, p, std::memory_order_release, std::memory_order_relaxed));
   }
 
-  void SetMaxTotalUnits(size_t nUnits) {
+  void SetMaxTotalUnits(const size_t nUnits) {
     _maxTotalUnits.store(nUnits, std::memory_order_relaxed);
   }
 };
@@ -109,6 +125,10 @@ template <typename taMemPool, typename taItem> class SRSmartMPP {
 public:
   explicit SRSmartMPP(taMemPool &mp, const size_t nItems) : _pMp(&mp), _nBytes(nItems * sizeof(taItem)) {
     _pItem = static_cast<taItem*>(_pMp->AllocMem(_nBytes));
+    if (_pItem == nullptr) {
+      throw SRException(SRMessageBuilder(__FUNCTION__ " Failed to allocate ")(nItems)(" items, ")(sizeof(taItem))
+        (" bytes each.").GetOwnedSRString());
+    }
   }
 
   taItem* Get() {

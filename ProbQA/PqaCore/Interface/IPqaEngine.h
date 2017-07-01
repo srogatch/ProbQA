@@ -21,8 +21,9 @@ public:
   // Start a new quiz with the given answers applied.
   // Returns quiz ID.
   virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nQuestions, const AnsweredQuestion* const pAQs) = 0;
-  // Returns the ID of the next question to ask.
-  // Returns -1 on error (e.g. maintenance in progress).
+  // Returns the ID of the next question to ask. If this method is called without RecordAnswer(), then the active
+  //   question is skipped.
+  // Returns -1 on error (e.g. when maintenance in progress or when out of questions).
   virtual TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) = 0;
   // Record the user answer for the last question asked. Must be called no more than once for each question.
   virtual PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) = 0;
@@ -48,8 +49,12 @@ public:
   virtual PqaError StartMaintenance(const bool forceQuizes) = 0;
   virtual PqaError FinishMaintenance() = 0;
 
-  //// These maintenance operations are slow when not in maintenance mode, because they have to update all the quizes
-  ////   currently in progress.
+#pragma region Maintenance-only mode operations
+  //// Initially I thought to allow these in regular mode too, however, if a question is deleted while a quiz that uses
+  ////   it is in progress, the resulting training by RecordQuizTarget() would decrease the quality of the KB because
+  ////   target probabilities may change without this question answered.
+  //// Removal of a target requires recomputation of all target probabilities in each quiz, so this is also undesired
+  ////   to keep the engine fast.
   virtual TPqaId AddQuestion(PqaError& err, const TPqaAmount initialAmount = 1) = 0;
   virtual PqaError AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) = 0;
 
@@ -62,7 +67,6 @@ public:
   virtual PqaError RemoveTarget(const TPqaId iTarget) = 0;
   virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) = 0;
 
-#pragma region Maintenance-only mode operations
   // Compacts questions and targets so that there are no gaps.
   // Fills the CompactionResult structure passed in. A call to ReleaseCompactionResult() is needed to release the
   //   resources after usage of the structure.

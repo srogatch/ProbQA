@@ -13,6 +13,8 @@
 // Windows Header Files:
 #include <windows.h>
 
+#include <immintrin.h>
+
 #include <atomic>
 #include <cinttypes>
 #include <cstdint>

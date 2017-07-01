@@ -11,6 +11,7 @@
 #include "../PqaCore/CETrainTask.h"
 #include "../PqaCore/CETrainSubtaskDistrib.h"
 #include "../PqaCore/CETrainSubtaskAdd.h"
+#include "../PqaCore/CEQuiz.h"
 
 namespace ProbQA {
 
@@ -30,31 +31,35 @@ private: // types
   typedef SRPlat::SRMemPool<cLogSimdBits, cMemPoolMaxSimds> TMemPool;
 
 private: // variables
-  // space A: [iAnswer][iQuestion][iTarget]
+  // space A: [iAnswer][iQuestion][iTarget] . Guarded by _rws
   std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>>> _sA;
-  // matrix D: [iQuestion][iTarget]
+  // matrix D: [iQuestion][iTarget] . Guarded by _rws
   std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>> _mD;
-  // vector B: [iTarget]
+  // vector B: [iTarget] . Guarded by _rws
   std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>> _vB;
-  GapTracker<TPqaId> _questionGaps;
-  GapTracker<TPqaId> _targetGaps;
-  EngineDimensions _dims;
+  GapTracker<TPqaId> _questionGaps; // Guarded by _rws
+  GapTracker<TPqaId> _targetGaps; // Guarded by _rws
+  EngineDimensions _dims; // Guarded by _rws
   uint64_t _nQuestionsAsked = 0; // Guarded by _rws
   
   //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
-  MaintenanceSwitch _maintSwitch; // first-entry lock
-  SRPlat::SRReaderWriterSync _rws; // second-entry lock
-  SRPlat::SRCriticalSection _csWorkers; // third-entry lock
-  // SubTask Pool Sync
-  TStpSync _stpSync; // fourth-entry lock
+  //// Actually the locks form directed acyclic graph indicating which locks must be obtained one after another.
+  //// However, to simplify the code we list them here topologically sorted.
+  MaintenanceSwitch _maintSwitch;
+  SRPlat::SRReaderWriterSync _rws; // KB read-write
+  SRPlat::SRCriticalSection _csQuizReg; // quiz registry
+  SRPlat::SRCriticalSection _csWorkers; // queue for async workers
+  TStpSync _stpSync; // SubTask Pool Sync
   
   uint8_t _shutdownRequested : 1; // guarded by _csWorkers
-
+  std::queue<CESubtask<taNumber>*> _quWork; // guarded by _csWorkers
   SRPlat::SRConditionVariable _haveWork;
-  std::queue<CESubtask<taNumber>*> _quWork;
 
-  std::vector<std::vector<CESubtask<taNumber>*>> _stPool;
-  TMemPool _memPool;
+  GapTracker<TPqaId> _quizGaps; // Guarded by _csQuizReg
+  std::vector<CEQuiz<taNumber>*> _quizzes; // Guarded by _csQuizReg
+
+  std::vector<std::vector<CESubtask<taNumber>*>> _stPool; // Guarded by _stpSync
+  TMemPool _memPool; // thread-safe itself
 
   //// Cache-insensitive data
   // The size of this vector must not change after construction of CpuEngine, because it's accessed without locks.
@@ -82,6 +87,8 @@ public: // Internal interface methods
   void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
   template<typename taSubtask> taSubtask* AcquireSubtask();
   void WakeWorkersWait(CETask<taNumber> &task);
+  const EngineDimensions& GetDims() { return _dims; }
+  TMemPool& GetMemPool() { return _memPool; }
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);

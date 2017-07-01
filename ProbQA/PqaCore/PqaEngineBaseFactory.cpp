@@ -3,6 +3,7 @@
 #include "../PqaCore/Interface/PqaErrorParams.h"
 #include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/DoubleNumber.h"
+#include "../PqaCore/ErrorHelper.h"
 
 using namespace SRPlat;
 
@@ -24,12 +25,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
     err.Release();
     return pEngine.release();
   }
-  catch (SRException &ex) {
-    err.SetFromException(std::move(ex));
-  }
-  catch (std::exception& ex) {
-    err.SetFromException(ex);
-  }
+  CATCH_TO_ERR_SET(err);
   return nullptr;
 }
 

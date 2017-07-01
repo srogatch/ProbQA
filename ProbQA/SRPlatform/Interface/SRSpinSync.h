@@ -27,6 +27,12 @@ public:
         nSpins = 0;
         std::this_thread::yield();
       }
+      else {
+        // From https://software.intel.com/sites/landingpage/IntrinsicsGuide/ :
+        // "Provide a hint to the processor that the code sequence is a spin-wait loop. This can help improve the
+        //   performance and power consumption of spin-wait loops." 
+        _mm_pause();
+      }
     }
   }
   void Release() {

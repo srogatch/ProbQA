@@ -81,9 +81,6 @@
     <ClInclude Include="CETrainSubtaskDistrib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="InternalErrorHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CETrainSubtaskAdd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -91,6 +88,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CEQuiz.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ErrorHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -126,6 +126,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PqaErrorParams.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CEQuiz.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
