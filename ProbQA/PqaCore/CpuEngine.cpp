@@ -257,10 +257,6 @@ template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSub
   }
 }
 
-//template<typename taNumber> void CpuEngine<taNumber>::RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa) {
-//  //TODO: implement
-//}
-
 template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNumber> &tsa) {
   CETrainTask<DoubleNumber> &task = static_cast<CETrainTask<DoubleNumber>&>(*tsa._pTask);
   const CETrainTask<DoubleNumber>& cTask = task; // enable optimizations with const
@@ -320,7 +316,7 @@ template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTask<Double
   tt._numSpec._collAddend.m256d_f64[1] += dAmount;
 }
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
+template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
   if (nQuestions < 0) {
@@ -344,10 +340,10 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   InitTrainTaskNumSpec(trainTask, amount);
   //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
-    new(trainTask._last+i) std::atomic<TPqaId>(cInvalidPqaId);
+    new(trainTask._last + i) std::atomic<TPqaId>(cInvalidPqaId);
   }
   // &trainTask, &nWorkers
-  auto&& ttLastFinally = SRMakeFinally([&pLast = trainTask._last, &nWorkers] {
+  auto&& ttLastFinally = SRMakeFinally([&pLast = trainTask._last, &nWorkers]{
     //TODO: vectorize/parallelize
     for (size_t i = 0; i < nWorkers; i++) {
       pLast[i].~atomic();
@@ -359,7 +355,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
     SRRWLock<true> rwl(_rws);
 
     //// This code must be reader-writer locked, because we are validating the input before modifying the KB, so noone
-    ////   must change the KB in between.
+    ////   must change or read the KB in between.
 
     if (iTarget < 0 || iTarget >= _dims._nTargets) {
       const TPqaId nKB = _dims._nTargets;
@@ -439,7 +435,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
     }
     // Even if the task has been cancelled, wait till all the workers acknowledge that
     WakeWorkersWait(trainTask);
-    
+
     if (!resErr.isOk()) {
       return resErr;
     }
@@ -447,16 +443,27 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
     if (!resErr.isOk()) {
       return resErr;
     }
-    
+
     // Update target totals |_vB|
     _vB[iTarget] += amount;
 
     // This method should increase the counter of questions asked by the number of questions in this training.
     _nQuestionsAsked += nQuestions;
   }
-  
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::Train")));
+}
+
+template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
+  const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
+{
+  try {
+    return TrainInternal(nQuestions, pAQs, iTarget, amount);
+  }
+  catch (SRException &ex) {
+    return std::move(PqaError().SetFromException(std::move(ex)));
+  }
+  catch (std::exception &ex) {
+    return std::move(PqaError().SetFromException(ex));
+  }
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {

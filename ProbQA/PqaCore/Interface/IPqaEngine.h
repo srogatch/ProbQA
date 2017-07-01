@@ -15,6 +15,7 @@ public:
   virtual PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount = 1) = 0;
 
+#pragma region Regular-only mode operations
   // Returns new quiz ID.
   virtual TPqaId StartQuiz(PqaError& err) = 0;
   // Start a new quiz with the given answers applied.
@@ -32,6 +33,7 @@ public:
   virtual PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1) = 0;
   // Release the resources occupied by the quiz.
   virtual PqaError ReleaseQuiz(const TPqaId iQuiz) = 0;
+#pragma endregion
 
   // Save the knowledge base, but not the quizes in progress.
   // Double buffer uses as much additional memory as the size of the KB, but reduces KB lock duration because the KB
@@ -60,11 +62,12 @@ public:
   virtual PqaError RemoveTarget(const TPqaId iTarget) = 0;
   virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) = 0;
 
-  //// These methods can only be run in maintenance mode
+#pragma region Maintenance-only mode operations
   // Compacts questions and targets so that there are no gaps.
   // Fills the CompactionResult structure passed in. A call to ReleaseCompactionResult() is needed to release the
   //   resources after usage of the structure.
   virtual PqaError Compact(CompactionResult &cr) = 0;
+#pragma endregion
 
   //// Helpers to maintenance mode that can be run later
   virtual PqaError ReleaseCompactionResult(CompactionResult &cr) = 0;

@@ -63,13 +63,19 @@ private: // variables
 private: // methods
   void WorkerEntry();
   void RunSubtask(CESubtask<taNumber> &ceSt);
-  void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
-  void RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa);
-
-  void InitTrainTaskNumSpec(CETrainTask<taNumber> &tt, const TPqaAmount amount);
 
   CESubtask<taNumber>* CreateSubtask(const typename CESubtask<taNumber>::Kind kind);
   void DeleteSubtask(CESubtask<taNumber> *pSubtask);
+
+#pragma region Behind Train() interface method
+  void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
+  void RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa);
+  void InitTrainTaskNumSpec(CETrainTask<taNumber> &tt, const TPqaAmount amount);
+  PqaError TrainInternal(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
+    const TPqaAmount amount);
+#pragma endregion
+
+
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }

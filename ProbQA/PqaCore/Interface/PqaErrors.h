@@ -60,8 +60,9 @@ public:
   IPqaErrorParams* DetachParams();
   void Release();
 
-  void SetFromException(SRPlat::SRException &&ex);
-  void SetFromException(const std::exception &ex);
+  // Also handles PqaException
+  PqaError& SetFromException(SRPlat::SRException &&ex);
+  PqaError& SetFromException(const std::exception &ex);
 
   SRPlat::SRString ToString(const bool withParams);
 };

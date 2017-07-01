@@ -81,7 +81,7 @@ void PqaError::Release() {
   _message = SRPlat::SRString();
 }
 
-void PqaError::SetFromException(SRPlat::SRException &&ex) {
+PqaError& PqaError::SetFromException(SRPlat::SRException &&ex) {
   PqaException *pPqaEx = dynamic_cast<PqaException*>(&ex);
   if (pPqaEx == nullptr) {
     _code = PqaErrorCode::SRException;
@@ -93,12 +93,14 @@ void PqaError::SetFromException(SRPlat::SRException &&ex) {
     _message = pPqaEx->MoveMsg();
     _pParams = pPqaEx->DetachParams();
   }
+  return *this;
 }
 
-void PqaError::SetFromException(const std::exception &ex) {
+PqaError& PqaError::SetFromException(const std::exception &ex) {
   _code = PqaErrorCode::StdException;
   _message = SRString::MakeClone(ex.what());
   _pParams = new CommonExceptionErrorParams(ex);
+  return *this;
 }
 
 SRString PqaError::ToString(const bool withParams) {
