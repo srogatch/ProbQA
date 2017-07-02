@@ -11,18 +11,20 @@ template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngin
   : _pEngine(pEngine)
 {
   const EngineDimensions& dims = _pEngine->GetDims();
-  auto& memPool = _pEngine->GetMemPool();
-  //SRSmartMPP<decltype(memPool), __m256i> smppIsQAsked(memPool, (dims._nQuestions + 255) >> 8);
-  _isQAsked = static_cast<__m256i*>(memPool.AllocMem((dims._nQuestions+7)>>3));
-  SRBitHelper::FillZero<true>(_isQAsked, dims._nQuestions);
-  _pTargProbs = static_cast<taNumber*>(memPool.AllocMem(sizeof(taNumber) * dims._nTargets));
+  typedef CpuEngine<taNumber>::TMemPool TMemPool;
+  TMemPool& memPool = _pEngine->GetMemPool();
+  SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, (dims._nQuestions + 255) >> 8);
+  SRSmartMPP<TMemPool, taNumber> smppTargProbs(memPool, dims._nTargets);
+  SRBitHelper::FillZero<true>(smppIsQAsked.Get(), dims._nQuestions);
+  _isQAsked = smppIsQAsked.Detach();
+  _pTargProbs = smppTargProbs.Detach();
 }
 
 template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
   const EngineDimensions& dims = _pEngine->GetDims();
   auto& memPool = _pEngine->GetMemPool();
   memPool.ReleaseMem(_pTargProbs, sizeof(taNumber) * dims._nTargets);
-  //memPool.ReleaseMem();
+  memPool.ReleaseMem(_isQAsked, SRBitHelper::GetAlignedSizeBytes(dims._nQuestions));
 }
 
 template class CEQuiz<DoubleNumber>;

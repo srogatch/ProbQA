@@ -506,8 +506,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
       }
     }
     SRRWLock<false> rwl(_rws);
-    //TODO: implement . This is just a reference stub.
-    _quizzes[quizId] = new CEQuiz<taNumber>();
+    _quizzes[quizId] = new CEQuiz<taNumber>(this);
+    //TODO: copy the prior target probabilities
     return quizId;
   }
   CATCH_TO_ERR_SET(err);

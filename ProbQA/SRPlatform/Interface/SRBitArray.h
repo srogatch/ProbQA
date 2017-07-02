@@ -8,14 +8,15 @@ namespace SRPlat {
 class SRBitHelper {
 public: // constants
   static const size_t cLogSimdBits = 8;
+  static const size_t cSimdBits = 1 << cLogSimdBits;
+  static const size_t cSimdMask = cSimdBits - 1;
 
 public:
   static size_t GetAlignedSizeBytes(const size_t nBits) {
-    size_t nVects = (nBits + (1 << cLogSimdBits) - 1) >> cLogSimdBits;
-    return nVects << (cLogSimdBits - 3);
+    return ((nBits + cSimdMask) & (~cSimdMask)) >> 3;
   }
   template<bool taSkipCache> static void FillZero(__m256i *pArray, const size_t nBits) {
-    const size_t nVects = (nBits + (1 << cLogSimdBits) - 1) >> cLogSimdBits;
+    const size_t nVects = (nBits + cSimdMask) >> cLogSimdBits;
     SRUtils::FillZeroVects<taSkipCache>(pArray, nVects);
   }
 };

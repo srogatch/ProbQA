@@ -26,7 +26,7 @@ public: // constants
   static const size_t cSimdBytes = 1 << (cLogSimdBits - 3);
   static const size_t cMemPoolMaxSimds = 1 << 10;
 
-private: // types
+public: // types
   typedef SRPlat::SRSpinSync<32> TStpSync;
   typedef SRPlat::SRMemPool<cLogSimdBits, cMemPoolMaxSimds> TMemPool;
 

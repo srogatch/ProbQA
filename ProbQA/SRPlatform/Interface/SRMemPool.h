@@ -12,6 +12,8 @@ public: // constants
   static const size_t cSimdBytes = (1 << (cLogSimdBits - 3));
   static const size_t cUnitBytes = 1 << (taLogUnitBits - 3);
 
+  static_assert(cSimdBytes >= sizeof(void*), "Need to store a next pointer for a linked list of chunks.");
+
 private: // variables
   std::atomic<void*> *_memChunks;
   std::atomic<size_t> _totalUnits;
