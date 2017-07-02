@@ -23,6 +23,8 @@ template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngin
 template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
   const EngineDimensions& dims = _pEngine->GetDims();
   auto& memPool = _pEngine->GetMemPool();
+  //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
+  //  of targets and questions.
   memPool.ReleaseMem(_pTargProbs, sizeof(taNumber) * dims._nTargets);
   memPool.ReleaseMem(_isQAsked, SRBitHelper::GetAlignedSizeBytes(dims._nQuestions));
 }

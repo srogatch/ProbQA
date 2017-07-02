@@ -17,6 +17,7 @@ template<typename taNumber> class CEQuiz {
 public:
   explicit CEQuiz(CpuEngine<taNumber> *pEngine);
   ~CEQuiz();
+  taNumber* GetTargProbs() { return _pTargProbs; }
 };
 
 } // namespace ProbQA

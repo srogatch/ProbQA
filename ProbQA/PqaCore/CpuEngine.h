@@ -37,9 +37,11 @@ private: // variables
   std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>> _mD;
   // vector B: [iTarget] . Guarded by _rws
   std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>> _vB;
+  // aggregate C: sum of B[iTarget] . Guarded by _rws
+  taNumber _aC;
   GapTracker<TPqaId> _questionGaps; // Guarded by _rws
   GapTracker<TPqaId> _targetGaps; // Guarded by _rws
-  EngineDimensions _dims; // Guarded by _rws
+  EngineDimensions _dims; // Guarded by _maintSwitch
   uint64_t _nQuestionsAsked = 0; // Guarded by _rws
   
   //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
@@ -76,11 +78,14 @@ private: // methods
   void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
   void RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa);
   void InitTrainTaskNumSpec(CETrainTask<taNumber> &tt, const TPqaAmount amount);
+  // Update target totals |_vB| and grand total |_aC|
+  void TrainUpdateTargetTotals(const TPqaId iTarget, const CETrainTaskNumSpec<taNumber>& numSpec);
   PqaError TrainInternal(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount);
 #pragma endregion
 
-
+  // Used by StartQuiz() currently, but may be needed by something else.
+  void CalcTargetPriors(taNumber *pDest);
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }

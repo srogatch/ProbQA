@@ -43,6 +43,9 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   //// Init vector B: the sums of weights over all trainings for each target
   _vB.resize(size_t(_dims._nTargets), initAmount);
 
+  //// Init scalar C: the sum of B[j] over all targets j
+  _aC = initAmount *_dims._nTargets;
+
   _questionGaps.GrowTo(_dims._nQuestions);
   _targetGaps.GrowTo(_dims._nTargets);
 
@@ -344,6 +347,16 @@ template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTask<Double
   tt._numSpec._collAddend.m256d_f64[1] += dAmount;
 }
 
+template<> void CpuEngine<DoubleNumber>::TrainUpdateTargetTotals(const TPqaId iTarget,
+  const CETrainTaskNumSpec<DoubleNumber>& numSpec)
+{
+  const __m128d& addend = *reinterpret_cast<const __m128d*>(&(numSpec._fullAddend));
+  __m128d sum = _mm_set_pd(_aC.GetValue(), _vB[iTarget].GetValue());
+  sum = _mm_add_pd(sum, addend);
+  _vB[iTarget].SetValue(sum.m128d_f64[0]);
+  _aC.SetValue(sum.m128d_f64[1]);
+}
+
 template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
@@ -472,8 +485,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
       return resErr;
     }
 
-    // Update target totals |_vB|
-    _vB[iTarget] += amount;
+    TrainUpdateTargetTotals(iTarget, trainTask._numSpec);
 
     // This method should increase the counter of questions asked by the number of questions in this training.
     _nQuestionsAsked += nQuestions;
@@ -487,6 +499,10 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
     return TrainInternal(nQuestions, pAQs, iTarget, amount);
   }
   CATCH_TO_ERR_RETURN;
+}
+
+template<> void CpuEngine<DoubleNumber>::CalcTargetPriors(DoubleNumber *pDest) {
+
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {
@@ -505,9 +521,12 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
         _quizzes.emplace_back(nullptr);
       }
     }
-    SRRWLock<false> rwl(_rws);
+    // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
+    //   _maintSwitch guards engine dimensions.
     _quizzes[quizId] = new CEQuiz<taNumber>(this);
-    //TODO: copy the prior target probabilities
+    SRRWLock<false> rwl(_rws);
+    // Compute the prior probabilities for targets
+    CalcTargetPriors(_quizzes[quizId]->GetTargProbs());
     return quizId;
   }
   CATCH_TO_ERR_SET(err);

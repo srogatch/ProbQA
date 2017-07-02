@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../PqaCore/CETrainTaskNumberSpec.h"
+#include "../PqaCore/CETrainTaskNumSpec.h"
 #include "../PqaCore/CETask.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 
@@ -13,7 +13,7 @@ public: // variables
   const AnsweredQuestion* const _pAQs;
   std::atomic<TPqaId> _iPrev;
   TPqaId _iTarget;
-  CETrainTaskNumberSpec<taNumber> _numSpec;
+  CETrainTaskNumSpec<taNumber> _numSpec;
   
 public: // methods
   explicit CETrainTask(CpuEngine<taNumber> *pCe, const TPqaId iTarget, const AnsweredQuestion* const pAQs)

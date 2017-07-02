@@ -84,13 +84,13 @@
     <ClInclude Include="CETrainSubtaskAdd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CETrainTaskNumberSpec.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CEQuiz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ErrorHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTaskNumSpec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -5,9 +5,9 @@
 namespace ProbQA {
 
 // Number-specific data for CETrainTask
-template <typename taNumber> class CETrainTaskNumberSpec;
+template <typename taNumber> class CETrainTaskNumSpec;
 
-template<> class CETrainTaskNumberSpec<DoubleNumber> {
+template<> class CETrainTaskNumSpec<DoubleNumber> {
 public: // variables
   __m256d _fullAddend; // non-colliding (4 at once)
   __m256d _collAddend; // colliding (3 at once)
