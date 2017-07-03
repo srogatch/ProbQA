@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../SRPlatform/Interface/SRMath.h"
+
 namespace SRPlat {
 
 // Based on:
@@ -12,6 +14,7 @@ namespace SRPlat {
 template <typename T, std::size_t Alignment>
 class SRAlignedAllocator {
 public:
+  static_assert(Alignment >= 1, "Alignment can't be zero because it's used in division.");
 
   //// The following will be the same for virtually all allocators.
   typedef T * pointer;
@@ -80,8 +83,11 @@ public:
       throw std::length_error("aligned_allocator<T>::allocate() - Integer overflow.");
     }
 
+    // Ensure that the number of bytes allocated is a multiple of alignment: add padding in the end.
+    const size_t origBytes = n * sizeof(T);
+    const size_t paddedBytes = SRMath::RoundUpToFactor(origBytes, Alignment);
     // Mallocator wraps malloc().
-    void * const pv = _mm_malloc(n * sizeof(T), Alignment);
+    void * const pv = _mm_malloc(paddedBytes, Alignment);
     //C++11 not supported in MSVC++: void * const pv = aligned_alloc(Alignment, n * sizeof(T));
 
     // Allocators should throw std::bad_alloc in the case of memory allocation failure.

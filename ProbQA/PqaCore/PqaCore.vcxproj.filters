@@ -93,6 +93,15 @@
     <ClInclude Include="CETrainTaskNumSpec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CECalcTargetPriorsTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CECalcTargetPriorsSubtask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CECalcTargetPriorsTaskNumSpec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

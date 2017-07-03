@@ -215,6 +215,7 @@
     <ClInclude Include="Interface\SRLoggerFactory.h" />
     <ClInclude Include="Interface\SRLogStream.h" />
     <ClInclude Include="Interface\SRMacros.h" />
+    <ClInclude Include="Interface\SRMath.h" />
     <ClInclude Include="Interface\SRMemPool.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRPlatform.h" />

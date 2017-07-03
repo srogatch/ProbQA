@@ -4,12 +4,22 @@
 #include "../PqaCore/PqaException.h"
 #include "../PqaCore/CETrainTask.h"
 #include "../PqaCore/ErrorHelper.h"
+#include "../PqaCore/CECalcTargetPriorsTask.h"
+#include "../PqaCore/CECalcTargetPriorsSubtask.h"
+#include "../PqaCore/CESubtaskCompleter.h"
+#include "../PqaCore/CETask.h"
+#include "../PqaCore/CETrainSubtaskDistrib.h"
+#include "../PqaCore/CETrainSubtaskAdd.h"
+#include "../PqaCore/CETrainTaskNumSpec.h"
+#include "../PqaCore/CEQuiz.h"
 
 using namespace SRPlat;
 
 namespace ProbQA {
 
 #define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
+
+template<> const uint8_t CpuEngine<DoubleNumber>::cNumsPerSimd = cSimdBytes / sizeof(double);
 
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
   : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular), _shutdownRequested(0),
@@ -140,6 +150,8 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubt
     return new CETrainSubtaskDistrib<taNumber>();
   case CESubtask<taNumber>::Kind::TrainAdd:
     return new CETrainSubtaskAdd<taNumber>();
+  case CESubtask<taNumber>::Kind::CalcTargetPriors:
+    return new CECalcTargetPriorsSubtask<taNumber>();
     //TODO: implement
   default:
     CELOG(Critical) << "Requested to create a subtask of unhandled kind #" + static_cast<int64_t>(kind);
@@ -201,6 +213,9 @@ template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNum
     break;
   case CESubtask<taNumber>::Kind::TrainAdd:
     RunTrainAdd(dynamic_cast<CETrainSubtaskAdd<taNumber>&>(ceSt));
+    break;
+  case CESubtask<taNumber>::Kind::CalcTargetPriors:
+    RunCalcTargetPriors(dynamic_cast<CECalcTargetPriorsSubtask<taNumber>&>(ceSt));
     break;
     //TODO: implement
   default:
@@ -340,11 +355,13 @@ template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNum
   } while (iLast != cInvalidPqaId);
 }
 
-template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTask<DoubleNumber> &tt, const TPqaAmount amount) {
+template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTaskNumSpec<DoubleNumber>& numSpec,
+  const TPqaAmount amount) 
+{
   const double dAmount = to_double(amount);
-  tt._numSpec._collAddend = tt._numSpec._fullAddend = _mm256_set1_pd(dAmount);
+  numSpec._collAddend = numSpec._fullAddend = _mm256_set1_pd(dAmount);
   // Colliding addend: amount is added twice to _mD[iQuestion][iTarget] .
-  tt._numSpec._collAddend.m256d_f64[1] += dAmount;
+  numSpec._collAddend.m256d_f64[1] += dAmount;
 }
 
 template<> void CpuEngine<DoubleNumber>::TrainUpdateTargetTotals(const TPqaId iTarget,
@@ -378,7 +395,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   CETrainTask<taNumber> trainTask(this, iTarget, pAQs);
   trainTask._prev = ttPrev.Get();
   trainTask._last = ttLast.Get();
-  InitTrainTaskNumSpec(trainTask, amount);
+  InitTrainTaskNumSpec(trainTask._numSpec, amount);
   //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
     new(trainTask._last + i) std::atomic<TPqaId>(cInvalidPqaId);
@@ -393,6 +410,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
 
   { // Scope for the locks
     MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+    // Can't move dimensions-related code out of this lock because this operation can be run in maintenance mode too.
     SRRWLock<true> rwl(_rws);
 
     //// This code must be reader-writer locked, because we are validating the input before modifying the KB, so noone
@@ -414,8 +432,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
     { //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
       lldiv_t perWorker = div((long long)nQuestions, (long long)nWorkers);
       TPqaId nextStart = 0;
-      SRLock<SRCriticalSection> csl(_csWorkers);
       size_t i = 0;
+      SRLock<SRCriticalSection> csl(_csWorkers);
       for (; i < nWorkers && nextStart < nQuestions; i++) {
         TPqaId curStart = nextStart;
         nextStart += perWorker.quot;
@@ -426,7 +444,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
         auto pTsd = AcquireSubtask<CETrainSubtaskDistrib<taNumber>>();
         if (pTsd == nullptr) {
           // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
-          //  they have a pointer to an object on the stack of the current function.
+          //  they have a pointer to an object (the task) on the stack of the current function.
           const char* const msg = "Internal error: failed to acquire CETrainSubtaskDistrib in " SR_FILE_LINE;
           CELOG(Critical) << msg;
           resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
@@ -501,8 +519,72 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   CATCH_TO_ERR_RETURN;
 }
 
-template<> void CpuEngine<DoubleNumber>::CalcTargetPriors(DoubleNumber *pDest) {
+template<typename taNumber> TPqaId CpuEngine<taNumber>::GetSimdCount(const TPqaId nNumbers) {
+  //TODO: shall division rather be refactored to a shift right?
+  return (nNumbers + cNumsPerSimd - 1) / cNumsPerSimd;
+}
 
+template<> void CpuEngine<DoubleNumber>::RunCalcTargetPriors(CECalcTargetPriorsSubtask<DoubleNumber>& ctps) {
+  auto pTask = static_cast<CECalcTargetPriorsTask<DoubleNumber>*>(ctps._pTask);
+  const __m256d& divisor = pTask->_numSpec._divisor;
+  const TPqaId iFirst = ctps._iFirst;
+  TPqaId nVects = ctps._iLim - iFirst;
+  __m256d *pDest = reinterpret_cast<__m256d*>(pTask->_pDest) + iFirst;
+  __m256d *pSrc = reinterpret_cast<__m256d*>(_vB.data()) + iFirst;
+  for (; nVects > 0; nVects--, pDest++, pSrc++) {
+    *pDest = _mm256_div_pd(*pSrc, divisor);
+  }
+}
+
+template<> void CpuEngine<DoubleNumber>::InitCalcTargetPriorsNumSpec(
+  CECalcTargetPriorsTaskNumSpec<DoubleNumber> &numSpec)
+{
+  numSpec._divisor = _mm256_set1_pd(_aC.GetValue());
+}
+
+template<typename taNumber> PqaError CpuEngine<taNumber>::CalcTargetPriors(taNumber *pDest) {
+  PqaError resErr;
+  const TPqaId nVects = GetSimdCount(_dims._nTargets);
+  const size_t nWorkers = _workers.size();
+  CECalcTargetPriorsTask<taNumber> ctpt(this);
+  ctpt._pDest = pDest;
+  InitCalcTargetPriorsNumSpec(ctpt._numSpec);
+  {
+    lldiv_t perWorker = div((long long)nVects, (long long)nWorkers);
+    TPqaId nextStart = 0;
+    size_t i = 0;
+    SRLock<SRCriticalSection> csl(_csWorkers);
+    for (; i < nWorkers && nextStart < nVects; i++) {
+      const TPqaId curStart = nextStart;
+      nextStart += perWorker.quot;
+      if ((long long)i < perWorker.rem) {
+        nextStart++;
+      }
+      assert(nextStart <= nVects);
+      auto pCtps = AcquireSubtask<CECalcTargetPriorsSubtask<taNumber>>();
+      if (pCtps == nullptr) {
+        // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
+        //  they have a pointer to an object (the task) on the stack of the current function.
+        const char* const msg = "Internal error: failed to acquire CECalcTargetPriorsSubtask in " SR_FILE_LINE;
+        CELOG(Critical) << msg;
+        resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
+        ctpt.Cancel();
+        break;
+      }
+      pCtps->_pTask = &ctpt;
+      pCtps->_iFirst = curStart;
+      pCtps->_iLim = nextStart;
+      _quWork.push(pCtps);
+    }
+    ctpt.IncToDo(i);
+  }
+  // Even if the task has been cancelled, wait till all the workers acknowledge that
+  WakeWorkersWait(ctpt);
+  if (!resErr.isOk()) {
+    return resErr;
+  }
+  resErr = ctpt.TakeAggregateError(SRString::MakeUnowned("Failed computing target priors."));
+  return resErr;
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {
@@ -524,9 +606,18 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
     // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
     //   _maintSwitch guards engine dimensions.
     _quizzes[quizId] = new CEQuiz<taNumber>(this);
-    SRRWLock<false> rwl(_rws);
-    // Compute the prior probabilities for targets
-    CalcTargetPriors(_quizzes[quizId]->GetTargProbs());
+    {
+      SRRWLock<false> rwl(_rws);
+      // Compute the prior probabilities for targets
+      err = CalcTargetPriors(_quizzes[quizId]->GetTargProbs());
+    }
+    if (!err.isOk()) {
+      delete _quizzes[quizId];
+      _quizzes[quizId] = nullptr;
+      SRLock<SRCriticalSection> csl(_csQuizReg);
+      _quizGaps.Release(quizId);
+      return cInvalidPqaId;
+    }
     return quizId;
   }
   CATCH_TO_ERR_SET(err);

@@ -22,7 +22,7 @@ SRString SRUtils::PrintUtcDate() {
   return SRString::MakeClone(buffer);
 }
 
-template<> SRString SRUtils::PrintUtcTime<true>() {
+template<> SRPLATFORM_API SRString SRUtils::PrintUtcTime<true>() {
   FILETIME ft;
   GetSystemTimePreciseAsFileTime(&ft);
   SYSTEMTIME st;
@@ -41,7 +41,7 @@ template<> SRString SRUtils::PrintUtcTime<true>() {
   return SRString::MakeClone(buffer);
 }
 
-template<> SRString SRUtils::PrintUtcTime<false>() {
+template<> SRPLATFORM_API SRString SRUtils::PrintUtcTime<false>() {
   SYSTEMTIME st;
   GetSystemTime(&st);
   char buffer[16];
@@ -50,7 +50,7 @@ template<> SRString SRUtils::PrintUtcTime<false>() {
   return SRString::MakeClone(buffer);
 }
 
-template<> static void SRUtils::FillZeroVects<true>(__m256i *p, const size_t nVects) {
+template<> SRPLATFORM_API static void SRUtils::FillZeroVects<true>(__m256i *p, const size_t nVects) {
   const __m256i vZero = _mm256_setzero_si256();
   for (void *pEn = p + nVects; p < pEn; p++) {
     _mm256_stream_si256(p, vZero);
@@ -59,7 +59,7 @@ template<> static void SRUtils::FillZeroVects<true>(__m256i *p, const size_t nVe
   _mm_sfence();
 }
 
-template<> static void SRUtils::FillZeroVects<false>(__m256i *p, const size_t nVects) {
+template<> SRPLATFORM_API static void SRUtils::FillZeroVects<false>(__m256i *p, const size_t nVects) {
   const __m256i vZero = _mm256_setzero_si256();
   for (void *pEn = p + nVects; p < pEn; p++) {
     _mm256_store_si256(p, vZero);

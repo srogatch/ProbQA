@@ -5,15 +5,17 @@
 #include "../PqaCore/MaintenanceSwitch.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/PqaNumber.h"
-#include "../PqaCore/CESubtaskCompleter.h"
-#include "../PqaCore/CETask.h"
-#include "../PqaCore/CESubtask.h"
-#include "../PqaCore/CETrainTask.h"
-#include "../PqaCore/CETrainSubtaskDistrib.h"
-#include "../PqaCore/CETrainSubtaskAdd.h"
-#include "../PqaCore/CEQuiz.h"
+#include "../PqaCore/CESubtask.h" // needed for Kind enum
 
 namespace ProbQA {
+
+template<typename taNumber> class CEQuiz;
+template<typename taNumber> class CETask;
+template<typename taNumber> class CETrainSubtaskDistrib;
+template<typename taNumber> class CETrainSubtaskAdd;
+template<typename taNumber> class CETrainTaskNumSpec;
+template<typename taNumber> class CECalcTargetPriorsSubtask;
+template<typename taNumber> class CECalcTargetPriorsTaskNumSpec;
 
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
@@ -22,9 +24,10 @@ public: // constants
   static const TPqaId cMinAnswers = 2;
   static const TPqaId cMinQuestions = 1;
   static const TPqaId cMinTargets = 2;
-  static const size_t cLogSimdBits = 8; // AVX2, 256 bits
+  static const uint8_t cLogSimdBits = 8; // AVX2, 256 bits
   static const size_t cSimdBytes = 1 << (cLogSimdBits - 3);
   static const size_t cMemPoolMaxSimds = 1 << 10;
+  static const uint8_t cNumsPerSimd;
 
 public: // types
   typedef SRPlat::SRSpinSync<32> TStpSync;
@@ -74,24 +77,34 @@ private: // methods
   CESubtask<taNumber>* CreateSubtask(const typename CESubtask<taNumber>::Kind kind);
   void DeleteSubtask(CESubtask<taNumber> *pSubtask);
 
+  // Returns the number of vectors for the given number of numbers.
+  static TPqaId GetSimdCount(const TPqaId nNumbers);
+
 #pragma region Behind Train() interface method
   void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
   void RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa);
-  void InitTrainTaskNumSpec(CETrainTask<taNumber> &tt, const TPqaAmount amount);
+  void InitTrainTaskNumSpec(CETrainTaskNumSpec<taNumber>& numSpec, const TPqaAmount amount);
   // Update target totals |_vB| and grand total |_aC|
   void TrainUpdateTargetTotals(const TPqaId iTarget, const CETrainTaskNumSpec<taNumber>& numSpec);
   PqaError TrainInternal(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount);
 #pragma endregion
 
-  // Used by StartQuiz() currently, but may be needed by something else.
-  void CalcTargetPriors(taNumber *pDest);
+#pragma region Used by StartQuiz() currently, but may be needed by something else.
+  // Assumes _rws is locked at least in shared mode. Assumes pDest reserves integer number of SIMDs.
+  PqaError CalcTargetPriors(taNumber *pDest);
+  void RunCalcTargetPriors(CECalcTargetPriorsSubtask<taNumber>& ctps);
+  void InitCalcTargetPriorsNumSpec(CECalcTargetPriorsTaskNumSpec<taNumber> &numSpec);
+#pragma endregion
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
-  void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
+
   template<typename taSubtask> taSubtask* AcquireSubtask();
+  void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
+
   void WakeWorkersWait(CETask<taNumber> &task);
+
   const EngineDimensions& GetDims() { return _dims; }
   TMemPool& GetMemPool() { return _memPool; }
 
