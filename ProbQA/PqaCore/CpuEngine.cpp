@@ -532,8 +532,12 @@ template<> void CpuEngine<DoubleNumber>::RunCalcTargetPriors(CECalcTargetPriorsS
   __m256d *pDest = reinterpret_cast<__m256d*>(pTask->_pDest) + iFirst;
   __m256d *pSrc = reinterpret_cast<__m256d*>(_vB.data()) + iFirst;
   for (; nVects > 0; nVects--, pDest++, pSrc++) {
-    *pDest = _mm256_div_pd(*pSrc, divisor);
+    // Supposedly faster than: *pDest = _mm256_div_pd(*pSrc, divisor);
+    const __m256i iWeight = _mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc));
+    const __m256d prior = _mm256_div_pd(*reinterpret_cast<const __m256d*>(&iWeight), divisor);
+    _mm256_stream_pd(reinterpret_cast<double*>(pDest), prior);
   }
+  _mm_sfence();
 }
 
 template<> void CpuEngine<DoubleNumber>::InitCalcTargetPriorsNumSpec(
@@ -591,7 +595,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
   try {
     const auto msMode = MaintenanceSwitch::Mode::Regular;
     if (!_maintSwitch.TryEnterSpecific<msMode>()) {
-      //TODO: return error
+      err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode operation"
+        " because current mode is not regular (but maintenance/shutdown?)."));
+      return cInvalidPqaId;
     }
     MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
     TPqaId quizId;
