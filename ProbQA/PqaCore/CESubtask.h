@@ -11,7 +11,8 @@ public: // types
     None = 0,
     TrainDistrib = 1,
     TrainAdd = 2,
-    CalcTargetPriors = 3
+    CalcTargetPriorsCache = 3,
+    CalcTargetPriorsNocache = 4
   };
 
 public: // variables

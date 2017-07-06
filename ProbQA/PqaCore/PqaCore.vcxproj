@@ -201,6 +201,7 @@
     <ClInclude Include="CECalcTargetPriorsSubtask.h" />
     <ClInclude Include="CECalcTargetPriorsTask.h" />
     <ClInclude Include="CECalcTargetPriorsTaskNumSpec.h" />
+    <ClInclude Include="CECreateQuizOperation.h" />
     <ClInclude Include="CEQuiz.h" />
     <ClInclude Include="CESubtask.h" />
     <ClInclude Include="CESubtaskCompleter.h" />

@@ -14,8 +14,9 @@ template<typename taNumber> class CETask;
 template<typename taNumber> class CETrainSubtaskDistrib;
 template<typename taNumber> class CETrainSubtaskAdd;
 template<typename taNumber> class CETrainTaskNumSpec;
-template<typename taNumber> class CECalcTargetPriorsSubtask;
+template<typename taNumber, bool taCache> class CECalcTargetPriorsSubtask;
 template<typename taNumber> class CECalcTargetPriorsTaskNumSpec;
+class CECreateQuizResume;
 
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
@@ -90,23 +91,25 @@ private: // methods
     const TPqaAmount amount);
 #pragma endregion
 
-#pragma region Used by StartQuiz() currently, but may be needed by something else.
+#pragma region Behind StartQuiz() and ResumeQuiz() currently. May be needed by something else.
   // Assumes _rws is locked at least in shared mode. Assumes pDest reserves integer number of SIMDs.
-  PqaError CalcTargetPriors(taNumber *pDest);
-  void RunCalcTargetPriors(CECalcTargetPriorsSubtask<taNumber>& ctps);
+  template<bool taCache> PqaError CalcTargetPriors(taNumber *pDest);
+  template<bool taCache> void RunCalcTargetPriors(CECalcTargetPriorsSubtask<taNumber, taCache>& ctps);
   void InitCalcTargetPriorsNumSpec(CECalcTargetPriorsTaskNumSpec<taNumber> &numSpec);
+  template<typename taOperation> TPqaId CreateQuizInternal(taOperation &op);
 #pragma endregion
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
+  const EngineDimensions& GetDims() { return _dims; }
+  TMemPool& GetMemPool() { return _memPool; }
 
   template<typename taSubtask> taSubtask* AcquireSubtask();
   void ReleaseSubtask(CESubtask<taNumber> *pSubtask);
 
   void WakeWorkersWait(CETask<taNumber> &task);
 
-  const EngineDimensions& GetDims() { return _dims; }
-  TMemPool& GetMemPool() { return _memPool; }
+  void UpdatePriorsWithAnsweredQuestions(CECreateQuizResume& resumeOp);
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);

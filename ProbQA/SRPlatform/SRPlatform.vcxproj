@@ -219,6 +219,7 @@
     <ClInclude Include="Interface\SRMemPool.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
+    <ClInclude Include="Interface\SRFastRandom.h" />
     <ClInclude Include="Interface\SRReaderWriterSync.h" />
     <ClInclude Include="Interface\SRSpinSync.h" />
     <ClInclude Include="Interface\SRString.h" />
@@ -248,6 +249,7 @@
     <ClCompile Include="SRCriticalSection.cpp" />
     <ClCompile Include="SRDefaultLogger.cpp" />
     <ClCompile Include="SRException.cpp" />
+    <ClCompile Include="SRFastRandom.cpp" />
     <ClCompile Include="SRLoggerFactory.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRReaderWriterSync.cpp" />

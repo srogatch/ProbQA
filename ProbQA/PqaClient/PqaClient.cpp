@@ -158,6 +158,67 @@ void BenchmarkAtomic() {
   }
 }
 
+double *gpdInput;
+double *gpdOutput;
+const int64_t cnDoubles = 1024 * 1024 * 1024;
+const double cDivisor = 3;
+
+void BenchmarkRandFill() {
+  std::mt19937_64 rng;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < cnDoubles; i++) {
+    gpdInput[i] = rng() / (double(rng())  + 1);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Random fill: %.3lf bytes/sec.\n", cnDoubles * sizeof(double) / nSec);
+}
+
+void BenchmarkFastRandFill() {
+  SRPlat::SRFastRandom fr;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < cnDoubles; i++) {
+    gpdInput[i] = fr.Generate() / (double(fr.Generate()) + 1);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Fast random fill: %.3lf bytes/sec.\n", cnDoubles * sizeof(double) / nSec);
+}
+
+void BenchmarkCaching() {
+  const __m256d divisor = _mm256_set1_pd(cDivisor);
+  const __m256d *pSrc = reinterpret_cast<const __m256d*>(gpdInput);
+  __m256d *pDest = reinterpret_cast<__m256d*>(gpdOutput);
+  int64_t nVects = cnDoubles * sizeof(*gpdInput) / sizeof(*pSrc);
+  auto start = std::chrono::high_resolution_clock::now();
+  for (; nVects > 0; nVects--, pSrc++, pDest++) {
+    const __m256d dividend = _mm256_load_pd(reinterpret_cast<const double*>(pSrc));
+    const __m256d quotient = _mm256_div_pd(dividend, divisor);
+    _mm256_store_pd(reinterpret_cast<double*>(pDest), quotient);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Caching: %.3lf bytes/sec.\n", cnDoubles * 2 * sizeof(double) / nSec);
+}
+
+void BenchmarkNonCaching() {
+  const __m256d divisor = _mm256_set1_pd(cDivisor);
+  const __m256d *pSrc = reinterpret_cast<const __m256d*>(gpdInput);
+  __m256d *pDest = reinterpret_cast<__m256d*>(gpdOutput);
+  int64_t nVects = cnDoubles * sizeof(*gpdInput) / sizeof(*pSrc);
+  auto start = std::chrono::high_resolution_clock::now();
+  for (; nVects > 0; nVects--, pSrc++, pDest++) {
+    const __m256i loaded = _mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc));
+    const __m256d dividend = *reinterpret_cast<const __m256d*>(&loaded);
+    const __m256d quotient = _mm256_div_pd(dividend, divisor);
+    _mm256_stream_pd(reinterpret_cast<double*>(pDest), quotient);
+  }
+  _mm_sfence();
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Non-caching: %.3lf bytes/sec.\n", cnDoubles * 2 * sizeof(double) / nSec);
+}
+
 int __cdecl main() {
   //BenchmarkFunctor();
   //BenchmarkObject();
@@ -165,7 +226,29 @@ int __cdecl main() {
   //BenchmarkTemplate();
   //BenchmarkMacro();
   //BenchmarkEmpty();
-  BenchmarkAtomic();
+  //BenchmarkAtomic();
+  gpdInput = (double*)_mm_malloc(cnDoubles * sizeof(double), sizeof(__m256d));
+  gpdOutput  = (double*)_mm_malloc(cnDoubles * sizeof(double), sizeof(__m256d));
+  // BenchmarkRandFill();
+
+  BenchmarkFastRandFill();
+  double s = 0;
+
+  BenchmarkCaching();
+
+  for (int64_t i = 0; i < cnDoubles; i++) {
+    s += gpdOutput[i];
+  }
+
+  BenchmarkNonCaching();
+
+  for (int64_t i = 0; i < cnDoubles; i++) {
+    s -= gpdOutput[i];
+  }
+  printf("Control sum: %lf\n", s);
+
+  _mm_free(gpdInput);
+  _mm_free(gpdOutput);
   return 0;
 }
 

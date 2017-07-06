@@ -12,6 +12,7 @@
 #include "../PqaCore/CETrainSubtaskAdd.h"
 #include "../PqaCore/CETrainTaskNumSpec.h"
 #include "../PqaCore/CEQuiz.h"
+#include "../PqaCore/CECreateQuizOperation.h"
 
 using namespace SRPlat;
 
@@ -150,8 +151,10 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubt
     return new CETrainSubtaskDistrib<taNumber>();
   case CESubtask<taNumber>::Kind::TrainAdd:
     return new CETrainSubtaskAdd<taNumber>();
-  case CESubtask<taNumber>::Kind::CalcTargetPriors:
-    return new CECalcTargetPriorsSubtask<taNumber>();
+  case CESubtask<taNumber>::Kind::CalcTargetPriorsCache:
+    return new CECalcTargetPriorsSubtask<taNumber, true>();
+  case CESubtask<taNumber>::Kind::CalcTargetPriorsNocache:
+    return new CECalcTargetPriorsSubtask<taNumber, false>();
     //TODO: implement
   default:
     CELOG(Critical) << "Requested to create a subtask of unhandled kind #" + static_cast<int64_t>(kind);
@@ -214,8 +217,11 @@ template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNum
   case CESubtask<taNumber>::Kind::TrainAdd:
     RunTrainAdd(dynamic_cast<CETrainSubtaskAdd<taNumber>&>(ceSt));
     break;
-  case CESubtask<taNumber>::Kind::CalcTargetPriors:
-    RunCalcTargetPriors(dynamic_cast<CECalcTargetPriorsSubtask<taNumber>&>(ceSt));
+  case CESubtask<taNumber>::Kind::CalcTargetPriorsCache:
+    RunCalcTargetPriors(dynamic_cast<CECalcTargetPriorsSubtask<taNumber, true>&>(ceSt));
+    break;
+  case CESubtask<taNumber>::Kind::CalcTargetPriorsNocache:
+    RunCalcTargetPriors(dynamic_cast<CECalcTargetPriorsSubtask<taNumber, false>&>(ceSt));
     break;
     //TODO: implement
   default:
@@ -508,6 +514,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
     // This method should increase the counter of questions asked by the number of questions in this training.
     _nQuestionsAsked += nQuestions;
   }
+
+  return PqaError();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
@@ -524,7 +532,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::GetSimdCount(const TPqaI
   return (nNumbers + cNumsPerSimd - 1) / cNumsPerSimd;
 }
 
-template<> void CpuEngine<DoubleNumber>::RunCalcTargetPriors(CECalcTargetPriorsSubtask<DoubleNumber>& ctps) {
+template<> template<bool taCache> void CpuEngine<DoubleNumber>::RunCalcTargetPriors(
+  CECalcTargetPriorsSubtask<DoubleNumber, taCache>& ctps) 
+{
   auto pTask = static_cast<CECalcTargetPriorsTask<DoubleNumber>*>(ctps._pTask);
   const __m256d& divisor = pTask->_numSpec._divisor;
   const TPqaId iFirst = ctps._iFirst;
@@ -533,11 +543,20 @@ template<> void CpuEngine<DoubleNumber>::RunCalcTargetPriors(CECalcTargetPriorsS
   __m256d *pSrc = reinterpret_cast<__m256d*>(_vB.data()) + iFirst;
   for (; nVects > 0; nVects--, pDest++, pSrc++) {
     // Supposedly faster than: *pDest = _mm256_div_pd(*pSrc, divisor);
+    //TODO: change to a caching load here? and then call _mm_clflushopt() to avoid cache pollution
     const __m256i iWeight = _mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc));
     const __m256d prior = _mm256_div_pd(*reinterpret_cast<const __m256d*>(&iWeight), divisor);
-    _mm256_stream_pd(reinterpret_cast<double*>(pDest), prior);
+    //TODO: check in disassembly that this branching is compile-time
+    if (taCache) {
+      _mm256_store_pd(reinterpret_cast<double*>(pDest), prior);
+    }
+    else {
+      _mm256_stream_pd(reinterpret_cast<double*>(pDest), prior);
+    }
   }
-  _mm_sfence();
+  if (!taCache) {
+    _mm_sfence();
+  }
 }
 
 template<> void CpuEngine<DoubleNumber>::InitCalcTargetPriorsNumSpec(
@@ -546,7 +565,7 @@ template<> void CpuEngine<DoubleNumber>::InitCalcTargetPriorsNumSpec(
   numSpec._divisor = _mm256_set1_pd(_aC.GetValue());
 }
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::CalcTargetPriors(taNumber *pDest) {
+template<typename taNumber> template<bool taCache> PqaError CpuEngine<taNumber>::CalcTargetPriors(taNumber *pDest) {
   PqaError resErr;
   const TPqaId nVects = GetSimdCount(_dims._nTargets);
   const size_t nWorkers = _workers.size();
@@ -565,7 +584,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::CalcTargetPriors(taNum
         nextStart++;
       }
       assert(nextStart <= nVects);
-      auto pCtps = AcquireSubtask<CECalcTargetPriorsSubtask<taNumber>>();
+      CECalcTargetPriorsSubtaskBase<taNumber> *pCtps = AcquireSubtask<CECalcTargetPriorsSubtask<taNumber, taCache>>();
       if (pCtps == nullptr) {
         // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
         //  they have a pointer to an object (the task) on the stack of the current function.
@@ -591,12 +610,14 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::CalcTargetPriors(taNum
   return resErr;
 }
 
-template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {
+template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNumber>::CreateQuizInternal(
+  taOperation &op)
+{
   try {
     const auto msMode = MaintenanceSwitch::Mode::Regular;
     if (!_maintSwitch.TryEnterSpecific<msMode>()) {
-      err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode operation"
-        " because current mode is not regular (but maintenance/shutdown?)."));
+      op._err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
+        " operation because current mode is not regular (but maintenance/shutdown?)."));
       return cInvalidPqaId;
     }
     MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
@@ -615,9 +636,12 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
     {
       SRRWLock<false> rwl(_rws);
       // Compute the prior probabilities for targets
-      err = CalcTargetPriors(_quizzes[quizId]->GetTargProbs());
+      op._err = CalcTargetPriors<taOperation::_cCachePriors>(_quizzes[quizId]->GetTargProbs());
+      if (op._err.isOk()) {
+        op.MaybeUpdatePriorsWithAnsweredQuestions(this);
+      }
     }
-    if (!err.isOk()) {
+    if (!op._err.isOk()) {
       delete _quizzes[quizId];
       _quizzes[quizId] = nullptr;
       SRLock<SRCriticalSection> csl(_csQuizReg);
@@ -626,20 +650,24 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
     }
     return quizId;
   }
-  CATCH_TO_ERR_SET(err);
+  CATCH_TO_ERR_SET(op._err);
   return cInvalidPqaId;
-  //err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-  //  "CpuEngine<taNumber>::StartQuiz")));
-  //return cInvalidPqaId;
+}
+
+template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {
+  CECreateQuizStart startOp(err);
+  return CreateQuizInternal(startOp);
+}
+
+template<typename taNumber> void CpuEngine<taNumber>::UpdatePriorsWithAnsweredQuestions(CECreateQuizResume& resumeOp) {
+
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err, const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs) 
 {
-  (void)nQuestions; (void)pAQs; //TODO: remove when implemented
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::ResumeQuiz")));
-  return cInvalidPqaId;
+  CECreateQuizResume resumeOp(err, nQuestions, pAQs);
+  return CreateQuizInternal(resumeOp);
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& err, const TPqaId iQuiz) {
