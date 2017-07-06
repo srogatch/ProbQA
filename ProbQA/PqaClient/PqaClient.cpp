@@ -179,8 +179,7 @@ void BenchmarkFastRandFill() {
   SRPlat::SRFastRandom fr;
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 0; i < cnDoubles; i++) {
-    gpdInput[i] = fr.Generate() / (double(fr.Generate()) + 1);
-    //gpdInput[i] = fr.SimdGenerate() / (double(fr.SimdGenerate()) + 1);
+    gpdInput[i] = fr.Generate<uint64_t>() / (double(fr.Generate<uint64_t>()) + 1);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -254,7 +253,8 @@ int __cdecl main() {
   //BenchmarkAtomic();
   gpdInput = (double*)_mm_malloc(cnDoubles * sizeof(double), sizeof(__m256d));
   gpdOutput  = (double*)_mm_malloc(cnDoubles * sizeof(double), sizeof(__m256d));
-  // BenchmarkRandFill();
+  
+  BenchmarkRandFill();
 
   BenchmarkFastRandFill();
   double s = 0;

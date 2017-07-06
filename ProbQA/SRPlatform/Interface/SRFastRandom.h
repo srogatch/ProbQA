@@ -10,47 +10,80 @@ namespace SRPlat {
 
 class SRPLATFORM_API SRFastRandom {
 public: // constants
-  static const __m128i _cRShift;
+  static const uint8_t _cnAtOnce = sizeof(__m256i) / sizeof(uint64_t);
+
 private: // variables
-  __m128i _s;
+  __m256i _s[2];
+  __m256i _preGen;
+  uint8_t _iNextGen = _cnAtOnce;
+
 private: // methods
-  void InitWithRD(const uint8_t since) {
+  inline void InitWithRD(const uint8_t since) {
     std::random_device rd;
-    for (uint8_t i = since; i <= 3; i++) {
-      _s.m128i_u32[i] = rd();
+    for (uint8_t i = since; i < sizeof(_s) / sizeof(uint32_t); i++) {
+      _s[i >> 3].m256i_u32[i & 7] = rd();
     }
   }
 public: // methods
   explicit SRFastRandom() {
-    for (uint8_t i = 0; i <= 1; i++) {
-      if (!_rdrand64_step(_s.m128i_u64 + i)) {
+    for (uint8_t i = 0; i < sizeof(_s) / sizeof(uint64_t); i++) {
+      if (!_rdrand64_step(_s[i>>2].m256i_u64 + (i&3))) {
+        // Can't log this because this likely happens because of too many hardware randoms per second.
         // printf("Oops: hardware random didn't succeed.\n");
         InitWithRD(i<<1);
         break;
       }
     }
   }
-  explicit SRFastRandom(__m128i seed) : _s(seed) {
-  }
-  //TODO: instead, generate 4 random numbers at once with AVX2
-  uint64_t Generate() {
-    uint64_t x = _s.m128i_u64[0];
-    const uint64_t y = _s.m128i_u64[1];
-    _s.m128i_u64[0] = y;
-    x ^= x << 23; // a
-    const uint64_t t = _s.m128i_u64[1] = x ^ y ^ (x >> 17) ^ (y >> 26); // b, c
-    return t + y;
+  explicit SRFastRandom(const __m256i s0, const __m256i s1) : _s{s0, s1} {
   }
 
-  // Vectorized version seems much slower than scalar
-  uint64_t SimdGenerate() {
-    __m128i xy = _s; // x at xy[0], y at xy[1]
-    _s.m128i_u64[0] = xy.m128i_u64[1];
-    xy.m128i_u64[0] ^= xy.m128i_u64[0] << 23;
-    const __m128i xyShifted = _mm_srlv_epi64(xy, _cRShift);
-    const __m128i xorred = _mm_xor_si128(xy, xyShifted);
-    _s.m128i_u64[1] = xorred.m128i_u64[0] ^ xorred.m128i_u64[1];
-    return _s.m128i_u64[1] + xy.m128i_u64[1];
+  // Use entropy adapters for generating random values smaller that 64 bits.
+  template<typename taResult> taResult Generate();
+
+  template<> uint64_t Generate() {
+    if (_iNextGen >= _cnAtOnce) {
+      const __m256i rn = Generate<__m256i>();
+      _mm256_store_si256(&_preGen, rn);
+      _iNextGen = 1;
+      return rn.m256i_u64[0];
+    }
+    const uint64_t answer = _preGen.m256i_u64[_iNextGen];
+    _iNextGen++;
+    return answer;
+  }
+
+  // Generate 4 random numbers at once with AVX2
+  template<> __m256i Generate() {
+    __m256i x = _mm256_load_si256(_s+0);
+    const __m256i y = _mm256_load_si256(_s+1);
+    _mm256_store_si256(_s + 0, y);
+    x = _mm256_xor_si256(x, _mm256_slli_epi64(x, 23));
+    const __m256i yrs26 = _mm256_srli_epi64(y, 26);
+    const __m256i xrs17 = _mm256_srli_epi64(x, 17);
+    const __m256i x_xor_y = _mm256_xor_si256(x, y);
+    const __m256i xrs17_xor_yrs26 = _mm256_xor_si256(xrs17, yrs26);
+    const __m256i t = _mm256_xor_si256(x_xor_y, xrs17_xor_yrs26);
+    _mm256_store_si256(_s + 1, t);
+    return _mm256_add_epi64(t, y);
+  }
+};
+
+class SRPLATFORM_API SREntropyAdapter {
+  SRFastRandom& _fr;
+  uint64_t _remaining = 0;
+public:
+  explicit SREntropyAdapter(SRFastRandom& fr) : _fr(fr) {
+  }
+  // Supports unsigned types. Signed may give a warning.
+  template<typename T> T Generate(const T lim) {
+    assert(lim > 0);
+    if (_remaining < lim-1) {
+      _remaining = _fr.Generate<uint64_t>();
+    }
+    const T answer = _remaining % lim;
+    _remaining /= lim;
+    return answer;
   }
 };
 

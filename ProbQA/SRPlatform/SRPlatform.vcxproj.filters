@@ -152,8 +152,5 @@
     <ClCompile Include="SRSpinSync.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SRFastRandom.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

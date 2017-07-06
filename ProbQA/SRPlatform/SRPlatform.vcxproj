@@ -246,7 +246,6 @@
     <ClCompile Include="SRCriticalSection.cpp" />
     <ClCompile Include="SRDefaultLogger.cpp" />
     <ClCompile Include="SRException.cpp" />
-    <ClCompile Include="SRFastRandom.cpp" />
     <ClCompile Include="SRLoggerFactory.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRReaderWriterSync.cpp" />
