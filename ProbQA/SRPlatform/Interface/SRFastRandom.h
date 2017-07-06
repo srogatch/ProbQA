@@ -12,14 +12,10 @@ class SRPLATFORM_API SRFastRandom {
 public: // constants
   static const uint8_t _cnAtOnce = sizeof(__m256i) / sizeof(uint64_t);
 
-private: // types
-  typedef uint64_t(*TGenerator)(SRFastRandom *pThis);
-
 private: // variables
   __m256i _s[2];
   __m256i _preGen;
-  TGenerator _fnGen[_cnAtOnce];
-  uint8_t _iNextGen = 0;
+  uint8_t _iNextGen = _cnAtOnce;
 
 private: // methods
   inline void InitWithRD(const uint8_t since) {
@@ -28,24 +24,8 @@ private: // methods
       _s[i >> 3].m256i_u32[i & 7] = rd();
     }
   }
-  static uint64_t EmptyGenerator(SRFastRandom *pThis) {
-    const __m256i rn = pThis->Generate<__m256i>();
-    _mm256_store_si256(&(pThis->_preGen), rn);
-    pThis->_iNextGen = 1;
-    return rn.m256i_u64[0];
-  }
-  static uint64_t FilledGenerator(SRFastRandom *pThis) {
-    const uint64_t answer = pThis->_preGen.m256i_u64[pThis->_iNextGen];
-    pThis->_iNextGen = (pThis->_iNextGen + 1) & 3;
-    return answer;
-  }
-
 public: // methods
   explicit SRFastRandom() {
-    _fnGen[0] = &EmptyGenerator;
-    for (uint8_t i = 1; i < _cnAtOnce; i++) {
-      _fnGen[i] = &FilledGenerator;
-    }
     for (uint8_t i = 0; i < sizeof(_s) / sizeof(uint64_t); i++) {
       if (!_rdrand64_step(_s[i>>2].m256i_u64 + (i&3))) {
         // Can't log this because this likely happens because of too many hardware randoms per second.
@@ -62,7 +42,15 @@ public: // methods
   template<typename taResult> taResult Generate();
 
   template<> uint64_t Generate() {
-    return _fnGen[_iNextGen](this);
+    if (_iNextGen >= _cnAtOnce) {
+      const __m256i rn = Generate<__m256i>();
+      _mm256_store_si256(&_preGen, rn);
+      _iNextGen = 1;
+      return rn.m256i_u64[0];
+    }
+    const uint64_t answer = _preGen.m256i_u64[_iNextGen];
+    _iNextGen++;
+    return answer;
   }
 
   // Generate 4 random numbers at once with AVX2
