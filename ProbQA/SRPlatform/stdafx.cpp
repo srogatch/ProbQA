@@ -1,8 +1,5 @@
-// stdafx.cpp : source file that includes just the standard includes
-// SRPlatform.pch will be the pre-compiled header
-// stdafx.obj will contain the pre-compiled type information
+// Probabilistic Question-Answering system
+// @2017 Sarge Rogatch
+// This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
-
-// TODO: reference any additional headers you need in STDAFX.H
-// and not in this file

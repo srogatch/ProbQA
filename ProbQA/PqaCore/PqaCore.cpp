@@ -1,22 +1,7 @@
-// PqaCore.cpp : Defines the exported functions for the DLL application.
-//
+// Probabilistic Question-Answering system
+// @2017 Sarge Rogatch
+// This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
 #include "../PqaCore/Interface/PqaCore.h"
 
-
-// This is an example of an exported variable
-PQACORE_API int nPqaCore=0;
-
-// This is an example of an exported function.
-PQACORE_API int fnPqaCore(void)
-{
-    return 42;
-}
-
-// This is the constructor of a class that has been exported.
-// see PqaCore.h for the class definition
-CPqaCore::CPqaCore()
-{
-    return;
-}

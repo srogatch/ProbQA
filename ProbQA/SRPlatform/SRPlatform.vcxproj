@@ -195,9 +195,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="DbgLogger.h" />
     <ClInclude Include="FileLogger.h" />
     <ClInclude Include="Interface\Exceptions\SRDefaultLoggerExceptions.h" />

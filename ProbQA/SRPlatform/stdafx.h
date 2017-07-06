@@ -1,7 +1,6 @@
-// stdafx.h : include file for standard system include files,
-// or project specific include files that are used frequently, but
-// are changed infrequently
-//
+// Probabilistic Question-Answering system
+// @2017 Sarge Rogatch
+// This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #pragma once
 
@@ -27,6 +26,3 @@
 #include <string>
 #include <thread>
 #include <type_traits>
-
-
-// TODO: reference additional headers your program requires here

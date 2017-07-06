@@ -1,24 +1,12 @@
+// Probabilistic Question-Answering system
+// @2017 Sarge Rogatch
+// This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
+
 #pragma once
 
-// The following ifdef block is the standard way of creating macros which make exporting 
-// from a DLL simpler. All files within this DLL are compiled with the SRPLATFORM_EXPORTS
-// symbol defined on the command line. This symbol should not be defined on any project
-// that uses this DLL. This way any other project whose source files include this file see 
-// SRPLATFORM_API functions as being imported from a DLL, whereas this DLL sees symbols
-// defined with this macro as being exported.
 #ifdef SRPLATFORM_EXPORTS
 #define SRPLATFORM_API __declspec(dllexport)
 #else
 #define SRPLATFORM_API __declspec(dllimport)
 #endif // SRPLATFORM_EXPORTS
 
-// This class is exported from the SRPlatform.dll
-class SRPLATFORM_API CSRPlatform {
-public:
-	CSRPlatform(void);
-	// TODO: add your methods here.
-};
-
-extern SRPLATFORM_API int nSRPlatform;
-
-SRPLATFORM_API int fnSRPlatform(void);
