@@ -28,21 +28,25 @@ public: // methods
   }
   explicit SRFastRandom(__m128i seed) : _s(seed) {
   }
+  //TODO: instead, generate 4 random numbers at once with AVX2
   uint64_t Generate() {
-    // Vectorized version seems much slower than scalar
-    //__m128i xy = _s; // x at xy[0], y at xy[1]
-    //_s.m128i_u64[0] = xy.m128i_u64[1];
-    //xy.m128i_u64[0] ^= xy.m128i_u64[0] << 23;
-    //const __m128i xyShifted = _mm_srlv_epi64(xy, _cRShift);
-    //const __m128i xorred = _mm_xor_si128(xy, xyShifted);
-    //_s.m128i_u64[1] = xorred.m128i_u64[0] ^ xorred.m128i_u64[1];
-    //return _s.m128i_u64[1] + xy.m128i_u64[1];
     uint64_t x = _s.m128i_u64[0];
     const uint64_t y = _s.m128i_u64[1];
     _s.m128i_u64[0] = y;
     x ^= x << 23; // a
     const uint64_t t = _s.m128i_u64[1] = x ^ y ^ (x >> 17) ^ (y >> 26); // b, c
     return t + y;
+  }
+
+  // Vectorized version seems much slower than scalar
+  uint64_t SimdGenerate() {
+    __m128i xy = _s; // x at xy[0], y at xy[1]
+    _s.m128i_u64[0] = xy.m128i_u64[1];
+    xy.m128i_u64[0] ^= xy.m128i_u64[0] << 23;
+    const __m128i xyShifted = _mm_srlv_epi64(xy, _cRShift);
+    const __m128i xorred = _mm_xor_si128(xy, xyShifted);
+    _s.m128i_u64[1] = xorred.m128i_u64[0] ^ xorred.m128i_u64[1];
+    return _s.m128i_u64[1] + xy.m128i_u64[1];
   }
 };
 

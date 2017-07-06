@@ -542,8 +542,7 @@ template<> template<bool taCache> void CpuEngine<DoubleNumber>::RunCalcTargetPri
   __m256d *pDest = reinterpret_cast<__m256d*>(pTask->_pDest) + iFirst;
   __m256d *pSrc = reinterpret_cast<__m256d*>(_vB.data()) + iFirst;
   for (; nVects > 0; nVects--, pDest++, pSrc++) {
-    // Supposedly faster than: *pDest = _mm256_div_pd(*pSrc, divisor);
-    //TODO: change to a caching load here? and then call _mm_clflushopt() to avoid cache pollution
+    // Benchmarks show that stream load&store with division in between is faster than the same operations with caching.
     const __m256i iWeight = _mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc));
     const __m256d prior = _mm256_div_pd(*reinterpret_cast<const __m256d*>(&iWeight), divisor);
     //TODO: check in disassembly that this branching is compile-time

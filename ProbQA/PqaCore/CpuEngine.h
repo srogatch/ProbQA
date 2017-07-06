@@ -35,6 +35,7 @@ public: // types
   typedef SRPlat::SRMemPool<cLogSimdBits, cMemPoolMaxSimds> TMemPool;
 
 private: // variables
+  //TODO: refactor these vectors to a custom vector data structure that inits and copies with AVX2 skipping cache
   // space A: [iAnswer][iQuestion][iTarget] . Guarded by _rws
   std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>>> _sA;
   // matrix D: [iQuestion][iTarget] . Guarded by _rws

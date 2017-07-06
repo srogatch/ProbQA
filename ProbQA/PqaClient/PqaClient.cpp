@@ -179,6 +179,7 @@ void BenchmarkFastRandFill() {
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 0; i < cnDoubles; i++) {
     gpdInput[i] = fr.Generate() / (double(fr.Generate()) + 1);
+    //gpdInput[i] = fr.SimdGenerate() / (double(fr.SimdGenerate()) + 1);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -219,6 +220,29 @@ void BenchmarkNonCaching() {
   printf("Non-caching: %.3lf bytes/sec.\n", cnDoubles * 2 * sizeof(double) / nSec);
 }
 
+void BenchmarkMemcpy() {
+  auto start = std::chrono::high_resolution_clock::now();
+  memcpy(gpdOutput, gpdInput, sizeof(double)*cnDoubles);
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("memcpy(): %.3lf bytes/sec.\n", cnDoubles * 2 * sizeof(double) / nSec);
+}
+
+void BenchmarkStreamCopy() {
+  auto start = std::chrono::high_resolution_clock::now();
+  const __m256i *pSrc = reinterpret_cast<const __m256i*>(gpdInput);
+  __m256i *pDest = reinterpret_cast<__m256i*>(gpdOutput);
+  int64_t nVects = cnDoubles * sizeof(*gpdInput) / sizeof(*pSrc);
+  for (; nVects > 0; nVects--, pSrc++, pDest++) {
+    const __m256i loaded = _mm256_stream_load_si256(pSrc);
+    _mm256_stream_si256(pDest, loaded);
+  }
+  _mm_sfence();
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Stream copy: %.3lf bytes/sec.\n", cnDoubles * 2 * sizeof(double) / nSec);
+}
+
 int __cdecl main() {
   //BenchmarkFunctor();
   //BenchmarkObject();
@@ -241,6 +265,19 @@ int __cdecl main() {
   }
 
   BenchmarkNonCaching();
+
+  for (int64_t i = 0; i < cnDoubles; i++) {
+    s -= gpdOutput[i];
+  }
+  printf("Control sum: %lf\n", s);
+
+  BenchmarkMemcpy();
+
+  for (int64_t i = 0; i < cnDoubles; i++) {
+    s += gpdOutput[i];
+  }
+
+  BenchmarkStreamCopy();
 
   for (int64_t i = 0; i < cnDoubles; i++) {
     s -= gpdOutput[i];
