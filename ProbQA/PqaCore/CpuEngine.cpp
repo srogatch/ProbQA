@@ -663,7 +663,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::UpdatePriorsWithAnsweredQuestions(CECreateQuizResume& resumeOp) {
-
+  //TODO: implement
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err, const TPqaId nQuestions,

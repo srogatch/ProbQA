@@ -19,7 +19,7 @@ protected: // variables
 //   not block this possibility.
 template<typename taItem, bool taCacheDefault> class SRPLATFORM_API SRFastArray : public SRFastArrayBase {
 public: // constants
-  static const uint8_t _cLogSimdBits = 8;
+  static constexpr uint8_t _cLogSimdBits = 8;
 
 private: // variables
   taItem *_pItems;
@@ -93,28 +93,31 @@ public: // methods
     return *this;
   }
 
-  template<bool taCache> enable_if_t<sizeof(__m256i) % sizeof(item) == 0> Fill(const taItem& item,
-    size_t iStart, size_t iLim)
+  //TODO: separate optimized method for sizeof(__m256i) == sizeof(taItem)
+  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0>
+  Fill(const taItem& item, size_t iStart, size_t iLim)
   {
     assert(iStart <= iLim);
-    const size_t cnItemsPerSimd = sizeof(__m256i) / sizeof(item);
-    const size_t iVStart = SRMath::RoundUpToFactor(iStart, cnItemsPerSimd);
-    const size_t iVLim = SRMath::RoundDownToFactor(iLim, cnItemsPerSimd);
-    const __m256i vect = SRUtils::Set1(item);
+    constexpr size_t cnItemsPerSimd = sizeof(__m256i) / sizeof(item);
 
-    for (size_t i = iStart; i < iVStart; i++) {
-      _pItems[i] = item;
+    const __m256i vect = SRUtils::Set1(item);
+    const size_t iVStart = SRMath::RoundUpToFactor(iStart, cnItemsPerSimd);
+    if (iLim < iVStart) {
+      memcpy(_pItems + iStart, &vect, (iLim - iStart) * sizeof(item));
+      return;
     }
-    size_t nVects = (iVLim - iVStart) / cnItemsPerSimd;
-    __m256i *p = reinterpret_cast<__m256i *>(_pItems + iVStart);
-    for (; nVects>0; nVects--, p++) {
-      taCache ? _mm256_stream_si256(p, vect) : _mm256_store_si256(p, vect);
+
+    __m256i *p = reinterpret_cast<__m256i *>(SRUtils::CopyPrologue<sizeof(item)>(_pItems + iStart, vect));
+    assert(reinterpret_cast<void*>(p) == reinterpret_cast<void*>(_pItems + iVStart));
+    __m256i *pLim = reinterpret_cast<__m256i*>(SRUtils::CopyEpilogue<sizeof(item)>(_pItems + iLim, vect));
+    assert(pLim >= 2);
+
+    size_t nVects = pLim - p;
+    for (; nVects > 0; nVects--, p++) {
+      taCache ? _mm256_store_si256(p, vect) : _mm256_stream_si256(p, vect);
     }
-    if (taCache) {
+    if (!taCache) {
       _mm_sfence();
-    }
-    for (size_t i = iVLim; i < iLim; i++) {
-      _pItems[i] = item;
     }
   }
 };

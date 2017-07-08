@@ -70,8 +70,4 @@ template<> SRPLATFORM_API static void SRUtils::FillZeroVects<true>(__m256i *p, c
   }
 }
 
-template<bool taCache> SRPLATFORM_API static void CopyVects(__m256i *pDest, const __m256i *pSrc, const size_t nVects) {
-
-}
-
 } // namespace SRPlat
