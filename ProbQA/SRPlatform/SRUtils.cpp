@@ -54,7 +54,7 @@ template<> SRPLATFORM_API SRString SRUtils::PrintUtcTime<false>() {
   return SRString::MakeClone(buffer);
 }
 
-template<> SRPLATFORM_API static void SRUtils::FillZeroVects<true>(__m256i *p, const size_t nVects) {
+template<> SRPLATFORM_API static void SRUtils::FillZeroVects<false>(__m256i *p, const size_t nVects) {
   const __m256i vZero = _mm256_setzero_si256();
   for (void *pEn = p + nVects; p < pEn; p++) {
     _mm256_stream_si256(p, vZero);
@@ -63,11 +63,15 @@ template<> SRPLATFORM_API static void SRUtils::FillZeroVects<true>(__m256i *p, c
   _mm_sfence();
 }
 
-template<> SRPLATFORM_API static void SRUtils::FillZeroVects<false>(__m256i *p, const size_t nVects) {
+template<> SRPLATFORM_API static void SRUtils::FillZeroVects<true>(__m256i *p, const size_t nVects) {
   const __m256i vZero = _mm256_setzero_si256();
   for (void *pEn = p + nVects; p < pEn; p++) {
     _mm256_store_si256(p, vZero);
   }
+}
+
+template<bool taCache> SRPLATFORM_API static void CopyVects(__m256i *pDest, const __m256i *pSrc, const size_t nVects) {
+
 }
 
 } // namespace SRPlat

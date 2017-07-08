@@ -12,7 +12,13 @@
 #include "../SRPlatform/Interface/SRMemPool.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
+#include "../SRPlatform/Interface/SRFastArray.h"
 
 namespace SRPlat {
   constexpr size_t test1 = sizeof(SRSpinSync<1>);
+  std::vector<SRFastArray<double, false>> test2;
+
+  void test3() {
+    test2.push_back(SRFastArray<double, false>(10));
+  }
 }

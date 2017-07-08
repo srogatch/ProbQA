@@ -209,8 +209,7 @@ void BenchmarkNonCaching() {
   int64_t nVects = cnDoubles * sizeof(*gpdInput) / sizeof(*pSrc);
   auto start = std::chrono::high_resolution_clock::now();
   for (; nVects > 0; nVects--, pSrc++, pDest++) {
-    const __m256i loaded = _mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc));
-    const __m256d dividend = *reinterpret_cast<const __m256d*>(&loaded);
+    const __m256d dividend = _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc)));
     const __m256d quotient = _mm256_div_pd(dividend, divisor);
     _mm256_stream_pd(reinterpret_cast<double*>(pDest), quotient);
   }

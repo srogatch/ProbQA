@@ -8,10 +8,14 @@ namespace SRPlat {
 
 class SRMath {
 public:
-  // Works for positive only, and doesn't handle |factor==0| .
+  // Works for non-negative only, and doesn't handle |factor==0| .
   template<typename T> static T RoundUpToFactor(const T num, const T factor) {
     const T a = num + factor - 1;
     return a - (a % factor);
+  }
+  // Works for non-negative only, and doesn't handle |factor==0| .
+  template<typename T> static T RoundDownToFactor(const T num, const T factor) {
+    return num - (num%factor);
   }
 };
 

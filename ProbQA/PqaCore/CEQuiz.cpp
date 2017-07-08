@@ -19,7 +19,7 @@ template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngin
   TMemPool& memPool = _pEngine->GetMemPool();
   SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, (dims._nQuestions + 255) >> 8);
   SRSmartMPP<TMemPool, taNumber> smppTargProbs(memPool, dims._nTargets);
-  SRBitHelper::FillZero<true>(smppIsQAsked.Get(), dims._nQuestions);
+  SRBitHelper::FillZero<false>(smppIsQAsked.Get(), dims._nQuestions);
   _isQAsked = smppIsQAsked.Detach();
   _pTargProbs = smppTargProbs.Detach();
 }

@@ -15,7 +15,7 @@ public: // constants
 private: // variables
   __m256i _s[2];
   __m256i _preGen;
-  uint8_t _iNextGen = _cnAtOnce;
+  uint8_t _iNextGen = 0;
 
 private: // methods
   inline void InitWithRD(const uint8_t since) {
@@ -42,14 +42,14 @@ public: // methods
   template<typename taResult> taResult Generate();
 
   template<> uint64_t Generate() {
-    if (_iNextGen >= _cnAtOnce) {
+    if (_iNextGen == 0) {
       const __m256i rn = Generate<__m256i>();
       _mm256_store_si256(&_preGen, rn);
       _iNextGen = 1;
       return rn.m256i_u64[0];
     }
     const uint64_t answer = _preGen.m256i_u64[_iNextGen];
-    _iNextGen++;
+    _iNextGen = (_iNextGen+1) & 3;
     return answer;
   }
 

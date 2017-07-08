@@ -19,9 +19,9 @@ public:
   static size_t GetAlignedSizeBytes(const size_t nBits) {
     return ((nBits + cSimdMask) & (~cSimdMask)) >> 3;
   }
-  template<bool taSkipCache> static void FillZero(__m256i *pArray, const size_t nBits) {
+  template<bool taCache> static void FillZero(__m256i *pArray, const size_t nBits) {
     const size_t nVects = (nBits + cSimdMask) >> cLogSimdBits;
-    SRUtils::FillZeroVects<taSkipCache>(pArray, nVects);
+    SRUtils::FillZeroVects<taCache>(pArray, nVects);
   }
 };
 

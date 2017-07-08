@@ -204,6 +204,7 @@
     <ClInclude Include="Interface\SRConditionVariable.h" />
     <ClInclude Include="Interface\SRCriticalSection.h" />
     <ClInclude Include="Interface\SRException.h" />
+    <ClInclude Include="Interface\SRFastArray.h" />
     <ClInclude Include="Interface\SRFastManualResetEvent.h" />
     <ClInclude Include="Interface\SRFinally.h" />
     <ClInclude Include="Interface\SRLock.h" />
