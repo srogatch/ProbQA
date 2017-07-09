@@ -13,11 +13,11 @@ template <typename taId> class GapTracker {
 public:
   explicit GapTracker() { }
 
-  bool IsGap(const taId at) const { return _isGap[at]; }
+  bool IsGap(const taId at) const { return _isGap[SRCast::ToSizeT(at)]; }
 
   void Release(const taId at) {
     assert(!_isGap[at]);
-    _isGap[at] = true;
+    _isGap[SRCast::ToSizeT(at)] = true;
     _gaps.push_back(at); 
   }
 
@@ -32,7 +32,7 @@ public:
     }
     taId answer = _gaps.back();
     _gaps.pop_back();
-    _isGap[answer] = false;
+    _isGap[SRCast::ToSizeT(answer)] = false;
     return answer;
   }
 
@@ -46,7 +46,7 @@ public:
   std::vector<taId>& Gaps() { return _gaps; }
 
   void Compact(const taId newLength) {
-    _isGap.assign(newLength, false);
+    _isGap.assign(SRCast::ToSizeT(newLength), false);
     _gaps.clear();
   }
 };

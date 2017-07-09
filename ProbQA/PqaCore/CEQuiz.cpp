@@ -17,9 +17,10 @@ template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngin
   const EngineDimensions& dims = _pEngine->GetDims();
   typedef CpuEngine<taNumber>::TMemPool TMemPool;
   TMemPool& memPool = _pEngine->GetMemPool();
-  SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, (dims._nQuestions + 255) >> 8);
-  SRSmartMPP<TMemPool, taNumber> smppTargProbs(memPool, dims._nTargets);
-  SRBitHelper::FillZero<false>(smppIsQAsked.Get(), dims._nQuestions);
+  SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool,
+    SRCast::ToSizeT(SRMath::RShiftRoundUp(dims._nQuestions, _cLogSimdBits)));
+  SRSmartMPP<TMemPool, taNumber> smppTargProbs(memPool, SRCast::ToSizeT(dims._nTargets));
+  SRBitHelper::FillZero<false>(smppIsQAsked.Get(), SRCast::ToSizeT(dims._nQuestions));
   _isQAsked = smppIsQAsked.Detach();
   _pTargProbs = smppTargProbs.Detach();
 }
@@ -29,8 +30,8 @@ template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
   auto& memPool = _pEngine->GetMemPool();
   //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
   //  of targets and questions.
-  memPool.ReleaseMem(_pTargProbs, sizeof(taNumber) * dims._nTargets);
-  memPool.ReleaseMem(_isQAsked, SRBitHelper::GetAlignedSizeBytes(dims._nQuestions));
+  memPool.ReleaseMem(_pTargProbs, sizeof(taNumber) * SRCast::ToSizeT(dims._nTargets));
+  memPool.ReleaseMem(_isQAsked, SRBitHelper::GetAlignedSizeBytes(SRCast::ToSizeT(dims._nQuestions)));
 }
 
 template class CEQuiz<DoubleNumber>;

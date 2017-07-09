@@ -11,6 +11,8 @@ namespace ProbQA {
 template<typename taNumber> class CpuEngine;
 
 template<typename taNumber> class CEQuiz {
+  static const size_t _cLogSimdBits = 8;
+private: // variables
   std::vector<AnsweredQuestion> _answers;
   // Probabilities of targets
   taNumber *_pTargProbs;

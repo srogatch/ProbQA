@@ -41,11 +41,11 @@ public: // types
 private: // variables
   //TODO: refactor these vectors to a custom vector data structure that inits and copies with AVX2 skipping cache
   // space A: [iAnswer][iQuestion][iTarget] . Guarded by _rws
-  std::vector<std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>>> _sA;
+  std::vector<std::vector<SRPlat::SRFastArray<taNumber, false>>> _sA;
   // matrix D: [iQuestion][iTarget] . Guarded by _rws
-  std::vector<std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>>> _mD;
+  std::vector<SRPlat::SRFastArray<taNumber, false>> _mD;
   // vector B: [iTarget] . Guarded by _rws
-  std::vector<taNumber, SRPlat::SRAlignedAllocator<taNumber, cSimdBytes>> _vB;
+  SRPlat::SRFastArray<taNumber, false> _vB;
   // aggregate C: sum of B[iTarget] . Guarded by _rws
   taNumber _aC;
   GapTracker<TPqaId> _questionGaps; // Guarded by _rws

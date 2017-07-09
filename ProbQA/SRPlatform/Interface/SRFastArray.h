@@ -9,7 +9,7 @@
 
 namespace SRPlat {
 
-class SRPLATFORM_API SRFastArrayBase {
+class SRFastArrayBase {
 protected: // variables
   size_t _count;
   SRFastArrayBase() : _count(0) {}
@@ -18,7 +18,7 @@ protected: // variables
 
 // It must be possible to init and copy items trivially, but they may have constructors/assignment operators which do
 //   not block this possibility.
-template<typename taItem, bool taCacheDefault> class SRPLATFORM_API SRFastArray : public SRFastArrayBase {
+template<typename taItem, bool taCacheDefault> class SRFastArray : public SRFastArrayBase {
 public: // constants
   static constexpr size_t _cLogSimdBits = 8;
   static constexpr size_t _cLogSimdBytes = _cLogSimdBits - 3;
@@ -48,12 +48,13 @@ private: // methods
     size_t paddedBytes;
     return ThrowingAlloc(nItems, paddedBytes);
   }
+
 public: // methods
   explicit SRFastArray() : _pItems(nullptr) { }
   explicit SRFastArray(const size_t count) : SRFastArrayBase(count), _pItems(ThrowingAlloc(count)) {
   }
   ~SRFastArray() {
-    _mm_free(_pItems);
+    Clear();
   }
   template<bool taFellowCD> SRFastArray(const SRFastArray<taItem, taFellowCD>& fellow) : SRFastArrayBase(fellow) {
     size_t paddedBytes;
@@ -167,6 +168,26 @@ public: // methods
     _mm_free(_pItems);
     _pItems = pNewItems.release();
     _count = newCount;
+  }
+
+  taItem& operator[](const size_t index) {
+    return _pItems[index];
+  }
+  const taItem& operator[](const size_t index) const {
+    return _pItems[index];
+  }
+
+  void Clear() {
+    _mm_free(_pItems);
+    _pItems = nullptr;
+    _count = 0;
+  }
+
+  taItem* Get() {
+    return _pItems;
+  }
+  taItem* Get() const {
+    return _pItems;
   }
 };
 

@@ -5,6 +5,8 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRString.h"
+#include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/SRMessageBuilder.h"
 
 namespace SRPlat {
 
@@ -58,6 +60,8 @@ SRUtils::Set1(const taItem& item)
     return _mm256_broadcastsi128_si256(*reinterpret_cast<const __m128i*>(&item));
   case 32:
     return *reinterpret_cast<const __m256i*>(&item);
+  default:
+    throw SRException(SRMessageBuilder("Unreachable ")(sizeof(taItem)).GetOwnedSRString());
   }
 }
 

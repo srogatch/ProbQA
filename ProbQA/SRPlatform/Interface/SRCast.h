@@ -6,11 +6,12 @@
 
 namespace SRPlat {
 
-class SRAlignedDeleter {
+class SRCast {
 public:
-  void operator()(void *p) { _mm_free(p); }
+  // Helper method to catch overflow error
+  template<typename T> static size_t ToSizeT(const T val) {
+    return static_cast<size_t>(val);
+  }
 };
-
-template<typename T> using AlignedUniquePtr = std::unique_ptr<T, SRAlignedDeleter>;
 
 } // namespace SRPlat

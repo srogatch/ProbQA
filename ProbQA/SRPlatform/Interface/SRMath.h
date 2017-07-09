@@ -18,6 +18,11 @@ public:
     return num - (num%factor);
   }
 
+  // Seems to work for negatives to: it rounds negatives towards zero, i.e. up
+  template<typename T> static T RShiftRoundUp(const T num, uint8_t nBits) {
+    return (num + (T(1) << nBits) - 1) >> nBits;
+  }
+
   constexpr static size_t StaticFloorLog2(const size_t n) {
     return n  <= 1 ? 0 : (StaticFloorLog2(n >> 1) + 1);
   }

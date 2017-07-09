@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "SRPlatform.h"
-#include "SRString.h"
+#include "../SRPlatform/Interface/SRPlatform.h"
+#include "../SRPlatform/Interface/SRString.h"
 
 namespace SRPlat {
 

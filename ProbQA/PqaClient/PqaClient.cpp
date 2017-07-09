@@ -221,7 +221,7 @@ void BenchmarkNonCaching() {
 
 void BenchmarkMemcpy() {
   auto start = std::chrono::high_resolution_clock::now();
-  memcpy(gpdOutput, gpdInput, sizeof(double)*cnDoubles);
+  memcpy(gpdOutput, gpdInput, sizeof(double)*SRPlat::SRCast::ToSizeT(cnDoubles));
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
   printf("memcpy(): %.3lf bytes/sec.\n", cnDoubles * 2 * sizeof(double) / nSec);
@@ -250,8 +250,8 @@ int __cdecl main() {
   //BenchmarkMacro();
   //BenchmarkEmpty();
   //BenchmarkAtomic();
-  gpdInput = (double*)_mm_malloc(cnDoubles * sizeof(double), sizeof(__m256d));
-  gpdOutput  = (double*)_mm_malloc(cnDoubles * sizeof(double), sizeof(__m256d));
+  gpdInput = (double*)_mm_malloc(SRPlat::SRCast::ToSizeT(cnDoubles) * sizeof(double), sizeof(__m256d));
+  gpdOutput  = (double*)_mm_malloc(SRPlat::SRCast::ToSizeT(cnDoubles) * sizeof(double), sizeof(__m256d));
   
   BenchmarkRandFill();
 

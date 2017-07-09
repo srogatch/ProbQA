@@ -42,7 +42,8 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   for (size_t i = 0, iEn= size_t(_dims._nAnswers); i < iEn; i++) {
     _sA[i].resize(size_t(_dims._nQuestions));
     for (size_t j = 0, jEn= size_t(_dims._nQuestions); j < jEn; j++) {
-      _sA[i][j].resize(size_t(_dims._nTargets), initAmount);
+      _sA[i][j].Resize<false>(size_t(_dims._nTargets));
+      _sA[i][j].FillAll<false>(initAmount);
     }
   }
 
@@ -52,11 +53,13 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   taNumber initMD = initAmount * _dims._nAnswers;
   _mD.resize(size_t(_dims._nQuestions));
   for (size_t i = 0, iEn=size_t(_dims._nQuestions); i < iEn; i++) {
-    _mD[i].resize(size_t(_dims._nTargets), initMD);
+    _mD[i].Resize<false>(size_t(_dims._nTargets));
+    _mD[i].FillAll<false>(initMD);
   }
 
   //// Init vector B: the sums of weights over all trainings for each target
-  _vB.resize(size_t(_dims._nTargets), initAmount);
+  _vB.Resize<false>(size_t(_dims._nTargets));
+  _vB.FillAll<false>(initAmount);
 
   //// Init scalar C: the sum of B[j] over all targets j
   _aC = initAmount *_dims._nTargets;
@@ -133,7 +136,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   //// Release KB
   _sA.clear();
   _mD.clear();
-  _vB.clear();
+  _vB.Clear();
   _questionGaps.Compact(0);
   _targetGaps.Compact(0);
   _dims._nAnswers = _dims._nQuestions = _dims._nTargets = 0;
@@ -330,36 +333,47 @@ template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNum
     if (iLast == cInvalidPqaId) {
       // Use SSE2 instead of AVX here to supposedly reduce the load on the CPU core (better hyperthreading).
       __m128d sum = _mm_set_pd(
-        _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(),
-        _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].GetValue());
+        _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
+        _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+          .GetValue());
       sum = _mm_add_pd(sum, *reinterpret_cast<const __m128d*>(&fullAddend));
-      _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m128d_f64[0]);
-      _mD[aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m128d_f64[1]);
+      _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+        .SetValue(sum.m128d_f64[0]);
+      _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m128d_f64[1]);
       return;
     }
     const AnsweredQuestion& aqSecond = cTask._pAQs[iLast];
     if (aqFirst._iQuestion == aqSecond._iQuestion) {
       // Vectorize 3 additions, with twice the amount in element #1
       __m256d sum = _mm256_set_pd(0,
-        _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].GetValue(),
-        _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(), 
-        _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].GetValue());
+        _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+          .GetValue(),
+        _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
+        _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+          .GetValue());
       sum = _mm256_add_pd(sum, collAddend);
-      _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[0]);
-      _mD[aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[1]);
-      _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[2]);
+      _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+        .SetValue(sum.m256d_f64[0]);
+      _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m256d_f64[1]);
+      _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+        .SetValue(sum.m256d_f64[2]);
     }
     else {
       // Finally we can vectorize all the 4 additions
-      __m256d sum = _mm256_set_pd(_mD[aqSecond._iQuestion][cTask._iTarget].GetValue(),
-        _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].GetValue(),
-        _mD[aqFirst._iQuestion][cTask._iTarget].GetValue(),
-        _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].GetValue());
+      __m256d sum = _mm256_set_pd(
+        _mD[SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
+        _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+          .GetValue(),
+        _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
+        _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+          .GetValue());
       sum = _mm256_add_pd(sum, fullAddend);
-      _sA[aqFirst._iAnswer][aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[0]);
-      _mD[aqFirst._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[1]);
-      _sA[aqSecond._iAnswer][aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[2]);
-      _mD[aqSecond._iQuestion][cTask._iTarget].SetValue(sum.m256d_f64[3]);
+      _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+        .SetValue(sum.m256d_f64[0]);
+      _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m256d_f64[1]);
+      _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
+        .SetValue(sum.m256d_f64[2]);
+      _mD[SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m256d_f64[3]);
     }
     iLast = cPrev[iLast];
   } while (iLast != cInvalidPqaId);
@@ -378,9 +392,9 @@ template<> void CpuEngine<DoubleNumber>::TrainUpdateTargetTotals(const TPqaId iT
   const CETrainTaskNumSpec<DoubleNumber>& numSpec)
 {
   const __m128d& addend = *reinterpret_cast<const __m128d*>(&(numSpec._fullAddend));
-  __m128d sum = _mm_set_pd(_aC.GetValue(), _vB[iTarget].GetValue());
+  __m128d sum = _mm_set_pd(_aC.GetValue(), _vB[SRCast::ToSizeT(iTarget)].GetValue());
   sum = _mm_add_pd(sum, addend);
-  _vB[iTarget].SetValue(sum.m128d_f64[0]);
+  _vB[SRCast::ToSizeT(iTarget)].SetValue(sum.m128d_f64[0]);
   _aC.SetValue(sum.m128d_f64[1]);
 }
 
@@ -399,7 +413,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   PqaError resErr;
   const size_t nWorkers = _workers.size();
   //// Allocate memory out of locks
-  SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, nQuestions);
+  SRSmartMPP<TMemPool, TPqaId> ttPrev(_memPool, SRCast::ToSizeT(nQuestions));
   SRSmartMPP<TMemPool, std::atomic<TPqaId>> ttLast(_memPool, nWorkers);
 
   CETrainTask<taNumber> trainTask(this, iTarget, pAQs);
@@ -544,7 +558,7 @@ template<> template<bool taCache> void CpuEngine<DoubleNumber>::RunCalcTargetPri
   const TPqaId iFirst = ctps._iFirst;
   TPqaId nVects = ctps._iLim - iFirst;
   __m256d *pDest = reinterpret_cast<__m256d*>(pTask->_pDest) + iFirst;
-  __m256d *pSrc = reinterpret_cast<__m256d*>(_vB.data()) + iFirst;
+  __m256d *pSrc = reinterpret_cast<__m256d*>(_vB.Get()) + iFirst;
   for (; nVects > 0; nVects--, pDest++, pSrc++) {
     // Benchmarks show that stream load&store with division in between is faster than the same operations with caching.
     const __m256d weight = _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc)));
@@ -635,18 +649,18 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
     }
     // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
     //   _maintSwitch guards engine dimensions.
-    _quizzes[quizId] = new CEQuiz<taNumber>(this);
+    _quizzes[SRCast::ToSizeT(quizId)] = new CEQuiz<taNumber>(this);
     {
       SRRWLock<false> rwl(_rws);
       // Compute the prior probabilities for targets
-      op._err = CalcTargetPriors<taOperation::_cCachePriors>(_quizzes[quizId]->GetTargProbs());
+      op._err = CalcTargetPriors<taOperation::_cCachePriors>(_quizzes[SRCast::ToSizeT(quizId)]->GetTargProbs());
       if (op._err.isOk()) {
         op.MaybeUpdatePriorsWithAnsweredQuestions(this);
       }
     }
     if (!op._err.isOk()) {
-      delete _quizzes[quizId];
-      _quizzes[quizId] = nullptr;
+      delete _quizzes[SRCast::ToSizeT(quizId)];
+      _quizzes[SRCast::ToSizeT(quizId)] = nullptr;
       SRLock<SRCriticalSection> csl(_csQuizReg);
       _quizGaps.Release(quizId);
       return cInvalidPqaId;

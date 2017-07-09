@@ -30,6 +30,7 @@
 #include <vector>
 
 // SRPlatform library includes
+#include "../SRPlatform/Interface/SRCast.h"
 #include "../SRPlatform/Interface/SRFinally.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRMath.h"

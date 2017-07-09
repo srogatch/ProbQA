@@ -202,6 +202,7 @@
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
     <ClInclude Include="Interface\SRAlignedDeleter.h" />
     <ClInclude Include="Interface\SRBitArray.h" />
+    <ClInclude Include="Interface\SRCast.h" />
     <ClInclude Include="Interface\SRConditionVariable.h" />
     <ClInclude Include="Interface\SRCriticalSection.h" />
     <ClInclude Include="Interface\SRException.h" />
