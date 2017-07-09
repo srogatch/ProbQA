@@ -733,24 +733,10 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::FinishMaintenance() {
     "CpuEngine<taNumber>::FinishMaintenance")));
 }
 
-template<typename taNumber> TPqaId CpuEngine<taNumber>::AddQuestion(PqaError& err, const TPqaAmount initialAmount) {
-  (void)initialAmount; //TODO: remove when implemented
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::AddQuestion")));
-  return cInvalidPqaId;
-}
-
 template<typename taNumber> PqaError CpuEngine<taNumber>::AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) {
   (void)nQuestions; (void)pAqps; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::AddQuestions")));
-}
-
-template<typename taNumber> TPqaId CpuEngine<taNumber>::AddTarget(PqaError& err, const TPqaAmount initialAmount) {
-  (void)initialAmount; //TODO: remove when implemented
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::AddTarget")));
-  return cInvalidPqaId;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::AddTargets(TPqaId nTargets, AddTargetParam *pAtps) {
@@ -759,23 +745,11 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::AddTargets(TPqaId nTar
     "CpuEngine<taNumber>::AddTargets")));
 }
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveQuestion(const TPqaId iQuestion) {
-  (void)iQuestion; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::RemoveQuestion")));
-}
-
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds)
 {
   (void)nQuestions; (void)pQIds; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::RemoveQuestions")));
-}
-
-template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTarget(const TPqaId iTarget) {
-  (void)iTarget; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::RemoveTarget")));
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) {

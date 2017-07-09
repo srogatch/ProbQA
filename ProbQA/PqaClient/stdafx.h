@@ -4,14 +4,20 @@
 
 #pragma once
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "targetver.h"
 
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+// Windows Header Files:
 #include <Windows.h>
 #undef min
 #undef max
 
+// CPU-specific header files
 #include <immintrin.h>
 
+// STL
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -23,5 +29,7 @@
 #include <thread>
 #include <vector>
 
+// SRPlatform library includes
 #include "../SRPlatform/Interface/SRFinally.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
+#include "../SRPlatform/Interface/SRMath.h"

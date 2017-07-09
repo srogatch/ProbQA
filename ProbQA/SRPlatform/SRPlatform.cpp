@@ -20,5 +20,8 @@ namespace SRPlat {
 
   void test3() {
     test2.push_back(SRFastArray<double, false>(10));
+    test2[0].Fill<false>(3.33, 0, 10);
+    test2[0].Resize<false>(20);
+    test2[0].FillAll<true>(7.77);
   }
 }

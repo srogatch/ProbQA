@@ -53,9 +53,9 @@ SRUtils::Set1(const taItem& item)
   case 4:
     return _mm256_set1_epi32(*reinterpret_cast<const int32_t*>(&item));
   case 8:
-    return _mm256_set1_epi64(*reinterpret_cast<const int64_t*>(&item));
+    return _mm256_set1_epi64x(*reinterpret_cast<const int64_t*>(&item));
   case 16:
-    return _mm256_broadcastsi128_si256(*reinterpret_cast<const __m128i*>(item));
+    return _mm256_broadcastsi128_si256(*reinterpret_cast<const __m128i*>(&item));
   case 32:
     return *reinterpret_cast<const __m256i*>(&item);
   }
@@ -105,7 +105,7 @@ template<size_t taGran> inline static void* SRUtils::FillPrologue(void *p, const
   return p;
 }
 
-template<size_t taGran> inline static void* FillEpilogue(void *pLim, const __m256i vect) {
+template<size_t taGran> inline static void* SRUtils::FillEpilogue(void *pLim, const __m256i vect) {
   static_assert(sizeof(vect) % taGran == 0, "Wrong granularity: there must be integer number of granules in SIMD.");
   switch (taGran) {
   case 1:

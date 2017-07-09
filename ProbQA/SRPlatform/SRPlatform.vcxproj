@@ -200,6 +200,7 @@
     <ClInclude Include="Interface\Exceptions\SRDefaultLoggerExceptions.h" />
     <ClInclude Include="Interface\Exceptions\SRFileLoggerExceptions.h" />
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
+    <ClInclude Include="Interface\SRAlignedDeleter.h" />
     <ClInclude Include="Interface\SRBitArray.h" />
     <ClInclude Include="Interface\SRConditionVariable.h" />
     <ClInclude Include="Interface\SRCriticalSection.h" />

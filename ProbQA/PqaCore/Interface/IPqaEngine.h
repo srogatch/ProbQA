@@ -59,16 +59,9 @@ public:
   ////   target probabilities may change without this question answered.
   //// Removal of a target requires recomputation of all target probabilities in each quiz, so this is also undesired
   ////   to keep the engine fast.
-  virtual TPqaId AddQuestion(PqaError& err, const TPqaAmount initialAmount = 1) = 0;
   virtual PqaError AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) = 0;
-
-  virtual TPqaId AddTarget(PqaError& err, const TPqaAmount initialAmount = 1) = 0;
   virtual PqaError AddTargets(TPqaId nTargets, AddTargetParam *pAtps) = 0;
-
-  virtual PqaError RemoveQuestion(const TPqaId iQuestion) = 0;
   virtual PqaError RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds) = 0;
-
-  virtual PqaError RemoveTarget(const TPqaId iTarget) = 0;
   virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) = 0;
 
   // Compacts questions and targets so that there are no gaps.

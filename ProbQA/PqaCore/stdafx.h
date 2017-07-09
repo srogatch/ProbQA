@@ -4,14 +4,20 @@
 
 #pragma once
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "targetver.h"
 
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
+#undef min
+#undef max
 
+// CPU-specific header files
 #include <immintrin.h>
 
+// STL
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -24,6 +30,7 @@
 #include <unordered_set>
 #include <vector>
 
+// SRPlatform library includes
 #include "../SRPlatform/Interface/ISRLogger.h"
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
@@ -38,5 +45,3 @@
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
 #include "../SRPlatform/Interface/SRUtils.h"
-
-// TODO: reference additional headers your program requires here

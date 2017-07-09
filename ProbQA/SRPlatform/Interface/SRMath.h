@@ -17,6 +17,14 @@ public:
   template<typename T> static T RoundDownToFactor(const T num, const T factor) {
     return num - (num%factor);
   }
+
+  constexpr static size_t StaticFloorLog2(const size_t n) {
+    return n  <= 1 ? 0 : (StaticFloorLog2(n >> 1) + 1);
+  }
+  constexpr static size_t StaticCeilLog2(const size_t n) {
+    return n <= 1 ? 0 : (StaticFloorLog2(n-1)+1);
+  }
+
 };
 
 } // namespace SRPlat

@@ -5,6 +5,7 @@
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRUtils.h"
+#include "../SRPlatform/Interface/SRAlignedDeleter.h"
 
 namespace SRPlat {
 
@@ -19,14 +20,17 @@ protected: // variables
 //   not block this possibility.
 template<typename taItem, bool taCacheDefault> class SRPLATFORM_API SRFastArray : public SRFastArrayBase {
 public: // constants
-  static constexpr uint8_t _cLogSimdBits = 8;
+  static constexpr size_t _cLogSimdBits = 8;
+  static constexpr size_t _cLogSimdBytes = _cLogSimdBits - 3;
+  static constexpr size_t _cSimdBytes = 1 << _cLogSimdBytes;
+  static constexpr size_t _cSimdByteMask = _cSimdBytes - 1;
 
 private: // variables
   taItem *_pItems;
 
 private: // methods
   static size_t GetPaddedByteCount(const size_t nItems) {
-    return SRMath::RoundUpToFactor(nItems * sizeof(taItem), sizeof(__m256i));
+    return (nItems * sizeof(taItem) + _cSimdByteMask) & (~_cSimdByteMask);
   }
   static taItem* ThrowingAllocBytes(const size_t paddedBytes) {
     taItem *pItems = reinterpret_cast<taItem*>(_mm_malloc(paddedBytes, sizeof(__m256i)));
@@ -93,24 +97,27 @@ public: // methods
     return *this;
   }
 
-  //TODO: separate optimized method for sizeof(__m256i) == sizeof(taItem)
-  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0>
+  template<bool taCache> typename std::enable_if_t<
+    sizeof(__m256i) % sizeof(taItem) == 0 && (sizeof(__m256i) > sizeof(taItem))>
   Fill(const taItem& item, size_t iStart, size_t iLim)
   {
     assert(iStart <= iLim);
+    // Can't promote to a class-level constant because it's only applicable when item size is a divisor of SIMD size.
     constexpr size_t cnItemsPerSimd = sizeof(__m256i) / sizeof(item);
+    constexpr size_t cMaskIPS = cnItemsPerSimd - 1;
+    static_assert((cnItemsPerSimd & cMaskIPS) == 0, "Number of items must be a power of 2.");
 
     const __m256i vect = SRUtils::Set1(item);
-    const size_t iVStart = SRMath::RoundUpToFactor(iStart, cnItemsPerSimd);
+    const size_t iVStart = (iStart + cMaskIPS) & (~cMaskIPS);
     if (iLim < iVStart) {
       memcpy(_pItems + iStart, &vect, (iLim - iStart) * sizeof(item));
       return;
     }
 
-    __m256i *p = reinterpret_cast<__m256i *>(SRUtils::CopyPrologue<sizeof(item)>(_pItems + iStart, vect));
+    __m256i *p = reinterpret_cast<__m256i *>(SRUtils::FillPrologue<sizeof(item)>(_pItems + iStart, vect));
     assert(reinterpret_cast<void*>(p) == reinterpret_cast<void*>(_pItems + iVStart));
-    __m256i *pLim = reinterpret_cast<__m256i*>(SRUtils::CopyEpilogue<sizeof(item)>(_pItems + iLim, vect));
-    assert(pLim >= 2);
+    __m256i *pLim = reinterpret_cast<__m256i*>(SRUtils::FillEpilogue<sizeof(item)>(_pItems + iLim, vect));
+    assert(pLim >= p && (((char*)pLim - (char*)p) & _cSimdByteMask)== 0);
 
     size_t nVects = pLim - p;
     for (; nVects > 0; nVects--, p++) {
@@ -119,6 +126,47 @@ public: // methods
     if (!taCache) {
       _mm_sfence();
     }
+  }
+
+  // Optimized method for sizeof(__m256i) == sizeof(taItem)
+  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) == sizeof(taItem)>
+  Fill(const taItem& item, size_t iStart, size_t iLim) {
+    assert(iStart <= iLim);
+    size_t nVects = iLim - iStart;
+    __m256i *p = reinterpret_cast<__m256i *>(_pItems + iStart);
+    for (; nVects > 0; nVects--, p++) {
+      taCache ? _mm256_store_si256(p, vect) : _mm256_stream_si256(p, vect);
+    }
+    if (!taCache) {
+      _mm_sfence();
+    }
+  }
+
+  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0>
+  FillAll(const taItem& item) {
+    size_t nVects = GetPaddedByteCount(_count) >> _cLogSimdBytes;
+    __m256i *p = reinterpret_cast<__m256i *>(_pItems);
+    const __m256i vect = SRUtils::Set1(item);
+    for (; nVects > 0; nVects--, p++) {
+      taCache ? _mm256_store_si256(p, vect) : _mm256_stream_si256(p, vect);
+    }
+    if (!taCache) {
+      _mm_sfence();
+    }
+  }
+
+  // If newCount is greater than the current count, the new items are left uninitialized.
+  // Note: unline vector::resize(), repeatedly calling this method results in quadratic complexity because the array
+  //   doesn't operate any capacity, but only the size. This method is O(N).
+  template<bool taCache> void Resize(const size_t newCount) {
+    size_t newPaddedBytes;
+    AlignedUniquePtr<taItem> pNewItems(ThrowingAlloc(newCount, newPaddedBytes));
+    const size_t oldPaddedBytes = GetPaddedByteCount(_count);
+    SRUtils::Copy256<taCache, false>(pNewItems.get(), _pItems,
+      std::min(newPaddedBytes, oldPaddedBytes) >> _cLogSimdBytes);
+    _mm_free(_pItems);
+    _pItems = pNewItems.release();
+    _count = newCount;
   }
 };
 

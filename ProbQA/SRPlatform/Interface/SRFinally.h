@@ -28,4 +28,4 @@ template <typename taFunc> SRFinally<taFunc> SRMakeFinally(taFunc&& f) {
 //  ::SRPlat::SRFinally<decltype(SR_COMBINE(finallyFunc, __LINE))> SR_COMBINE(finallyObj, __LINE__) (       \
 //    std::move(SR_COMBINE(finallyFunc, __LINE)));
 
-}
+} // namespace SRPlat
