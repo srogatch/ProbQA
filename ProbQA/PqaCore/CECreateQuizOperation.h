@@ -9,29 +9,31 @@
 namespace ProbQA {
 
 template<typename taNumber> class CpuEngine;
+template<typename taNumber> class CEQuiz;
 
-class CECreateQuizOpBase {
+template<typename taNumber> class CECreateQuizOpBase {
 public: // constants
   static const bool _cCachePriors; // must be unresolved
 
 public: // variables
   PqaError& _err;
+  CEQuiz<taNumber> *_pQuiz;
+
 public: // methods
   explicit CECreateQuizOpBase(PqaError& err) : _err(err) { }
-  template<typename taNumber> void MaybeUpdatePriorsWithAnsweredQuestions(CpuEngine<taNumber> *pEngine);
+  void MaybeUpdatePriorsWithAnsweredQuestions(CpuEngine<taNumber> *pEngine);
 };
 
-class CECreateQuizStart : public CECreateQuizOpBase {
+template<typename taNumber> class CECreateQuizStart : public CECreateQuizOpBase<taNumber> {
 public: // constants
   static const bool _cCachePriors = false;
 
 public: //methods
   explicit CECreateQuizStart(PqaError& err) : CECreateQuizOpBase(err) { }
-  template<typename taNumber> void MaybeUpdatePriorsWithAnsweredQuestions(CpuEngine<taNumber> *pEngine)
-  { (void)pEngine; }
+  void MaybeUpdatePriorsWithAnsweredQuestions(CpuEngine<taNumber> *pEngine) { (void)pEngine; }
 };
 
-class CECreateQuizResume : public CECreateQuizOpBase {
+template<typename taNumber> class CECreateQuizResume : public CECreateQuizOpBase<taNumber> {
 public: // constants
   static const bool _cCachePriors = true;
 
@@ -43,12 +45,12 @@ public: //methods
   explicit CECreateQuizResume(PqaError& err, const TPqaId nQuestions, const AnsweredQuestion* const pAQs)
     : CECreateQuizOpBase(err), _nQuestions(nQuestions), _pAQs(pAQs)
   { }
-  template<typename taNumber> void MaybeUpdatePriorsWithAnsweredQuestions(CpuEngine<taNumber> *pEngine);
+  void MaybeUpdatePriorsWithAnsweredQuestions(CpuEngine<taNumber> *pEngine);
 };
 
 #include "../PqaCore/CpuEngine.h"
 
-template<typename taNumber> inline void CECreateQuizResume::MaybeUpdatePriorsWithAnsweredQuestions(
+template<typename taNumber> inline void CECreateQuizResume<taNumber>::MaybeUpdatePriorsWithAnsweredQuestions(
   CpuEngine<taNumber> *pEngine)
 {
   pEngine->UpdatePriorsWithAnsweredQuestions(*this);

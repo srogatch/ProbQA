@@ -20,7 +20,7 @@ template<typename taNumber> class CETrainSubtaskAdd;
 template<typename taNumber> class CETrainTaskNumSpec;
 template<typename taNumber, bool taCache> class CECalcTargetPriorsSubtask;
 template<typename taNumber> class CECalcTargetPriorsTaskNumSpec;
-class CECreateQuizResume;
+template<typename taNumber> class CECreateQuizResume;
 
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
@@ -114,7 +114,7 @@ public: // Internal interface methods
 
   void WakeWorkersWait(CETask<taNumber> &task);
 
-  void UpdatePriorsWithAnsweredQuestions(CECreateQuizResume& resumeOp);
+  void UpdatePriorsWithAnsweredQuestions(CECreateQuizResume<taNumber>& resumeOp);
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);

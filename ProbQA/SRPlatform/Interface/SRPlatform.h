@@ -13,9 +13,11 @@
 //// IS_CPU_X86_32 , IS_CPU_X86_64
 #ifdef _MSC_VER
   #if _M_IX86
+    static_assert(sizeof(void*) == 4, "Double-checking for CPU bit-width detection");
     #define IS_CPU_X86_32 1
     #define IS_CPU_X86_64 0
   #elif _M_X64
+    static_assert(sizeof(void*) == 8, "Double-checking for CPU bit-width detection");
     #define IS_CPU_X86_32 0
     #define IS_CPU_X86_64 1
   #else
