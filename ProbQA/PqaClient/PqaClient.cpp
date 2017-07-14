@@ -242,7 +242,50 @@ void BenchmarkStreamCopy() {
   printf("Stream copy: %.3lf bytes/sec.\n", cnDoubles * 2 * sizeof(double) / nSec);
 }
 
+void AsyncStreamCopy(__m256i *pDest, const __m256i *pSrc, int64_t nVects) {
+  for (; nVects > 0; nVects--, pSrc++, pDest++) {
+    const __m256i loaded = _mm256_stream_load_si256(pSrc);
+    _mm256_stream_si256(pDest, loaded);
+  }
+}
+
+void BenchmarkMultithreadStreamCopy() {
+  const uint32_t maxThreads = std::thread::hardware_concurrency();
+  std::vector<std::thread> thrs;
+  thrs.reserve(maxThreads + 1);
+
+  const __m256i *pSrc = reinterpret_cast<const __m256i*>(gpdInput);
+  __m256i *pDest = reinterpret_cast<__m256i*>(gpdOutput);
+  const int64_t nVects = cnDoubles * sizeof(*gpdInput) / sizeof(*pSrc);
+
+  for (uint32_t nThreads = 1; nThreads <= maxThreads; nThreads++) {
+    auto start = std::chrono::high_resolution_clock::now();
+    lldiv_t perWorker = div((long long)nVects, (long long)nThreads);
+    int64_t nextStart = 0;
+    for (uint32_t i = 0; i < nThreads; i++) {
+      const int64_t curStart = nextStart;
+      nextStart += perWorker.quot;
+      if ((long long)i < perWorker.rem) {
+        nextStart++;
+      }
+      thrs.emplace_back(AsyncStreamCopy, pDest + curStart, pSrc+curStart, nextStart-curStart);
+    }
+    for (uint32_t i = 0; i < nThreads; i++) {
+      thrs[i].join();
+    }
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+    printf("Stream copy %d threads: %.3lf bytes/sec\n", (int)nThreads, cnDoubles * 2 * sizeof(double) / nSec);
+
+    thrs.clear();
+  }
+}
+
 int __cdecl main() {
+  std::atomic<double> test1;
+  bool test2 = test1.is_lock_free();
+  std::cout << test2 << std::endl;
+
   //BenchmarkFunctor();
   //BenchmarkObject();
   //BenchmarkMSVCpp();
@@ -281,6 +324,12 @@ int __cdecl main() {
 
   for (int64_t i = 0; i < cnDoubles; i++) {
     s -= gpdOutput[i];
+  }
+  printf("Control sum: %lf\n", s);
+
+  BenchmarkMultithreadStreamCopy();
+  for (int64_t i = 0; i < cnDoubles; i++) {
+    s += gpdOutput[i];
   }
   printf("Control sum: %lf\n", s);
 

@@ -676,36 +676,38 @@ template<typename taNumber> void CpuEngine<taNumber>::UpdatePriorsWithAnsweredQu
   CECreateQuizResume<taNumber>& resumeOp)
 {
   //// Sequential code (single-threaded) for reference
-  //NOTE: it may be better to iterate by answered questions first instead, so to apply all multiplications for the first
-  //  target and then move on to the next target.
-  const TPqaId nTargets = _dims._nTargets;
-  taNumber *pTargProb = resumeOp._pQuiz->GetTargProbs();
-  TPqaId i = 0;
-  for (; i + 1 < resumeOp._nQuestions; i++) {
-    const AnsweredQuestion& aq = resumeOp._pAQs[i];
-    for (TPqaId j = 0; j < nTargets; j++) {
-      // Multiplier compensation is less robust than summation of logarithms, but it's substantially faster and is
-      //   supported by AVX2. The idea is to make the multipliers equal to 1 in the average case p[j]=1/M, where M is
-      //   the number of targets.
-      pTargProb[j] *= (_sA[aq._iAnswer][aq._iQuestion][j] * nTargets);
-    }
-  }
-  taNumber sum(0);
-  for (TPqaId j = 0; j < nTargets; j++) {
-    taNumber product = pTargProb[j] * (_sA[aq._iAnswer][aq._iQuestion][j] * nTargets);
-    if (product < 1e-20) {
-      product = 1e-20;
-    }
-    else if (product > 1e20) {
-      product = 1e20;
-    }
-    pTargProb[j] = product;
-    sum += product;
-  }
-  for (TPqaId j = 0; j < nTargets; j++) {
-    pTargProb[j] /= sum;
-  }
+  //NOTE: it may be better to iterate by targets first instead, so to apply all multiplications for the first
+  //  target and then move on to the next target. This involves 1 unsequential memory access per answered question
+  //  application, while if we iterate first by questions, each question application involves 2 memory accesses: load
+  //  and store.
+  //const TPqaId nTargets = _dims._nTargets;
+  //taNumber *pTargProb = resumeOp._pQuiz->GetTargProbs();
+  //TPqaId i = 0;
+  //for (; i + 1 < resumeOp._nQuestions; i++) {
+  //  const AnsweredQuestion& aq = resumeOp._pAQs[i];
+  //  for (TPqaId j = 0; j < nTargets; j++) {
+  //    // Multiplier compensation is less robust than summation of logarithms, but it's substantially faster and is
+  //    //   supported by AVX2. The idea is to make the multipliers equal to 1 in the average case p[j]=1/M, where M is
+  //    //   the number of targets.
+  // //FIXME: this will blow to infinity the top most likely targets, making them all equal, which is highly undesirable
+  //    pTargProb[j] *= (nTargets * _sA[aq._iAnswer][aq._iQuestion][j] / _mD[aq._iQuestion][j]);
+  //  }
+  //}
+  //taNumber sum(0); //TODO: instead, sort then sum
+  //const AnsweredQuestion& aq = resumeOp._pAQs[i];
+  //for (TPqaId j = 0; j < nTargets; j++) {
+  //  taNumber product = pTargProb[j] * (nTargets * _sA[aq._iAnswer][aq._iQuestion][j] / _mD[aq._iQuestion][j]);
+  //  pTargProb[j] = product;
+  //  sum += product; //TODO: assign to a bucket instead
+  //}
+  //for (TPqaId j = 0; j < nTargets; j++) {
+  //  pTargProb[j] /= sum;
+  //}
 
+  // Let each thread fill its part of exponents array with zeros.
+  SRSmartMPP<TMemPool, int64_t> pExponents(_memPool, SRCast::ToSizeT(_dims._nTargets));
+  const TPqaId nVects = GetSimdCount(_dims._nTargets);
+  const size_t nWorkers = _workers.size();
   //TODO: implement
 }
 

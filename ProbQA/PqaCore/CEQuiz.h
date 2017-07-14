@@ -24,7 +24,7 @@ public:
   explicit CEQuiz(CpuEngine<taNumber> *pEngine);
   ~CEQuiz();
   taNumber* GetTargProbs() { return _pTargProbs; }
-  CpuEngine<taNumber> GetEngine() { return _pEngine; }
+  CpuEngine<taNumber>* GetEngine() { return _pEngine; }
 };
 
 } // namespace ProbQA

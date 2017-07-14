@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cstdio>
 #include <functional>
+#include <iostream>
 #include <random>
 #include <string>
 #include <tchar.h>
