@@ -57,9 +57,6 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   _vB.Resize<false>(size_t(_dims._nTargets));
   _vB.FillAll<false>(initAmount);
 
-  //// Init scalar C: the sum of B[j] over all targets j
-  _aC = initAmount *_dims._nTargets;
-
   _questionGaps.GrowTo(_dims._nQuestions);
   _targetGaps.GrowTo(_dims._nTargets);
 
@@ -379,16 +376,6 @@ template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTaskNumSpec
   numSpec._collAddend.m256d_f64[1] += dAmount;
 }
 
-template<> void CpuEngine<DoubleNumber>::TrainUpdateTargetTotals(const TPqaId iTarget,
-  const CETrainTaskNumSpec<DoubleNumber>& numSpec)
-{
-  const __m128d& addend = *reinterpret_cast<const __m128d*>(&(numSpec._fullAddend));
-  __m128d sum = _mm_set_pd(_aC.GetValue(), _vB[SRCast::ToSizeT(iTarget)].GetValue());
-  sum = _mm_add_pd(sum, addend);
-  _vB[SRCast::ToSizeT(iTarget)].SetValue(sum.m128d_f64[0]);
-  _aC.SetValue(sum.m128d_f64[1]);
-}
-
 template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
@@ -518,7 +505,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
       return resErr;
     }
 
-    TrainUpdateTargetTotals(iTarget, trainTask._numSpec);
+    _vB[iTarget] += amount;
 
     // This method should increase the counter of questions asked by the number of questions in this training.
     _nQuestionsAsked += nQuestions;

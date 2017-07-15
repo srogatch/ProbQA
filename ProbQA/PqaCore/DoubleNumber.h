@@ -31,7 +31,7 @@ public:
     return answer; 
   }
   DoubleNumber& operator+=(const TPqaAmount amount) {
-    _value += amount;
+    _value += to_double(amount);
     return *this;
   }
 };
