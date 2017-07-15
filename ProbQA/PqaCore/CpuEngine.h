@@ -18,8 +18,6 @@ template<typename taNumber> class CETask;
 template<typename taNumber> class CETrainSubtaskDistrib;
 template<typename taNumber> class CETrainSubtaskAdd;
 template<typename taNumber> class CETrainTaskNumSpec;
-template<typename taNumber, bool taCache> class CECalcTargetPriorsSubtask;
-template<typename taNumber> class CECalcTargetPriorsTaskNumSpec;
 template<typename taNumber> class CECreateQuizResume;
 
 template<typename taNumber = PqaNumber> class CpuEngine : public IPqaEngine {
@@ -30,6 +28,7 @@ public: // constants
   static const TPqaId cMinQuestions = 1;
   static const TPqaId cMinTargets = 2;
   static const uint8_t cLogSimdBits = 8; // AVX2, 256 bits
+  static const uint8_t cLogSimdBytes = cLogSimdBits - 3;
   static const size_t cSimdBytes = 1 << (cLogSimdBits - 3);
   static const size_t cMemPoolMaxSimds = 1 << 10;
   static const uint8_t cNumsPerSimd;
@@ -52,6 +51,7 @@ private: // variables
   GapTracker<TPqaId> _targetGaps; // Guarded by _rws
   EngineDimensions _dims; // Guarded by _maintSwitch
   uint64_t _nQuestionsAsked = 0; // Guarded by _rws
+  uint32_t _nMemOpThreads = 1; // Guarded by _maintSwitch
   
   //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
   //// Actually the locks form directed acyclic graph indicating which locks must be obtained one after another.
@@ -97,10 +97,6 @@ private: // methods
 #pragma endregion
 
 #pragma region Behind StartQuiz() and ResumeQuiz() currently. May be needed by something else.
-  // Assumes _rws is locked at least in shared mode. Assumes pDest reserves integer number of SIMDs.
-  template<bool taCache> PqaError CalcTargetPriors(taNumber *pDest);
-  template<bool taCache> void RunCalcTargetPriors(CECalcTargetPriorsSubtask<taNumber, taCache>& ctps);
-  void InitCalcTargetPriorsNumSpec(CECalcTargetPriorsTaskNumSpec<taNumber> &numSpec);
   template<typename taOperation> TPqaId CreateQuizInternal(taOperation &op);
 #pragma endregion
 

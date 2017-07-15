@@ -15,23 +15,32 @@ template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngin
   : _pEngine(pEngine)
 {
   const EngineDimensions& dims = _pEngine->GetDims();
+  const size_t nQuestions = SRCast::ToSizeT(dims._nQuestions);
+  const size_t nTargets = SRCast::ToSizeT(dims._nTargets);
   typedef CpuEngine<taNumber>::TMemPool TMemPool;
   TMemPool& memPool = _pEngine->GetMemPool();
-  SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool,
-    SRCast::ToSizeT(SRMath::RShiftRoundUp(dims._nQuestions, _cLogSimdBits)));
-  SRSmartMPP<TMemPool, taNumber> smppTargProbs(memPool, SRCast::ToSizeT(dims._nTargets));
-  SRBitHelper::FillZero<false>(smppIsQAsked.Get(), SRCast::ToSizeT(dims._nQuestions));
+
+  // First allocate all the memory so to revert if anything fails.
+  SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, SRMath::RShiftRoundUp(nQuestions, _cLogSimdBits));
+  SRSmartMPP<TMemPool, taNumber> smppMantissas(memPool, nTargets);
+  SRSmartMPP<TMemPool, TExponent> smppExponents(memPool, nTargets);
+
+  // As all the memory is allocated, safely proceed with finishing construction of CEQuiz object.
+  _pTlhExps = smppExponents.Detach();
+  _pTlhMants = smppMantissas.Detach();
   _isQAsked = smppIsQAsked.Detach();
-  _pTargProbs = smppTargProbs.Detach();
 }
 
 template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
   const EngineDimensions& dims = _pEngine->GetDims();
+  const size_t nQuestions = SRCast::ToSizeT(dims._nQuestions);
+  const size_t nTargets = SRCast::ToSizeT(dims._nTargets);
   auto& memPool = _pEngine->GetMemPool();
   //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
   //  of targets and questions.
-  memPool.ReleaseMem(_pTargProbs, sizeof(taNumber) * SRCast::ToSizeT(dims._nTargets));
-  memPool.ReleaseMem(_isQAsked, SRBitHelper::GetAlignedSizeBytes(SRCast::ToSizeT(dims._nQuestions)));
+  memPool.ReleaseMem(_pTlhExps, sizeof(*_pTlhExps) * nTargets);
+  memPool.ReleaseMem(_pTlhMants, sizeof(*_pTlhMants) * nTargets);
+  memPool.ReleaseMem(_isQAsked, SRBitHelper::GetAlignedSizeBytes(nQuestions));
 }
 
 template class CEQuiz<DoubleNumber>;

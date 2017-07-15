@@ -8,8 +8,6 @@
 #include "../PqaCore/PqaException.h"
 #include "../PqaCore/CETrainTask.h"
 #include "../PqaCore/ErrorHelper.h"
-#include "../PqaCore/CECalcTargetPriorsTask.h"
-#include "../PqaCore/CECalcTargetPriorsSubtask.h"
 #include "../PqaCore/CESubtaskCompleter.h"
 #include "../PqaCore/CETask.h"
 #include "../PqaCore/CETrainSubtaskDistrib.h"
@@ -71,6 +69,11 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   for (uint32_t i = 0; i < nWorkers; i++) {
     _workers.emplace_back(&CpuEngine<taNumber>::WorkerEntry, this);
   }
+
+  // This is a trivial heuristic based on the observation that on Ryzen 1800X with 2 DDR4 modules in a single memory
+  //   channel, the maximum copy speed is achieved for 5 threads.
+  _nMemOpThreads = std::max(1ui32, std::min(nWorkers-1, 5ui32));
+
   //throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
   //  "CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)")));
 }
@@ -158,10 +161,6 @@ template<typename taNumber> CESubtask<taNumber>* CpuEngine<taNumber>::CreateSubt
     return new CETrainSubtaskDistrib<taNumber>();
   case CESubtask<taNumber>::Kind::TrainAdd:
     return new CETrainSubtaskAdd<taNumber>();
-  case CESubtask<taNumber>::Kind::CalcTargetPriorsCache:
-    return new CECalcTargetPriorsSubtask<taNumber, true>();
-  case CESubtask<taNumber>::Kind::CalcTargetPriorsNocache:
-    return new CECalcTargetPriorsSubtask<taNumber, false>();
     //TODO: implement
   default:
     CELOG(Critical) << "Requested to create a subtask of unhandled kind #" + static_cast<int64_t>(kind);
@@ -223,12 +222,6 @@ template<typename taNumber> void CpuEngine<taNumber>::RunSubtask(CESubtask<taNum
     break;
   case CESubtask<taNumber>::Kind::TrainAdd:
     RunTrainAdd(dynamic_cast<CETrainSubtaskAdd<taNumber>&>(ceSt));
-    break;
-  case CESubtask<taNumber>::Kind::CalcTargetPriorsCache:
-    RunCalcTargetPriors(dynamic_cast<CECalcTargetPriorsSubtask<taNumber, true>&>(ceSt));
-    break;
-  case CESubtask<taNumber>::Kind::CalcTargetPriorsNocache:
-    RunCalcTargetPriors(dynamic_cast<CECalcTargetPriorsSubtask<taNumber, false>&>(ceSt));
     break;
     //TODO: implement
   default:
@@ -550,83 +543,6 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::GetSimdCount(const TPqaI
   return (nNumbers + cNumsPerSimd - 1) / cNumsPerSimd;
 }
 
-template<> template<bool taCache> void CpuEngine<DoubleNumber>::RunCalcTargetPriors(
-  CECalcTargetPriorsSubtask<DoubleNumber, taCache>& ctps) 
-{
-  auto pTask = static_cast<CECalcTargetPriorsTask<DoubleNumber>*>(ctps._pTask);
-  const __m256d& divisor = pTask->_numSpec._divisor;
-  const TPqaId iFirst = ctps._iFirst;
-  TPqaId nVects = ctps._iLim - iFirst;
-  __m256d *pDest = reinterpret_cast<__m256d*>(pTask->_pDest) + iFirst;
-  __m256d *pSrc = reinterpret_cast<__m256d*>(_vB.Get()) + iFirst;
-  for (; nVects > 0; nVects--, pDest++, pSrc++) {
-    // Benchmarks show that stream load&store with division in between is faster than the same operations with caching.
-    const __m256d weight = _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pSrc)));
-    const __m256d prior = _mm256_div_pd(weight, divisor);
-    //TODO: check in disassembly that this branching is compile-time
-    if (taCache) {
-      _mm256_store_pd(reinterpret_cast<double*>(pDest), prior);
-    }
-    else {
-      _mm256_stream_pd(reinterpret_cast<double*>(pDest), prior);
-    }
-  }
-  if (!taCache) {
-    _mm_sfence();
-  }
-}
-
-template<> void CpuEngine<DoubleNumber>::InitCalcTargetPriorsNumSpec(
-  CECalcTargetPriorsTaskNumSpec<DoubleNumber> &numSpec)
-{
-  numSpec._divisor = _mm256_set1_pd(_aC.GetValue());
-}
-
-template<typename taNumber> template<bool taCache> PqaError CpuEngine<taNumber>::CalcTargetPriors(taNumber *pDest) {
-  PqaError resErr;
-  const TPqaId nVects = GetSimdCount(_dims._nTargets);
-  const size_t nWorkers = _workers.size();
-  CECalcTargetPriorsTask<taNumber> ctpt(this);
-  ctpt._pDest = pDest;
-  InitCalcTargetPriorsNumSpec(ctpt._numSpec);
-  {
-    lldiv_t perWorker = div((long long)nVects, (long long)nWorkers);
-    TPqaId nextStart = 0;
-    size_t i = 0;
-    SRLock<SRCriticalSection> csl(_csWorkers);
-    for (; i < nWorkers && nextStart < nVects; i++) {
-      const TPqaId curStart = nextStart;
-      nextStart += perWorker.quot;
-      if ((long long)i < perWorker.rem) {
-        nextStart++;
-      }
-      assert(nextStart <= nVects);
-      CECalcTargetPriorsSubtaskBase<taNumber> *pCtps = AcquireSubtask<CECalcTargetPriorsSubtask<taNumber, taCache>>();
-      if (pCtps == nullptr) {
-        // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
-        //  they have a pointer to an object (the task) on the stack of the current function.
-        const char* const msg = "Internal error: failed to acquire CECalcTargetPriorsSubtask in " SR_FILE_LINE;
-        CELOG(Critical) << msg;
-        resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
-        ctpt.Cancel();
-        break;
-      }
-      pCtps->_pTask = &ctpt;
-      pCtps->_iFirst = curStart;
-      pCtps->_iLim = nextStart;
-      _quWork.push(pCtps);
-    }
-    ctpt.IncToDo(i);
-  }
-  // Even if the task has been cancelled, wait till all the workers acknowledge that
-  WakeWorkersWait(ctpt);
-  if (!resErr.isOk()) {
-    return resErr;
-  }
-  resErr = ctpt.TakeAggregateError(SRString::MakeUnowned("Failed computing target priors."));
-  return resErr;
-}
-
 template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNumber>::CreateQuizInternal(
   taOperation &op)
 {
@@ -640,6 +556,8 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
     MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
     // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
     //   _maintSwitch guards engine dimensions.
+    const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
+    const size_t nQuestions = SRCast::ToSizeT(_dims._nQuestions);
     op._pQuiz = new CEQuiz<taNumber>(this);
     TPqaId quizId;
     {
@@ -653,8 +571,15 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
     }
     {
       SRRWLock<false> rwl(_rws);
-      // Compute the prior probabilities for targets
-      op._err = CalcTargetPriors<taOperation::_cCachePriors>(op._pQuiz->GetTargProbs());
+
+      //// Copy prior likelihoods for targets
+      //TODO: launch these 3 memory operations in separate threads
+      SRUtils::Copy256<false, false>(op._pQuiz->GetTlhMants(), _vB.Get(),
+        SRMath::RShiftRoundUp(nTargets * sizeof(taNumber), cLogSimdBytes));
+      SRUtils::FillZeroVects<false>(reinterpret_cast<__m256i*>(op._pQuiz->GetTlhExps()),
+        SRMath::RShiftRoundUp(nTargets * sizeof(CEQuiz<taNumber>::TExponent), cLogSimdBytes));
+      SRUtils::FillZeroVects<true>(op._pQuiz->GetQAsked(), SRMath::RShiftRoundUp(nQuestions, cLogSimdBits));
+
       if (op._err.isOk()) {
         op.MaybeUpdatePriorsWithAnsweredQuestions(this);
       }
