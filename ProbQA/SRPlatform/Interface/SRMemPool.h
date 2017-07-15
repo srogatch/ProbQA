@@ -5,18 +5,20 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/SRSimd.h"
 
 namespace SRPlat {
 
 // If the unit is 256-bit, then taLogUnitBits should be 8 because 256 == (1<<8) .
 // This class is thread-safe, except some methods explicitly specified as not thread-safe.
-template<uint32_t taLogUnitBits, uint32_t taGranules> class SRMemPool {
-public: // constants
-  static const size_t cLogSimdBits = 8;
-  static const size_t cSimdBytes = (1 << (cLogSimdBits - 3));
-  static const size_t cUnitBytes = 1 << (taLogUnitBits - 3);
+template<uint32_t taLogNUnitBits, uint32_t taNGranules> class SRMemPool {
+  static_assert(taLogNUnitBits >= 3, "Must be integer number of bytes.");
 
-  static_assert(cSimdBytes >= sizeof(void*), "Need to store a next pointer for a linked list of chunks.");
+public: // constants
+  static const size_t _cLogNUnitBytes = taLogNUnitBits - 3;
+  static const size_t _cNUnitBytes = 1 << _cLogNUnitBytes;
+
+  static_assert(SRSimd::_cNBytes >= sizeof(void*), "Need to store a next pointer for a linked list of chunks.");
 
 private: // variables
   std::atomic<void*> *_memChunks;
@@ -34,27 +36,27 @@ private: // methods
   }
 
 public:
-  static_assert((taGranules * sizeof(std::atomic<void*>)) % cSimdBytes == 0,
-    "For SIMD efficiency, choose taGranules divisable by larger power of 2.");
+  static_assert((taNGranules * sizeof(std::atomic<void*>)) % SRSimd::_cNBytes == 0,
+    "For SIMD efficiency, choose taNGranules divisable by larger power of 2.");
 
-  explicit SRMemPool(const size_t maxTotalUnits = (512 * 1024 * 1024) / cUnitBytes)
+  explicit SRMemPool(const size_t maxTotalUnits = (512 * 1024 * 1024) / _cUnitBytes)
     : _totalUnits(0), _maxTotalUnits(maxTotalUnits)
   {
-    const size_t nMemChunksBytes = taGranules * sizeof(*_memChunks);
-    _memChunks = static_cast<decltype(_memChunks)>(_mm_malloc(nMemChunksBytes, cSimdBytes));
+    const size_t nMemChunksBytes = taNGranules * sizeof(*_memChunks);
+    _memChunks = static_cast<decltype(_memChunks)>(_mm_malloc(nMemChunksBytes, SRSimd::_cNBytes));
     if (_memChunks == nullptr) {
       throw SRException(SRMessageBuilder(__FUNCTION__ " failed to allocate _memChunks of ")(nMemChunksBytes)(" bytes.")
         .GetOwnedSRString());
     }
     //TODO: vectorize/parallelize
-    for (size_t i = 0; i < taGranules; i++) {
+    for (size_t i = 0; i < taNGranules; i++) {
       new(_memChunks + i) std::atomic<void*>(nullptr);
     }
   }
 
   ~SRMemPool() {
     //TODO: vectorize/parallelize
-    for (size_t i = 0; i < taGranules; i++) {
+    for (size_t i = 0; i < taNGranules; i++) {
       FreeChunk(i);
       _memChunks[i].~atomic<void*>();
     }
@@ -64,7 +66,7 @@ public:
   // This method is not thread-safe.
   void FreeAllChunks() {
     std::atomic_thread_fence(std::memory_order_acquire);
-    for (size_t i = 0; i < taGranules; i++) {
+    for (size_t i = 0; i < taNGranules; i++) {
       FreeChunk(i);
       _memChunks[i].store(nullptr, std::memory_order_relaxed);
     }
@@ -77,9 +79,9 @@ public:
   SRMemPool& operator=(SRMemPool&&) = delete;
 
   void* AllocMem(const size_t nBytes) {
-    const size_t iSlot = (nBytes + cUnitBytes - 1) >> (taLogUnitBits - 3);
-    if (iSlot >= taGranules) {
-      return _mm_malloc(iSlot * cUnitBytes, cUnitBytes);
+    const size_t iSlot = (nBytes + _cNUnitBytes - 1) >> _cLogNUnitBytes;
+    if (iSlot >= taNGranules) {
+      return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
     }
     if (iSlot <= 0) {
       return nullptr;
@@ -90,7 +92,7 @@ public:
     do {
       if (expected == nullptr) {
         _totalUnits.fetch_add(iSlot, std::memory_order_relaxed);
-        return _mm_malloc(iSlot * cUnitBytes, cUnitBytes);
+        return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
       }
       next = *reinterpret_cast<void**>(expected);
     } while (!head.compare_exchange_weak(expected, next, std::memory_order_acq_rel, std::memory_order_acquire));
@@ -98,8 +100,8 @@ public:
   }
 
   void ReleaseMem(void *p, const size_t nBytes) {
-    const size_t iSlot = (nBytes + cUnitBytes - 1) >> (taLogUnitBits - 3);
-    if (iSlot >= taGranules || iSlot <= 0) {
+    const size_t iSlot = (nBytes + _cNUnitBytes - 1) >> _cLogNUnitBytes;
+    if (iSlot >= taNGranules || iSlot <= 0) {
       _mm_free(p);
       return;
     }

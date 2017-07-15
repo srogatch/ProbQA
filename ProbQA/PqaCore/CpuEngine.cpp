@@ -22,11 +22,9 @@ namespace ProbQA {
 
 #define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
 
-template<> const uint8_t CpuEngine<DoubleNumber>::cNumsPerSimd = cSimdBytes / sizeof(double);
-
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
   : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular), _shutdownRequested(0),
-  _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> (cLogSimdBits - 3)))
+  _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes))
 {
   if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
   {
@@ -538,11 +536,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   CATCH_TO_ERR_RETURN;
 }
 
-template<typename taNumber> TPqaId CpuEngine<taNumber>::GetSimdCount(const TPqaId nNumbers) {
-  //TODO: shall division rather be refactored to a shift right?
-  return (nNumbers + cNumsPerSimd - 1) / cNumsPerSimd;
-}
-
 template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNumber>::CreateQuizInternal(
   taOperation &op)
 {
@@ -575,10 +568,10 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
       //// Copy prior likelihoods for targets
       //TODO: launch these 3 memory operations in separate threads
       SRUtils::Copy256<false, false>(op._pQuiz->GetTlhMants(), _vB.Get(),
-        SRMath::RShiftRoundUp(nTargets * sizeof(taNumber), cLogSimdBytes));
+        SRSimd::VectsFromBytes(nTargets * sizeof(taNumber)));
       SRUtils::FillZeroVects<false>(reinterpret_cast<__m256i*>(op._pQuiz->GetTlhExps()),
-        SRMath::RShiftRoundUp(nTargets * sizeof(CEQuiz<taNumber>::TExponent), cLogSimdBytes));
-      SRUtils::FillZeroVects<true>(op._pQuiz->GetQAsked(), SRMath::RShiftRoundUp(nQuestions, cLogSimdBits));
+        SRSimd::VectsFromBytes(nTargets * sizeof(CEQuiz<taNumber>::TExponent)));
+      SRUtils::FillZeroVects<true>(op._pQuiz->GetQAsked(), SRSimd::VectsFromBits(nQuestions));
 
       if (op._err.isOk()) {
         op.MaybeUpdatePriorsWithAnsweredQuestions(this);
@@ -629,9 +622,6 @@ template<typename taNumber> void CpuEngine<taNumber>::UpdatePriorsWithAnsweredQu
   //  pTargProb[j] /= sum;
   //}
 
-  // Let each thread fill its part of exponents array with zeros.
-  SRSmartMPP<TMemPool, int64_t> pExponents(_memPool, SRCast::ToSizeT(_dims._nTargets));
-  const TPqaId nVects = GetSimdCount(_dims._nTargets);
   const size_t nWorkers = _workers.size();
   //TODO: implement
 }

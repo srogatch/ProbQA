@@ -221,6 +221,7 @@
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRFastRandom.h" />
     <ClInclude Include="Interface\SRReaderWriterSync.h" />
+    <ClInclude Include="Interface\SRSimd.h" />
     <ClInclude Include="Interface\SRSpinSync.h" />
     <ClInclude Include="Interface\SRString.h" />
     <ClInclude Include="Interface\SRSmartHandle.h" />

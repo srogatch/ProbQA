@@ -46,5 +46,6 @@
 #include "../SRPlatform/Interface/SRMath.h"
 #include "../SRPlatform/Interface/SRMemPool.h"
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"
+#include "../SRPlatform/Interface/SRSimd.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
 #include "../SRPlatform/Interface/SRUtils.h"

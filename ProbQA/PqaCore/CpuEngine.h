@@ -27,15 +27,11 @@ public: // constants
   static const TPqaId cMinAnswers = 2;
   static const TPqaId cMinQuestions = 1;
   static const TPqaId cMinTargets = 2;
-  static const uint8_t cLogSimdBits = 8; // AVX2, 256 bits
-  static const uint8_t cLogSimdBytes = cLogSimdBits - 3;
-  static const size_t cSimdBytes = 1 << (cLogSimdBits - 3);
   static const size_t cMemPoolMaxSimds = 1 << 10;
-  static const uint8_t cNumsPerSimd;
 
 public: // types
   typedef SRPlat::SRSpinSync<32> TStpSync;
-  typedef SRPlat::SRMemPool<cLogSimdBits, cMemPoolMaxSimds> TMemPool;
+  typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, cMemPoolMaxSimds> TMemPool;
 
 private: // variables
   //TODO: refactor these vectors to a custom vector data structure that inits and copies with AVX2 skipping cache
@@ -82,9 +78,6 @@ private: // methods
 
   CESubtask<taNumber>* CreateSubtask(const typename CESubtask<taNumber>::Kind kind);
   void DeleteSubtask(CESubtask<taNumber> *pSubtask);
-
-  // Returns the number of vectors for the given number of numbers.
-  static TPqaId GetSimdCount(const TPqaId nNumbers);
 
 #pragma region Behind Train() interface method
   void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);

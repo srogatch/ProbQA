@@ -12,7 +12,6 @@ template<typename taNumber> class CpuEngine;
 
 template<typename taNumber> class CEQuiz {
 public:
-  static const size_t _cLogSimdBits = 8;
   typedef int64_t TExponent;
 
 private: // variables

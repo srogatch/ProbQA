@@ -21,7 +21,7 @@ template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngin
   TMemPool& memPool = _pEngine->GetMemPool();
 
   // First allocate all the memory so to revert if anything fails.
-  SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, SRMath::RShiftRoundUp(nQuestions, _cLogSimdBits));
+  SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, SRSimd::VectsFromBits(nQuestions));
   SRSmartMPP<TMemPool, taNumber> smppMantissas(memPool, nTargets);
   SRSmartMPP<TMemPool, TExponent> smppExponents(memPool, nTargets);
 

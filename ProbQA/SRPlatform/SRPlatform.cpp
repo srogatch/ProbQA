@@ -13,6 +13,7 @@
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRFastArray.h"
+#include "../SRPlatform/Interface/SRSimd.h"
 
 namespace SRPlat {
   constexpr size_t test1 = sizeof(SRSpinSync<1>);

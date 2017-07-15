@@ -1,11 +1,12 @@
 #pragma once
 
-#include "../SRPlatform/Interface/SRPlatform.h"
-#include "../SRPlatform/Interface/SRMath.h"
-#include "../SRPlatform/Interface/SRException.h"
-#include "../SRPlatform/Interface/SRMessageBuilder.h"
-#include "../SRPlatform/Interface/SRUtils.h"
 #include "../SRPlatform/Interface/SRAlignedDeleter.h"
+#include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/SRMath.h"
+#include "../SRPlatform/Interface/SRMessageBuilder.h"
+#include "../SRPlatform/Interface/SRPlatform.h"
+#include "../SRPlatform/Interface/SRSimd.h"
+#include "../SRPlatform/Interface/SRUtils.h"
 
 namespace SRPlat {
 
@@ -20,10 +21,7 @@ protected: // variables
 //   not block this possibility.
 template<typename taItem, bool taCacheDefault> class SRFastArray : public SRFastArrayBase {
 public: // constants
-  static constexpr size_t _cLogSimdBits = 8;
-  static constexpr size_t _cLogSimdBytes = _cLogSimdBits - 3;
-  static constexpr size_t _cSimdBytes = 1 << _cLogSimdBytes;
-  static constexpr size_t _cSimdByteMask = _cSimdBytes - 1;
+  static constexpr size_t _cSimdByteMask = SRSimd::_cNBytes - 1;
 
 private: // variables
   taItem *_pItems;
@@ -59,7 +57,7 @@ public: // methods
   template<bool taFellowCD> SRFastArray(const SRFastArray<taItem, taFellowCD>& fellow) : SRFastArrayBase(fellow) {
     size_t paddedBytes;
     _pItems = ThrowingAlloc(_count, paddedBytes);
-    const size_t nVects = paddedBytes >> (_cLogSimdBits - 3);
+    const size_t nVects = paddedBytes >> SRSimd::_cLogNBytes;
     SRUtils::Copy256<taCacheDefault, taFellowCD>(_pItems, fellow._pItems, nVects);
   }
   // Leaves the destination object empty if unable to allocate memory. This is to avoid excessive memory usage.
@@ -77,7 +75,7 @@ public: // methods
         }
       }
       _count = fellow._count;
-      const size_t nVects = targetBytes >> (_cLogSimdBits - 3);
+      const size_t nVects = targetBytes >> SRSimd::_cLogNBytes;
       SRUtils::Copy256<taCacheDefault, taFellowCD>(_pItems, fellow._pItems, nVects);
     }
     return *this;
@@ -145,7 +143,7 @@ public: // methods
 
   template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0>
   FillAll(const taItem& item) {
-    size_t nVects = GetPaddedByteCount(_count) >> _cLogSimdBytes;
+    size_t nVects = GetPaddedByteCount(_count) >> SRSimd::_cLogNBytes;
     __m256i *p = reinterpret_cast<__m256i *>(_pItems);
     const __m256i vect = SRUtils::Set1(item);
     for (; nVects > 0; nVects--, p++) {
@@ -164,7 +162,7 @@ public: // methods
     AlignedUniquePtr<taItem> pNewItems(ThrowingAlloc(newCount, newPaddedBytes));
     const size_t oldPaddedBytes = GetPaddedByteCount(_count);
     SRUtils::Copy256<taCache, false>(pNewItems.get(), _pItems,
-      std::min(newPaddedBytes, oldPaddedBytes) >> _cLogSimdBytes);
+      std::min(newPaddedBytes, oldPaddedBytes) >> SRSimd::_cLogNBytes);
     _mm_free(_pItems);
     _pItems = pNewItems.release();
     _count = newCount;
