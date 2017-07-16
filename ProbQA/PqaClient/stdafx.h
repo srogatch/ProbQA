@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <functional>
 #include <iostream>
+#include <queue>
 #include <random>
 #include <string>
 #include <tchar.h>
@@ -35,3 +36,4 @@
 #include "../SRPlatform/Interface/SRFinally.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRMath.h"
+#include "../SRPlatform/Interface/SRMemPool.h"

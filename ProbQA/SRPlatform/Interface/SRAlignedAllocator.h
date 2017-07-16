@@ -84,7 +84,7 @@ public:
     // All allocators should contain an integer overflow check. The Standardization Committee recommends that
     // std::length_error be thrown in the case of integer overflow.
     if (n > max_size()) {
-      throw std::length_error("aligned_allocator<T>::allocate() - Integer overflow.");
+      throw std::length_error("SRAlignedAllocator<T>::allocate() - Integer overflow.");
     }
 
     // Ensure that the number of bytes allocated is a multiple of alignment: add padding in the end.

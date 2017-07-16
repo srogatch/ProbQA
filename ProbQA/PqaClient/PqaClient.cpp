@@ -281,21 +281,10 @@ void BenchmarkMultithreadStreamCopy() {
   }
 }
 
-int __cdecl main() {
-  std::atomic<double> test1;
-  bool test2 = test1.is_lock_free();
-  std::cout << test2 << std::endl;
-
-  //BenchmarkFunctor();
-  //BenchmarkObject();
-  //BenchmarkMSVCpp();
-  //BenchmarkTemplate();
-  //BenchmarkMacro();
-  //BenchmarkEmpty();
-  //BenchmarkAtomic();
+void MultibenchMemory() {
   gpdInput = (double*)_mm_malloc(SRPlat::SRCast::ToSizeT(cnDoubles) * sizeof(double), sizeof(__m256d));
-  gpdOutput  = (double*)_mm_malloc(SRPlat::SRCast::ToSizeT(cnDoubles) * sizeof(double), sizeof(__m256d));
-  
+  gpdOutput = (double*)_mm_malloc(SRPlat::SRCast::ToSizeT(cnDoubles) * sizeof(double), sizeof(__m256d));
+
   BenchmarkRandFill();
 
   BenchmarkFastRandFill();
@@ -335,6 +324,134 @@ int __cdecl main() {
 
   _mm_free(gpdInput);
   _mm_free(gpdOutput);
+}
+
+void BenchmarkStdFunctionMemPool() {
+  const int64_t nItems = 32 * 1024 * 1024;
+  typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, 1 << 10> TMemPool;
+  typedef SRPlat::SRMPAllocator<char, TMemPool> TAllocator;
+  TMemPool memPool;
+  TAllocator alloc(memPool);
+
+  std::queue<std::function<void()>, std::deque<std::function<void()>, TAllocator>> qu(alloc);
+  volatile int64_t sum = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < nItems; i++) {
+    qu.emplace(std::allocator_arg, alloc, [&sum]() { sum++; });
+  }
+
+  while (!qu.empty()) {
+    std::function<void()> f(std::move(qu.front()));
+    qu.pop();
+    f();
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("std::function with MemPool: %.3lf push&pop per second. Sum: %lld\n", nItems / nSec,
+    (long long)sum);
+}
+
+void BenchmarkStdFunctionStdAlloc() {
+  const int64_t nItems = 32 * 1024 * 1024;
+
+  std::queue<std::function<void()>> qu;
+  volatile int64_t sum = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < nItems; i++) {
+    qu.emplace([&sum]() { sum++; });
+  }
+
+  while (!qu.empty()) {
+    std::function<void()> f(std::move(qu.front()));
+    qu.pop();
+    f();
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("std::function with std alloc: %.3lf push&pop per second. Sum: %lld\n", nItems / nSec,
+    (long long)sum);
+}
+
+class BaseSubtask {
+public:
+  virtual ~BaseSubtask() { }
+  virtual void Run() = 0;
+};
+
+class TestSubtask : public BaseSubtask {
+  int64_t *_pSum;
+public:
+  explicit TestSubtask(int64_t& sum) : _pSum(&sum) { }
+  virtual void Run() override {
+    (*_pSum)++;
+  }
+};
+
+void BenchmarkSubtask() {
+  const int64_t nItems = 32 * 1024 * 1024;
+
+  std::queue<BaseSubtask*> qu;
+  int64_t sum = 0;
+  TestSubtask tst(sum);
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < nItems; i++) {
+    qu.emplace(&tst);
+  }
+
+  while (!qu.empty()) {
+    BaseSubtask *pBst = std::move(qu.front());
+    qu.pop();
+    pBst->Run();
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Subtask: %.3lf push&pop per second. Sum: %lld\n", nItems / nSec,
+    (long long)sum);
+}
+
+// This one is 55 cycles per push&pop&call , 71 549 818 triples per second.
+void BenchmarkSmallQueue() {
+  const int64_t nItems = 32 * 1024 * 1024;
+
+  std::queue<BaseSubtask*> qu;
+  int64_t sum = 0;
+  TestSubtask tst(sum);
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < nItems; i++) {
+    qu.emplace(&tst);
+    if (qu.size() >= 1024) {
+      do {
+        BaseSubtask *pBst = std::move(qu.front());
+        qu.pop();
+        pBst->Run();
+      } while (!qu.empty());
+    }
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Small queue: %.3lf push&pop per second. Sum: %lld\n", nItems / nSec,
+    (long long)sum);
+}
+
+int __cdecl main() {
+  //std::atomic<double> test1;
+  //bool test2 = test1.is_lock_free();
+  //std::cout << test2 << std::endl;
+
+  //BenchmarkFunctor();
+  //BenchmarkObject();
+  //BenchmarkMSVCpp();
+  //BenchmarkTemplate();
+  //BenchmarkMacro();
+  //BenchmarkEmpty();
+  //BenchmarkAtomic();
+  //MultibenchMemory();
+
+  BenchmarkStdFunctionMemPool();
+  BenchmarkStdFunctionStdAlloc();
+  BenchmarkSubtask();
+  BenchmarkSmallQueue();
+
   return 0;
 }
 
