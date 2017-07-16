@@ -8,8 +8,4 @@
 
 namespace SRPlat {
 
-void SRBaseSubtask::GuardedRun() {
-  _pTask->OnSubtaskComplete(this);
-}
-
 } // namespace SRPlat

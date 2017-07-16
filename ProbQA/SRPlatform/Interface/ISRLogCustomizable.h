@@ -4,11 +4,15 @@
 
 #pragma once
 
-#include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/ISRLogger.h"
 
 namespace SRPlat {
 
-DERIVE_SREXCEPTION(SRDefaultLoggerAlreadyInitialized, SR);
-DERIVE_SREXCEPTION(SRDefaultLoggerConcurrentInitialization, SR);
+class ISRLogCustomizable {
+public:
+  virtual ~ISRLogCustomizable() { }
+  virtual ISRLogger* GetLogger() const = 0;
+  virtual void SetLogger(ISRLogger *pLogger) = 0;
+};
 
 } // namespace SRPlat

@@ -17,7 +17,9 @@ public: // types
 private: // variables
 
 public: // methods
-  void OnSubtaskComplete(SRBaseSubtask *pSubtask);
+  void OnSubtaskComplete(SRBaseSubtask *pSubtask) {
+    //TODO: implement
+  }
 
 };
 

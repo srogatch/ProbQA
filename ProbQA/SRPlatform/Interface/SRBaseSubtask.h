@@ -4,17 +4,24 @@
 
 #pragma once
 
+#include "../SRPlatform/Interface/SRException.h"
+
 namespace SRPlat {
 
 class SRBaseTask;
 
 class SRBaseSubtask {
   SRBaseTask *_pTask;
+  // Filled in if an exception, thrown from Run() method and descendants, reaches thread pool.
+  std::unique_ptr<SRException> _pEx;
 
 public:
   explicit SRBaseSubtask(SRBaseTask *pTask) : _pTask(pTask) { }
   virtual ~SRBaseSubtask() { }
-  void GuardedRun();
+
+  SRBaseTask *GetTask() const { return _pTask; }
+  void SetException(SRException &&ex);
+
   virtual void Run() = 0;
 };
 
