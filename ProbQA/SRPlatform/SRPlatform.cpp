@@ -14,6 +14,7 @@
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRFastArray.h"
 #include "../SRPlatform/Interface/SRSimd.h"
+#include "../SRPlatform/Interface/SRThreadPool.h"
 
 namespace SRPlat {
   constexpr size_t test1 = sizeof(SRSpinSync<1>);

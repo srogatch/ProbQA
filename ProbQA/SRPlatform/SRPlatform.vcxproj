@@ -225,6 +225,8 @@
     <ClInclude Include="Interface\SRSpinSync.h" />
     <ClInclude Include="Interface\SRString.h" />
     <ClInclude Include="Interface\SRSmartHandle.h" />
+    <ClInclude Include="Interface\SRBaseSubtask.h" />
+    <ClInclude Include="Interface\SRBaseTask.h" />
     <ClInclude Include="Interface\SRThreadPool.h" />
     <ClInclude Include="Interface\SRUtils.h" />
     <ClInclude Include="stdafx.h" />
