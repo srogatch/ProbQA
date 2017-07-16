@@ -399,7 +399,7 @@ void BenchmarkSubtask() {
   }
 
   while (!qu.empty()) {
-    BaseSubtask *pBst = std::move(qu.front());
+    BaseSubtask *pBst = qu.front();
     qu.pop();
     pBst->Run();
   }
@@ -421,7 +421,49 @@ void BenchmarkSmallQueue() {
     qu.emplace(&tst);
     if (qu.size() >= 1024) {
       do {
-        BaseSubtask *pBst = std::move(qu.front());
+        BaseSubtask *pBst = qu.front();
+        qu.pop();
+        pBst->Run();
+      } while (!qu.empty());
+    }
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Small queue: %.3lf push&pop per second. Sum: %lld\n", nItems / nSec,
+    (long long)sum);
+}
+
+template <typename Func> class LambdaSubtask : public BaseSubtask {
+  Func _f;
+public:
+  LambdaSubtask(Func&& func) : _f(std::forward<Func>(func)) {}
+  LambdaSubtask(LambdaSubtask&) = delete;
+  LambdaSubtask& operator=(const LambdaSubtask&) = delete;
+  LambdaSubtask(LambdaSubtask&&) = delete;
+  LambdaSubtask& operator=(LambdaSubtask&&) = delete;
+
+  virtual void Run() override {
+    _f();
+  }
+};
+
+template <typename F> LambdaSubtask<F> MakeLambdaSubtask(F&& f) {
+  return { std::forward<F>(f) };
+}
+
+void BenchmarkLambda() {
+  const int64_t nItems = 32 * 1024 * 1024;
+
+  std::queue<BaseSubtask*> qu;
+  int64_t sum = 0;
+  auto fnOp = [&sum]() { sum++; };
+  LambdaSubtask<decltype(fnOp)> lst(std::move(fnOp));
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 0; i < nItems; i++) {
+    qu.emplace(&lst);
+    if (qu.size() >= 1024) {
+      do {
+        BaseSubtask *pBst = qu.front();
         qu.pop();
         pBst->Run();
       } while (!qu.empty());
@@ -447,10 +489,11 @@ int __cdecl main() {
   //BenchmarkAtomic();
   //MultibenchMemory();
 
-  BenchmarkStdFunctionMemPool();
-  BenchmarkStdFunctionStdAlloc();
-  BenchmarkSubtask();
+  //BenchmarkStdFunctionMemPool();
+  //BenchmarkStdFunctionStdAlloc();
+  //BenchmarkSubtask();
   BenchmarkSmallQueue();
+  BenchmarkLambda();
 
   return 0;
 }
