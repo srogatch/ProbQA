@@ -4,23 +4,32 @@
 
 #pragma once
 
-#include "../SRPlatform/Interface/SRSpinSync.h"
+#include "../SRPlatform/Interface/SRConditionVariable.h"
 
 namespace SRPlat {
 
 class SRBaseSubtask;
+class SRThreadPool;
 
 class SRBaseTask {
 public: // types
-  typedef SRPlat::SRSpinSync<16> TSync;
+  typedef int32_t TNSubtasks;
 
 private: // variables
+  std::atomic<TNSubtasks> _nToDo;
+  std::atomic<TNSubtasks> _nFailedSubtasks;
+  SRConditionVariable _isComplete;
+  SRThreadPool *_pTp;
 
 public: // methods
-  void OnSubtaskComplete(SRBaseSubtask *pSubtask) {
-    //TODO: implement
-  }
+  virtual ~SRBaseTask() { }
 
+  void FinalizeSubtask(SRBaseSubtask *pSubtask);
+  // A hook for derived classes to e.g. release the subtask to a memory pool
+  virtual void OnSubtaskComplete(SRBaseSubtask*) { };
+
+  void HandlSubtaskError(SRBaseSubtask* pSubtask, const bool isFirstErr);
+  virtual void OnSubtaskError(SRBaseSubtask*) { };
 };
 
 } // namespace SRPlat

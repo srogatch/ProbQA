@@ -252,6 +252,7 @@
     </ClCompile>
     <ClCompile Include="FileLogger.cpp" />
     <ClCompile Include="SRBaseSubtask.cpp" />
+    <ClCompile Include="SRBaseTask.cpp" />
     <ClCompile Include="SRConditionVariable.cpp" />
     <ClCompile Include="SRCriticalSection.cpp" />
     <ClCompile Include="SRDefaultLogger.cpp" />

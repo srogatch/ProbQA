@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/SRMessageBuilder.h"
 
 namespace SRPlat {
 

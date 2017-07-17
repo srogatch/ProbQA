@@ -11,6 +11,7 @@
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRDefaultLogger.h"
 #include "../SRPlatform/Interface/SRLogStream.h"
+#include "../SRPlatform/Interface/Exceptions/SRStdException.h"
 
 namespace SRPlat {
 
@@ -49,17 +50,15 @@ void SRThreadPool::WorkerEntry() {
     }
     catch (SRException& ex) {
       TPLOG(Error) << "Worker thread got an SRException not handled in the call subtree: " << ex.ToString();
-      //stc.Get()->
-      //ceStc.Get()->_pTask->AddError(std::move(err));
+      stc.Get()->SetException(std::move(ex));
     }
     catch (std::exception& ex) {
-      //PqaError err;
-      //err.SetFromException(std::move(ex));
-      //CELOG(Critical) << "Worker thread got an std::exception not handled at lower levels: " << err.ToString(true);
-      //ceStc.Get()->_pTask->AddError(std::move(err));
+      TPLOG(Error) << "Worker thread got an std::exception not handled in the call subtree: " << ex.what();
+      stc.Get()->SetException(SRStdException(ex));
     }
     catch (...) {
       std::exception_ptr ep = std::current_exception();
+      TPLOG(Error) << "Worker thread got an unknown exception not handled in the call subtree: " << ep;
       //ep.
     }
   }

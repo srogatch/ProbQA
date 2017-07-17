@@ -8,4 +8,10 @@
 
 namespace SRPlat {
 
+void SRBaseSubtask::SetException(SRException &&ex) {
+  const bool bIsFirstErr = (_pEx == nullptr);
+  _pEx.reset(ex.Move());
+  _pTask->HandlSubtaskError(this, bIsFirstErr);
+}
+
 } // namespace SRPlat

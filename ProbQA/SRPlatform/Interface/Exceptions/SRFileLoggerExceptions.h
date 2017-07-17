@@ -13,8 +13,10 @@ class SRPLATFORM_API SRCannotOpenLogFileException : public SRException {
 public:
   explicit SRCannotOpenLogFileException(const std::string& fileName) : _fileName(fileName),
     SRException(SRString::MakeUnowned("Cannot open log file.")) { }
+
   SRCannotOpenLogFileException(const SRCannotOpenLogFileException &fellow)
     : _fileName(fellow._fileName), SRException(fellow) { }
+
   SRCannotOpenLogFileException(SRCannotOpenLogFileException &&fellow)
     : _fileName(std::forward<SRString>(fellow._fileName)), SRException(std::forward<SRException>(fellow)) { }
 
@@ -30,8 +32,10 @@ class SRPLATFORM_API SRLoggerShutDownException : public SRException {
 public:
   explicit SRLoggerShutDownException(const std::string& unloggedMsg) : _unloggedMsg(unloggedMsg),
     SRException(SRString::MakeUnowned("Cannot log because the logger is shut(ting) down.")) { }
+
   SRLoggerShutDownException(const SRLoggerShutDownException &fellow)
     : _unloggedMsg(fellow._unloggedMsg), SRException(fellow) { }
+
   SRLoggerShutDownException(SRLoggerShutDownException &&fellow)
     : _unloggedMsg(std::forward<SRString>(fellow._unloggedMsg)), SRException(std::forward<SRException>(fellow)) { }
 

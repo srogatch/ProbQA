@@ -33,7 +33,7 @@ public:
     if (_pSubtask != nullptr) {
       SRBaseTask *pTask = _pSubtask->GetTask();
       // Can't use subtask after the call below.
-      pTask->OnSubtaskComplete(_pSubtask);
+      pTask->FinalizeSubtask(_pSubtask);
     }
   }
 };
