@@ -199,6 +199,9 @@
     <ClInclude Include="FileLogger.h" />
     <ClInclude Include="Interface\Exceptions\SRDefaultLoggerExceptions.h" />
     <ClInclude Include="Interface\Exceptions\SRFileLoggerExceptions.h" />
+    <ClInclude Include="Interface\Exceptions\SRGenericException.h" />
+    <ClInclude Include="Interface\Exceptions\SRMultiException.h" />
+    <ClInclude Include="Interface\Exceptions\SRStdException.h" />
     <ClInclude Include="Interface\ISRLogCustomizable.h" />
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
     <ClInclude Include="Interface\SRAlignedDeleter.h" />
@@ -257,7 +260,9 @@
     <ClCompile Include="SRCriticalSection.cpp" />
     <ClCompile Include="SRDefaultLogger.cpp" />
     <ClCompile Include="SRException.cpp" />
+    <ClCompile Include="SRGenericException.cpp" />
     <ClCompile Include="SRLoggerFactory.cpp" />
+    <ClCompile Include="SRMultiException.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRReaderWriterSync.cpp" />
     <ClCompile Include="SRSpinSync.cpp" />

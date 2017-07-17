@@ -5,6 +5,9 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRConditionVariable.h"
+#include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/SRSpinSync.h"
+#include "../SRPlatform/Interface/Exceptions/SRMultiException.h"
 
 namespace SRPlat {
 
@@ -17,8 +20,10 @@ public: // types
 
 private: // variables
   std::atomic<TNSubtasks> _nToDo;
-  std::atomic<TNSubtasks> _nFailedSubtasks;
+  // It can be a little more than the number of subtasks, if failures happen in the task code too.
+  std::atomic<TNSubtasks> _nFailures;
   SRConditionVariable _isComplete;
+  //// Cache-insensitive data
   SRThreadPool *_pTp;
 
 public: // methods
@@ -28,8 +33,11 @@ public: // methods
   // A hook for derived classes to e.g. release the subtask to a memory pool
   virtual void OnSubtaskComplete(SRBaseSubtask*) { };
 
-  void HandlSubtaskError(SRBaseSubtask* pSubtask, const bool isFirstErr);
-  virtual void OnSubtaskError(SRBaseSubtask*) { };
+  void HandleSubtaskFailure(SRException &&ex, SRBaseSubtask* pSubtask);
+  virtual void OnSubtaskFailure(SRException &&, SRBaseSubtask*) { };
+
+  void HandleTaskFailure(SRException &&ex);
+  virtual void OnTaskFailure(SRException &&) { }
 };
 
 } // namespace SRPlat

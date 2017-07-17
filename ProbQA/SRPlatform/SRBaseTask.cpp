@@ -15,18 +15,23 @@ void SRBaseTask::FinalizeSubtask(SRBaseSubtask *pSubtask) {
   TNSubtasks nOld = _nToDo.fetch_sub(1, std::memory_order_release);
   if (nOld <= 1) {
     if (nOld <= 0) {
-      BTLOG(Critical) << "A task got a negative number of remaining subtasks to do: " << (nOld - 1);
+      auto mb = SRMessageBuilder("A task got a negative number of remaining subtasks to do: ")(nOld - 1);
+      _pTp->GetLogger()->Log(ISRLogger::Severity::Critical, mb.GetUnownedSRString());
+      HandleTaskFailure(SRException(mb.GetOwnedSRString()));
     }
     _isComplete.WakeAll();
   }
-  FinalizeSubtask(pSubtask);
+  OnSubtaskComplete(pSubtask);
 }
 
-void SRBaseTask::HandlSubtaskError(SRBaseSubtask* pSubtask, const bool isFirstErr) {
-  if (isFirstErr) {
-    _nFailedSubtasks.fetch_add(1, std::memory_order_release);
-  }
-  OnSubtaskError(pSubtask);
+void SRBaseTask::HandleSubtaskFailure(SRException &&ex, SRBaseSubtask* pSubtask) {
+  _nFailures.fetch_add(1, std::memory_order_relaxed);
+  OnSubtaskFailure(std::forward<SRException>(ex), pSubtask);
+}
+
+void SRBaseTask::HandleTaskFailure(SRException &&ex) {
+  _nFailures.fetch_add(1, std::memory_order_relaxed);
+  OnTaskFailure(std::forward<SRException>(ex));
 }
 
 } // namespace SRPlat

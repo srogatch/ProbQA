@@ -13,7 +13,36 @@ class SRMessageBuilder {
   std::string _buf;
 public:
   explicit SRMessageBuilder() {}
+
   explicit SRMessageBuilder(const char* const pInit) : _buf(pInit) { }
+
+  explicit SRMessageBuilder(const std::string& sInit) : _buf(sInit) { }
+
+  explicit SRMessageBuilder(std::string &&sInit) : _buf(std::forward<std::string>(sInit)) { }
+
+  explicit SRMessageBuilder(const SRString& srsInit) {
+    const char *pData;
+    size_t len = srsInit.GetData(pData);
+    _buf.assign(pData, len);
+  }
+
+  SRMessageBuilder(const SRMessageBuilder &fellow) : _buf(fellow._buf) { }
+  
+  SRMessageBuilder& operator=(const SRMessageBuilder &fellow) {
+    if (this != &fellow) {
+      _buf = fellow._buf;
+    }
+    return *this;
+  }
+
+  SRMessageBuilder(SRMessageBuilder &&fellow) : _buf(std::forward<std::string>(fellow._buf)) { }
+
+  SRMessageBuilder& operator=(SRMessageBuilder &&fellow) {
+    if (this != &fellow) {
+      _buf = std::forward<std::string>(fellow._buf);
+    }
+    return *this;
+  }
   
   SRMessageBuilder& operator()(const char* const pS) {
     _buf.append(pS);

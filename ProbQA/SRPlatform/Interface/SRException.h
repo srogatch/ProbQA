@@ -28,9 +28,11 @@ public: \
 
 // Can't inherit from std::exception because that's not DLL-exported (causes compiler warning)
 class SRPLATFORM_API SRException {
+protected:
   SRString _message;
 public:
   //TODO: collect stack trace
+  explicit SRException(const SRString& message);
   explicit SRException(SRString &&message);
   virtual ~SRException() {}
   SRException(const SRException &fellow) : _message(fellow._message) { }

@@ -19,7 +19,7 @@ public: // methods
   static uint64_t TotalContention();
 };
 
-template<uint32_t taYieldPeriod> class SRSpinSync {
+template<uint32_t taYieldPeriod> class SRPLATFORM_API SRSpinSync {
   std::atomic_flag _af = ATOMIC_FLAG_INIT;
 public:
   void Acquire() {

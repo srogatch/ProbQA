@@ -12,6 +12,7 @@
 #include "../SRPlatform/Interface/SRDefaultLogger.h"
 #include "../SRPlatform/Interface/SRLogStream.h"
 #include "../SRPlatform/Interface/Exceptions/SRStdException.h"
+#include "../SRPlatform/Interface/Exceptions/SRGenericException.h"
 
 namespace SRPlat {
 
@@ -33,8 +34,9 @@ void SRThreadPool::SetLogger(ISRLogger *pLogger) {
 
 void SRThreadPool::WorkerEntry() {
   for (;;) {
-    SubtaskCompleter stc;
+    SRBaseTask *pTask = nullptr;
     try {
+      SubtaskCompleter stc;
       {
         SRLock<SRCriticalSection> csl(_cs);
         while (_qu.size() == 0) {
@@ -44,22 +46,38 @@ void SRThreadPool::WorkerEntry() {
           _haveWork.Wait(_cs);
         }
         stc.Set(_qu.front());
+        pTask = stc.Get()->GetTask();
         _qu.pop();
       }
-      stc.Get()->Run();
+      try {
+        stc.Get()->Run();
+      }
+      catch (SRException& ex) {
+        TPLOG(Error) << "Worker thread got an SRException not handled in SRBaseTask::Run(): " << ex.ToString();
+        pTask->HandleSubtaskFailure(std::move(ex), stc.Get());
+      }
+      catch (std::exception& ex) {
+        TPLOG(Error) << "Worker thread got an std::exception not handled in SRBaseTask::Run(): " << ex.what();
+        pTask->HandleSubtaskFailure(SRStdException(ex), stc.Get());
+      }
+      catch (...) {
+        std::exception_ptr ep = std::current_exception();
+        TPLOG(Error) << "Worker thread got an unknown exception not handled in SRBaseTask::Run().";
+        pTask->HandleSubtaskFailure(SRGenericException(ep), stc.Get());
+      }
     }
     catch (SRException& ex) {
-      TPLOG(Error) << "Worker thread got an SRException not handled in the call subtree: " << ex.ToString();
-      stc.Get()->SetException(std::move(ex));
+      TPLOG(Error) << "Worker thread got an SRException in worker body: " << ex.ToString();
+      pTask->HandleTaskFailure(std::move(ex));
     }
     catch (std::exception& ex) {
-      TPLOG(Error) << "Worker thread got an std::exception not handled in the call subtree: " << ex.what();
-      stc.Get()->SetException(SRStdException(ex));
+      TPLOG(Error) << "Worker thread got an std::exception in worker body: " << ex.what();
+      pTask->HandleTaskFailure(SRStdException(ex));
     }
     catch (...) {
       std::exception_ptr ep = std::current_exception();
-      TPLOG(Error) << "Worker thread got an unknown exception not handled in the call subtree: " << ep;
-      //ep.
+      TPLOG(Error) << "Worker thread got an unknown exception in worker body.";
+      pTask->HandleTaskFailure(SRGenericException(ep));
     }
   }
 }

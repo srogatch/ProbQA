@@ -11,6 +11,9 @@ namespace SRPlat {
 SRException::SRException(SRString&& message) : _message(std::forward<SRString>(message)) {
 }
 
+SRException::SRException(const SRString& message) : _message(message) {
+}
+
 const SRString& SRException::GetMsg() const {
   return _message;
 }

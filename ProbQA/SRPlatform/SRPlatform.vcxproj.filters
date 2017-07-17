@@ -135,6 +135,15 @@
     <ClInclude Include="Interface\ISRLogCustomizable.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Exceptions\SRStdException.h">
+      <Filter>Header Files\Interface\Exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Exceptions\SRMultiException.h">
+      <Filter>Header Files\Interface\Exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Exceptions\SRGenericException.h">
+      <Filter>Header Files\Interface\Exceptions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -186,6 +195,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SRBaseTask.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SRMultiException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SRGenericException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
