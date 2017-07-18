@@ -10,7 +10,7 @@ namespace SRPlat {
 
 class SRBaseTask;
 
-class SRBaseSubtask {
+class SRPLATFORM_API SRBaseSubtask {
   SRBaseTask *_pTask;
 
 public:

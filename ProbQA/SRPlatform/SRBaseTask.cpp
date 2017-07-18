@@ -11,6 +11,9 @@ namespace SRPlat {
 
 #define BTLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pTp->GetLogger())
 
+SRBaseTask::SRBaseTask(SRThreadPool *pTp) : _pTp(pTp) {
+}
+
 void SRBaseTask::FinalizeSubtask(SRBaseSubtask *pSubtask) {
   TNSubtasks nOld = _nToDo.fetch_sub(1, std::memory_order_release);
   if (nOld <= 1) {

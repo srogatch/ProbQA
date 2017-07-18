@@ -210,6 +210,7 @@
     <ClInclude Include="Interface\SRConditionVariable.h" />
     <ClInclude Include="Interface\SRCriticalSection.h" />
     <ClInclude Include="Interface\SRException.h" />
+    <ClInclude Include="Interface\SRExitCode.h" />
     <ClInclude Include="Interface\SRFastArray.h" />
     <ClInclude Include="Interface\SRFastManualResetEvent.h" />
     <ClInclude Include="Interface\SRFinally.h" />
@@ -275,6 +276,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="SubtaskCompleter.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

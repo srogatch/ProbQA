@@ -4,15 +4,11 @@
 
 #pragma once
 
-#include "../SRPlatform/Interface/ISRLogger.h"
-
 namespace SRPlat {
 
-class SRPLATFORM_API ISRLogCustomizable {
-public:
-  virtual ~ISRLogCustomizable() { }
-  virtual ISRLogger* GetLogger() const = 0;
-  virtual void SetLogger(ISRLogger *pLogger) = 0;
+enum class SRExitCode : int {
+  Success = 0,
+  ThreadPoolCritical = 1
 };
 
 } // namespace SRPlat

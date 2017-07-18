@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "../SRPlatform/Interface/SRBaseSubtask.h"
-#include "../SRPlatform/Interface/SRBaseTask.h"
-
 namespace SRPlat {
+
+class SRBaseSubtask;
+class SRBaseTask;
 
 class SubtaskCompleter {
   SRBaseSubtask *_pSubtask = nullptr;
@@ -29,13 +29,7 @@ public:
     return answer;
   }
 
-  ~SubtaskCompleter() {
-    if (_pSubtask != nullptr) {
-      SRBaseTask *pTask = _pSubtask->GetTask();
-      // Can't use subtask after the call below.
-      pTask->FinalizeSubtask(_pSubtask);
-    }
-  }
+  ~SubtaskCompleter();
 };
 
 } // namespace SRPlat

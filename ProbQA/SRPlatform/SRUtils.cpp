@@ -7,6 +7,10 @@
 
 namespace SRPlat {
 
+void SRUtils::ExitProgram(SRExitCode code) {
+  std::quick_exit(static_cast<int>(code));
+}
+
 SRString SRUtils::PrintUtcTimestamp() {
   SYSTEMTIME st;
   GetSystemTime(&st);

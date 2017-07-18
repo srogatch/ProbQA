@@ -14,7 +14,7 @@ namespace SRPlat {
 class SRBaseSubtask;
 class SRThreadPool;
 
-class SRBaseTask {
+class SRPLATFORM_API SRBaseTask {
 public: // types
   typedef int32_t TNSubtasks;
 
@@ -27,6 +27,7 @@ private: // variables
   SRThreadPool *_pTp;
 
 public: // methods
+  explicit SRBaseTask(SRThreadPool *pTp);
   virtual ~SRBaseTask() { }
 
   void FinalizeSubtask(SRBaseSubtask *pSubtask);
@@ -38,6 +39,10 @@ public: // methods
 
   void HandleTaskFailure(SRException &&ex);
   virtual void OnTaskFailure(SRException &&) { }
+
+  SRThreadPool* GetThreadPool() const {
+    return _pTp;
+  }
 };
 
 } // namespace SRPlat

@@ -7,11 +7,13 @@
 #include "../SRPlatform/Interface/SRString.h"
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
+#include "../SRPlatform/Interface/SRExitCode.h"
 
 namespace SRPlat {
 
 class SRPLATFORM_API SRUtils {
 public: // Methods
+  static void ExitProgram(SRExitCode code);
   static SRString PrintUtcTimestamp();
   static SRString PrintUtcDate();
   template<bool taSubmillisecond> SRPLATFORM_API static SRString PrintUtcTime();
