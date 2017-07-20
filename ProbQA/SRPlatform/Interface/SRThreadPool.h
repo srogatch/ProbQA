@@ -13,6 +13,8 @@ namespace SRPlat {
 class SRBaseSubtask;
 
 class SRPLATFORM_API SRThreadPool : public ISRLogCustomizable {
+  struct RareData; // cache-insensitive piece of thread pool data
+
 public: // types
   // Returns |true| if worker thread should continue, or |false| if it should exit.
   typedef bool (*FCriticalCallback)(void *, SRException&&);
@@ -22,12 +24,7 @@ private: // variables
   SRCriticalSection _cs;
   SRConditionVariable _haveWork;
   uint8_t _shutdownRequested : 1;
-
-  //// Cache-insensitive data
-  std::vector<std::thread> _workers;
-  std::atomic<ISRLogger*> _pLogger;
-  FCriticalCallback _cbCritical;
-  void *_pCcbData;
+  RareData *_pRd;
 
 private: // methods
   void WorkerEntry();
@@ -36,11 +33,13 @@ private: // methods
 
 public:
   explicit SRThreadPool(const size_t nThreads = std::thread::hardware_concurrency());
+  virtual ~SRThreadPool() override;
 
-  virtual ISRLogger* GetLogger() const override { return _pLogger.load(std::memory_order_relaxed); }
+  virtual ISRLogger* GetLogger() const override;
   virtual void SetLogger(ISRLogger *pLogger) override;
 
-  void SetCriticalCallback(FCriticalCallback f, void *pData);
+  // If f==nullptr , the function sets the default callback with |this| as data.
+  void SetCriticalCallback(FCriticalCallback f, void *pData = nullptr);
 };
 
 } // namespace SRPlat

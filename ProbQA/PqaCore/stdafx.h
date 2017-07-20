@@ -18,6 +18,8 @@
 #include <immintrin.h>
 
 // STL
+#pragma warning( push )
+#pragma warning( disable : 4251 ) // needs to have dll-interface to be used by clients of class
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -29,6 +31,7 @@
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
+#pragma warning( pop )
 
 // SRPlatform library includes
 #include "../SRPlatform/Interface/ISRLogger.h"

@@ -10,6 +10,22 @@
 #define SRPLATFORM_API __declspec(dllimport)
 #endif // SRPLATFORM_EXPORTS
 
+#pragma warning( push )
+#pragma warning( disable : 4251 ) // needs to have dll-interface to be used by clients of class
+class SRPLATFORM_API std::exception_ptr;
+template struct SRPLATFORM_API std::atomic<int32_t>;
+class SRPLATFORM_API std::thread;
+template SRPLATFORM_API class std::allocator<std::thread>;
+
+namespace SRPlat {
+  class SRBaseSubtask;
+}
+
+template class SRPLATFORM_API std::allocator<SRPlat::SRBaseSubtask*>;
+template class SRPLATFORM_API std::deque<SRPlat::SRBaseSubtask*>;
+template class SRPLATFORM_API std::queue<SRPlat::SRBaseSubtask*>;
+#pragma warning( pop )
+
 //// IS_CPU_X86_32 , IS_CPU_X86_64
 #ifdef _MSC_VER
   #if _M_IX86

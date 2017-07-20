@@ -18,6 +18,8 @@
 #include <immintrin.h>
 
 // STL
+#pragma warning( push )
+#pragma warning( disable : 4251 ) // needs to have dll-interface to be used by clients of class
 #include <atomic>
 #include <cassert>
 #include <cinttypes>
@@ -31,3 +33,4 @@
 #include <string>
 #include <thread>
 #include <type_traits>
+#pragma warning( pop )

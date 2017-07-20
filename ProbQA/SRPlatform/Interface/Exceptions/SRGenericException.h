@@ -9,11 +9,7 @@
 namespace SRPlat {
 
 class SRPLATFORM_API SRGenericException : public SRException {
-private: // types
-  class Impl;
-
-private: // variables
-  Impl *_pImpl;
+  std::exception_ptr _ep;
 
 private: // methods
   static SRString GetDefaultMessage() {

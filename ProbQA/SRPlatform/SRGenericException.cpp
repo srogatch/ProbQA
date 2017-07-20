@@ -7,52 +7,36 @@
 
 namespace SRPlat {
 
-class SRGenericException::Impl {
-public: // variables
-  std::exception_ptr _ep;
-
-public: // methods
-  explicit Impl(const std::exception_ptr &ep) : _ep(ep) { }
-};
-
 SRGenericException::SRGenericException(const std::exception_ptr &ep)
-  : SRException(GetDefaultMessage()), _pImpl(new Impl(ep))
+  : SRException(GetDefaultMessage()), _ep(ep)
 {
 }
 
 SRGenericException::SRGenericException(const SRGenericException &fellow)
-  : SRException(fellow), _pImpl(new Impl(*fellow._pImpl)) 
+  : SRException(fellow), _ep(fellow._ep)
 {
 }
 
 SRGenericException& SRGenericException::operator=(const SRGenericException &fellow) {
   if (this != &fellow) {
-    std::unique_ptr<Impl> pNewImpl(new Impl(*fellow._pImpl));
+    std::exception_ptr ep = fellow._ep;
     _message = fellow._message;
-    std::unique_ptr<Impl> pOldImpl(_pImpl);
-    _pImpl = pNewImpl.release();
+    _ep = std::move(ep);
   }
   return *this;
 }
 
 SRGenericException::SRGenericException(SRGenericException &&fellow) : SRException(GetDefaultMessage()) {
-  std::unique_ptr<Impl> nullImpl(new Impl(nullptr));
   std::swap(_message, fellow._message);
-  _pImpl = fellow._pImpl;
-  fellow._pImpl = nullImpl.release();
+  _ep = std::forward<std::exception_ptr>(fellow._ep);
 }
 
 SRGenericException& SRGenericException::operator=(SRGenericException &&fellow) {
   if (this != &fellow) {
-    std::unique_ptr<Impl> nullImpl(new Impl(nullptr));
     SRString &&nullMessage(GetDefaultMessage());
-
+    _ep = std::forward<std::exception_ptr>(fellow._ep);
     _message = std::forward<SRString>(fellow._message);
     fellow._message = std::move(nullMessage);
-
-    std::unique_ptr<Impl> pOldImpl(_pImpl);
-    _pImpl = fellow._pImpl;
-    fellow._pImpl = nullImpl.release();
   }
   return *this;
 }

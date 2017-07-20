@@ -18,6 +18,8 @@
 #include <immintrin.h>
 
 // STL
+#pragma warning( push )
+#pragma warning( disable : 4251 ) // needs to have dll-interface to be used by clients of class
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -30,6 +32,7 @@
 #include <tchar.h>
 #include <thread>
 #include <vector>
+#pragma warning( pop )
 
 // SRPlatform library includes
 #include "../SRPlatform/Interface/SRCast.h"

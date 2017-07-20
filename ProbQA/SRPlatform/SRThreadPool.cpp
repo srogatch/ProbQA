@@ -17,34 +17,52 @@
 
 namespace SRPlat {
 
-#define TPLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
+struct SRThreadPool::RareData {
+  std::vector<std::thread> _workers;
+  std::atomic<ISRLogger*> _pLogger;
+  FCriticalCallback _cbCritical;
+  void *_pCcbData;
+};
 
-SRThreadPool::SRThreadPool(const size_t nThreads) : _shutdownRequested(0), _pLogger(SRDefaultLogger::Get()),
-  _cbCritical(&DefaultCriticalCallback), _pCcbData(this)
+#define TPLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetLogger())
+
+SRThreadPool::SRThreadPool(const size_t nThreads) : _shutdownRequested(0)
 {
-  _workers.reserve(nThreads);
+  _pRd = new RareData();
+  _pRd->_pLogger = SRDefaultLogger::Get();
+  SetCriticalCallback(nullptr);
+  _pRd->_pCcbData = this;
+  _pRd->_workers.reserve(nThreads);
   for (size_t i = 0; i < nThreads; i++) {
-    _workers.emplace_back(&SRThreadPool::WorkerEntry, this);
+    _pRd->_workers.emplace_back(&SRThreadPool::WorkerEntry, this);
   }
+}
+
+SRThreadPool::~SRThreadPool() {
+  delete _pRd;
 }
 
 void SRThreadPool::SetLogger(ISRLogger *pLogger) {
   if (pLogger == nullptr) {
     pLogger = SRDefaultLogger::Get();
   }
-  _pLogger.store(pLogger, std::memory_order_relaxed);
+  _pRd->_pLogger.store(pLogger, std::memory_order_relaxed);
 }
 
 void SRThreadPool::SetCriticalCallback(FCriticalCallback f, void *pData) {
   SRLock<SRCriticalSection> csl(_cs);
   if (f == nullptr) {
-    _cbCritical = &DefaultCriticalCallback;
-    _pCcbData = this;
+    _pRd->_cbCritical = &DefaultCriticalCallback;
+    _pRd->_pCcbData = this;
   }
   else {
-    _cbCritical = f;
-    _pCcbData = pData;
+    _pRd->_cbCritical = f;
+    _pRd->_pCcbData = pData;
   }
+}
+
+ISRLogger* SRThreadPool::GetLogger() const {
+  return _pRd->_pLogger.load(std::memory_order_relaxed);
 }
 
 bool SRThreadPool::DefaultCriticalCallback(void *, SRException &&) {
@@ -56,8 +74,8 @@ bool SRThreadPool::RunCriticalCallback(SRException &&ex) {
   void *p;
   {
     SRLock<SRCriticalSection> csl(_cs);
-    f = _cbCritical;
-    p = _pCcbData;
+    f = _pRd->_cbCritical;
+    p = _pRd->_pCcbData;
   }
   return f(p, std::forward<SRException>(ex));
 }

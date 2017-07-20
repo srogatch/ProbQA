@@ -29,6 +29,8 @@ public: // Methods
 
 namespace std  {
 
+template struct SRPLATFORM_API std::atomic<SRPlat::ISRLogger*>;
+
 inline string to_string(const SRPlat::ISRLogger::Severity s) {
   switch (s) {
   case SRPlat::ISRLogger::Severity::None:
