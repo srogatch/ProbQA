@@ -87,6 +87,8 @@ private: // methods
 
   template<typename taSubtask, typename taCallback> PqaError SplitAndRunSubtasks(const size_t nWorkers,
     CETask<taNumber> &task, const size_t nItems, void *pSubtaskMem, const taCallback &onVisit);
+  template<typename taSubtask> PqaError RunWorkerOnlySubtasks(const size_t nWorkers,
+    CETask<taNumber> &task, void *pSubtaskMem);
 
 #pragma region Behind Train() interface method
   void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);

@@ -168,7 +168,36 @@ CpuEngine<taNumber>::SplitAndRunSubtasks(const size_t nWorkers, CETask<taNumber>
   bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
   task.WaitComplete();
 
-  return task.TakeAggregateError(SRString::MakeUnowned("Failed validating and bucketing the input."));
+  return task.TakeAggregateError(SRString::MakeUnowned("Failed " __FUNCTION__));
+}
+
+template<typename taNumber> template<typename taSubtask> PqaError CpuEngine<taNumber>::RunWorkerOnlySubtasks(
+  const size_t nWorkers, CETask<taNumber> &task, void *pSubtaskMem)
+{
+  taSubtask *pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
+  size_t nSubtasks = 0;
+  bool bWorkersFinished = false;
+
+  auto&& subtasksFinally = SRMakeFinally([&] {
+    if (!bWorkersFinished) {
+      task.WaitComplete();
+    }
+    for (size_t i = 0; i < nSubtasks; i++) {
+      pSubtasks[i].~taSubtask<taNumber>();
+    }
+  }); (void)subtasksFinally;
+
+  while (nSubtasks < nWorkers) {
+    //TODO: implement
+    new (pSubtasks + nSubtasks) typename taSubtask(&task, nSubtasks);
+    nSubtasks++;
+    _tpWorkers.Enqueue(pSubtasks + nSubtasks - 1);
+  }
+
+  bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
+  task.WaitComplete();
+
+  return task.TakeAggregateError(SRString::MakeUnowned("Failed " __FUNCTION__));
 }
 
 template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd) {
@@ -338,96 +367,18 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
         "Target index is not in KB (but rather at a gap)."));
     }
 
-    SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(nWorkers, trainTask, nQuestions, commonBuf.Get(),
+    //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
+    resErr = SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(nWorkers, trainTask, nQuestions, commonBuf.Get(),
       [&](CETrainSubtaskDistrib<taNumber> *pCurSt, const size_t curStart, const size_t nextStart)
     {
       new (pCurSt) CETrainSubtaskDistrib<taNumber>(&trainTask, pAQs + curStart, pAQs + nextStart);
     });
-    { //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
-      CETrainSubtaskDistrib<taNumber> *pSubtasks = reinterpret_cast<CETrainSubtaskDistrib<taNumber>*>(commonBuf.Get());
-      size_t nSubtasks = 0;
-      bool bWorkersFinished = false;
-      TPqaId nextStart = 0;
-      lldiv_t perWorker = div((long long)nQuestions, (long long)nWorkers);
-
-      auto&& subtasksFinally = SRMakeFinally([&] {
-        if (!bWorkersFinished) {
-          trainTask.WaitComplete();
-        }
-        for (size_t i = 0; i < nSubtasks; i++) {
-          pSubtasks[i].~CETrainSubtaskDistrib<taNumber>();
-        }
-      }); (void)subtasksFinally;
-
-      while (nSubtasks < nWorkers && nextStart < nQuestions) {
-        TPqaId curStart = nextStart;
-        nextStart += perWorker.quot;
-        if ((long long)nSubtasks < perWorker.rem) {
-          nextStart++;
-        }
-        assert(nextStart <= nQuestions);
-        new (pSubtasks + nSubtasks) CETrainSubtaskDistrib<taNumber>(&trainTask, pAQs + curStart, pAQs + nextStart);
-        // For finalization, it's important to increment subtask counter right after another subtask has been
-        //   constructed.
-        nSubtasks++;
-        _tpWorkers.Enqueue(pSubtasks + nSubtasks - 1);
-      }
-
-      bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
-      trainTask.WaitComplete();
-
-      resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed validating and bucketing the input."));
-      if (!resErr.isOk()) {
-        return resErr;
-      }
-    } // Phase 1 complete
-
-    { // Phase 2: update KB
-      CETrainSubtaskAdd<taNumber> *pSubtasks = reinterpret_cast<CETrainSubtaskAdd<taNumber>*>(commonBuf.Get());
-      size_t nSubtasks = 0;
-      bool bWorkersFinished = false;
-
-      auto&& subtasksFinally = SRMakeFinally([&] {
-        if (!bWorkersFinished) {
-          trainTask.WaitComplete();
-        }
-        for (size_t i = 0; i < nSubtasks; i++) {
-          pSubtasks[i].~CETrainSubtaskAdd<taNumber>();
-        }
-      }); (void)subtasksFinally;
-
-      while (nSubtasks < nWorkers) {
-        //TODO: implement
-      }
-    }
-
-    {
-      SRLock<SRCriticalSection> csl(_csWorkers);
-      size_t i = 0;
-      for (; i < nWorkers; i++) {
-        auto pTsa = AcquireSubtask<CETrainSubtaskAdd<taNumber>>();
-        if (pTsa == nullptr) {
-          // Handle and report error. The problem is that some subtasks have been already pushed to the queue, and
-          //  they have a pointer to an object on the stack of the current function.
-          const char* const msg = "Internal error: failed to acquire CETrainSubtaskAdd at " SR_FILE_LINE;
-          CELOG(Critical) << msg;
-          resErr = MAKE_INTERR_MSG(SRString::MakeUnowned(msg));
-          trainTask.Cancel();
-          break;
-        }
-        pTsa->_pTask = &trainTask;
-        pTsa->_iWorker = static_cast<decltype(pTsa->_iWorker)>(i);
-        _quWork.push(pTsa);
-      }
-      trainTask.IncToDo(i);
-    }
-    // Even if the task has been cancelled, wait till all the workers acknowledge that
-    WakeWorkersWait(trainTask);
-
     if (!resErr.isOk()) {
       return resErr;
     }
-    resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed adding to KB the given training data."));
+
+    // Update the KB with the given training data.
+    resErr = RunWorkerOnlySubtasks<CETrainSubtaskAdd<taNumber>>(nWorkers, trainTask, commonBuf.Get());
     if (!resErr.isOk()) {
       return resErr;
     }
