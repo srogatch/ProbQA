@@ -108,15 +108,24 @@ public:
   }
 };
 
+// Uses lazy initialization of _pImpl, so to minimize its overhead when no error happens.
 class PQACORE_API AggregateErrorParams : public IPqaErrorParams {
   class Impl;
   Impl *_pImpl;
+
+private: // methods
+  // Takes ownership of the given Impl pointer.
+  explicit AggregateErrorParams(Impl *pImpl);
+  Impl* EnsureImpl();
+
 public:
   explicit AggregateErrorParams();
   virtual ~AggregateErrorParams() override;
 
   void Add(PqaError&& pe);
-  size_t Count();
+  size_t Count() const;
+
+  AggregateErrorParams* Move();
 
   virtual SRPlat::SRString ToString() override;
 };

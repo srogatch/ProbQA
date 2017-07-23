@@ -36,6 +36,8 @@
 // SRPlatform library includes
 #include "../SRPlatform/Interface/ISRLogger.h"
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
+#include "../SRPlatform/Interface/SRBaseSubtask.h"
+#include "../SRPlatform/Interface/SRBaseTask.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRCast.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
@@ -51,4 +53,5 @@
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"
 #include "../SRPlatform/Interface/SRSimd.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
+#include "../SRPlatform/Interface/SRThreadPool.h"
 #include "../SRPlatform/Interface/SRUtils.h"

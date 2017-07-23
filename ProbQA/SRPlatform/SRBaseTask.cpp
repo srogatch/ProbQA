@@ -6,6 +6,7 @@
 #include "../SRPlatform/Interface/SRBaseTask.h"
 #include "../SRPlatform/Interface/SRThreadPool.h"
 #include "../SRPlatform/Interface/SRLogStream.h"
+#include "../SRPlatform/Interface/SRLock.h"
 
 namespace SRPlat {
 
@@ -15,10 +16,14 @@ SRBaseTask::SRBaseTask(SRThreadPool *pTp) : _pTp(pTp) {
 }
 
 void SRBaseTask::FinalizeSubtask(SRBaseSubtask *pSubtask) {
-  TNSubtasks nOld = _nToDo.fetch_sub(1, std::memory_order_release);
-  if (nOld <= 1) {
-    if (nOld <= 0) {
-      auto mb = SRMessageBuilder("A task got a negative number of remaining subtasks to do: ")(nOld - 1);
+  TNSubtasks nNew;
+  {
+    SRLock<SRCriticalSection> csl(_pTp->GetCS());
+    nNew = --_nToDo;
+  }
+  if (nNew <= 0) {
+    if (nNew < 0) {
+      auto mb = SRMessageBuilder("A task got a negative number of remaining subtasks to do: ")(nNew);
       _pTp->GetLogger()->Log(ISRLogger::Severity::Critical, mb.GetUnownedSRString());
       HandleTaskFailure(SRException(mb.GetOwnedSRString()));
     }
@@ -35,6 +40,14 @@ void SRBaseTask::HandleSubtaskFailure(SRException &&ex, SRBaseSubtask* pSubtask)
 void SRBaseTask::HandleTaskFailure(SRException &&ex) {
   _nFailures.fetch_add(1, std::memory_order_relaxed);
   OnTaskFailure(std::forward<SRException>(ex));
+}
+
+void SRBaseTask::WaitComplete() {
+  SRCriticalSection &cs = _pTp->GetCS();
+  SRLock<SRCriticalSection> csl(cs);
+  while (_nToDo > 0) {
+    _isComplete.Wait(cs);
+  }
 }
 
 } // namespace SRPlat

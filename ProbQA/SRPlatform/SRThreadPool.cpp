@@ -17,29 +17,38 @@
 
 namespace SRPlat {
 
+#pragma warning( push )
+// warning C4200: nonstandard extension used: zero-sized array in struct/union
+// note: This member will be ignored by a defaulted constructor or copy/move assignment operator
+#pragma warning( disable : 4200 )
 struct SRThreadPool::RareData {
-  std::vector<std::thread> _workers;
   std::atomic<ISRLogger*> _pLogger;
   FCriticalCallback _cbCritical;
   void *_pCcbData;
+  std::thread _workers[0];
 };
+#pragma warning( pop )
 
 #define TPLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetLogger())
 
-SRThreadPool::SRThreadPool(const size_t nThreads) : _shutdownRequested(0)
+SRThreadPool::SRThreadPool(const TThreadCount nThreads) : _shutdownRequested(0), _nWorkers(nThreads)
 {
-  _pRd = new RareData();
+  _pRd = reinterpret_cast<RareData*>(malloc(sizeof(RareData) + sizeof(std::thread) * _nWorkers));
   _pRd->_pLogger = SRDefaultLogger::Get();
   SetCriticalCallback(nullptr);
-  _pRd->_pCcbData = this;
-  _pRd->_workers.reserve(nThreads);
-  for (size_t i = 0; i < nThreads; i++) {
-    _pRd->_workers.emplace_back(&SRThreadPool::WorkerEntry, this);
+  for (size_t i = 0; i < _nWorkers; i++) {
+    new(_pRd->_workers+i) std::thread(&SRThreadPool::WorkerEntry, this);
   }
 }
 
 SRThreadPool::~SRThreadPool() {
-  delete _pRd;
+  RequestShutdown();
+  for (size_t i = 0; i < _nWorkers; i++) {
+    std::thread &curThr = _pRd->_workers[i];
+    curThr.join();
+    curThr.~thread();
+  }
+  free(_pRd);
 }
 
 void SRThreadPool::SetLogger(ISRLogger *pLogger) {
@@ -129,6 +138,26 @@ void SRThreadPool::WorkerEntry() {
       pTask->HandleSubtaskFailure(SRGenericException(ep), stc.Get());
     }
   }
+}
+
+void SRThreadPool::Enqueue(SRBaseSubtask *pSt) {
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    if (_shutdownRequested) {
+      throw SRException(SRString::MakeUnowned("An attempt to push a subtask to a shut(ting) down thread pool."));
+    }
+    _qu.push(pSt);
+    pSt->GetTask()->_nToDo++;
+  }
+  _haveWork.WakeOne();
+}
+
+void SRThreadPool::RequestShutdown() {
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    _shutdownRequested = 1;
+  }
+  _haveWork.WakeAll();
 }
 
 } // namespace SRPlat

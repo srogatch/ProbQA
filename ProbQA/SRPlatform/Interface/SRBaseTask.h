@@ -15,11 +15,13 @@ class SRBaseSubtask;
 class SRThreadPool;
 
 class SRPLATFORM_API SRBaseTask {
+  friend class SRThreadPool;
+
 public: // types
   typedef int32_t TNSubtasks;
 
 private: // variables
-  std::atomic<TNSubtasks> _nToDo;
+  TNSubtasks _nToDo; // guarded by the critical section of the thread pool
   // It can be a little more than the number of subtasks, if failures happen in the task code too.
   std::atomic<TNSubtasks> _nFailures;
   SRConditionVariable _isComplete;
@@ -39,6 +41,8 @@ public: // methods
 
   void HandleTaskFailure(SRException &&ex);
   virtual void OnTaskFailure(SRException &&) { }
+
+  void WaitComplete();
 
   SRThreadPool* GetThreadPool() const {
     return _pTp;

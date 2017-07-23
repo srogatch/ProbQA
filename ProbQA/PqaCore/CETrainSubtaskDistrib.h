@@ -4,22 +4,16 @@
 
 #pragma once
 
-#include "../PqaCore/CESubtask.h"
-
 namespace ProbQA {
 
-template<typename taNumber> class CETrainSubtaskDistrib : public CESubtask<taNumber> {
-public: // constants
-  static const Kind _cKind = Kind::TrainDistrib;
+template<typename taNumber> class CETrainTask;
 
+template<typename taNumber> class CETrainSubtaskDistrib : public SRBaseSubtask {
 public: // variables
+  CETrainSubtaskDistrib(CETrainTask *pTask, const AnsweredQuestion *pFirst, const AnsweredQuestion *pLim)
+  : SRBaseSubtask(pTask), _pFirst(pFirst), _pLim(pLim) { }
   const AnsweredQuestion *_pFirst;
   const AnsweredQuestion *_pLim;
-
-public: // methods
-  virtual Kind GetKind() override {
-    return _cKind;
-  }
 };
 
 } // namespace ProbQA

@@ -21,18 +21,30 @@ public:
   Impl& operator=(Impl&&) = delete;
 };
 
-AggregateErrorParams::AggregateErrorParams() {
-  _pImpl = new Impl();
+AggregateErrorParams::AggregateErrorParams(Impl *pImpl) : _pImpl(pImpl) {
 }
+
+AggregateErrorParams::AggregateErrorParams() : _pImpl(nullptr) {
+}
+
 AggregateErrorParams::~AggregateErrorParams() {
-  delete _pImpl;
+  delete _pImpl; // if it's not nullptr
+}
+
+AggregateErrorParams::Impl* AggregateErrorParams::EnsureImpl() {
+  if (_pImpl == nullptr) {
+    _pImpl = new Impl();
+  }
 }
 
 void AggregateErrorParams::Add(PqaError&& pe) {
-  _pImpl->_errors.push_back(std::forward<PqaError>(pe));
+  EnsureImpl()->_errors.push_back(std::forward<PqaError>(pe));
 }
 
 SRPlat::SRString AggregateErrorParams::ToString() {
+  if (_pImpl == nullptr) {
+    return SRString::MakeUnowned("Success (empty aggregate error).");
+  }
   std::vector<PqaError>& errImpl = _pImpl->_errors;
   SRMessageBuilder mb("Aggregate error");
   for (size_t i = 0, iEn=errImpl.size(); i < iEn; i++) {
@@ -43,8 +55,17 @@ SRPlat::SRString AggregateErrorParams::ToString() {
   return mb.GetOwnedSRString();
 }
 
-size_t AggregateErrorParams::Count() {
+size_t AggregateErrorParams::Count() const {
+  if (_pImpl == nullptr) {
+    return 0;
+  }
   return _pImpl->_errors.size();
+}
+
+AggregateErrorParams* AggregateErrorParams::Move() {
+  AggregateErrorParams *ans = new AggregateErrorParams(_pImpl);
+  _pImpl = nullptr;
+  return ans;
 }
 
 } // namespace ProbQA
