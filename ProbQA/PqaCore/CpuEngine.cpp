@@ -21,22 +21,7 @@ namespace ProbQA {
 
 #define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
 
-template<typename taNumber> SRThreadPool::TThreadCount CpuEngine<taNumber>::CalcCompThreads() {
-  return std::thread::hardware_concurrency();
-}
-
-template<typename taNumber> SRThreadPool::TThreadCount CpuEngine<taNumber>::CalcMemOpThreads()
-{
-  // This is a trivial heuristic based on the observation that on Ryzen 1800X with 2 DDR4 modules in a single memory
-  //   channel, the maximum copy speed is achieved for 5 threads.
-  return std::max(1ui32, std::min(CalcCompThreads(), 5ui32));
-}
-
-template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
-  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular),
-  _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)),
-  _tpWorkers(CalcCompThreads()), _nMemOpThreads(CalcMemOpThreads())
-{
+template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef) : BaseCpuEngine(engDef) {
   if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
   {
     throw PqaException(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
@@ -132,74 +117,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   return PqaError();
 }
 
-template<typename taNumber> template<typename taSubtask, typename taCallback> PqaError
-CpuEngine<taNumber>::SplitAndRunSubtasks(const size_t nWorkers, CETask<taNumber> &task, const size_t nItems,
-  void *pSubtaskMem, const taCallback &onVisit)
-{
-  taSubtask *pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
-  size_t nSubtasks = 0;
-  bool bWorkersFinished = false;
-  size_t nextStart = 0;
-  lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
-
-  auto&& subtasksFinally = SRMakeFinally([&] {
-    if (!bWorkersFinished) {
-      task.WaitComplete();
-    }
-    for (size_t i = 0; i < nSubtasks; i++) {
-      pSubtasks[i].~taSubtask();
-    }
-  }); (void)subtasksFinally;
-
-  while (nSubtasks < nWorkers && nextStart < nItems) {
-    size_t curStart = nextStart;
-    nextStart += perWorker.quot;
-    if ((long long)nSubtasks < perWorker.rem) {
-      nextStart++;
-    }
-    assert(nextStart <= nItems);
-    onVisit(pSubtasks + nSubtasks, curStart, nextStart);
-    // For finalization, it's important to increment subtask counter right after another subtask has been
-    //   constructed.
-    nSubtasks++;
-    _tpWorkers.Enqueue(pSubtasks + nSubtasks - 1);
-  }
-
-  bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
-  task.WaitComplete();
-
-  return task.TakeAggregateError(SRString::MakeUnowned("Failed " __FUNCTION__));
-}
-
-template<typename taNumber> template<typename taSubtask> PqaError CpuEngine<taNumber>::RunWorkerOnlySubtasks(
-  typename taSubtask::TTask &task, void *pSubtaskMem)
-{
-  const SRThreadPool::TThreadCount nWorkers = task.GetWorkerCount();
-  taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
-  SRThreadPool::TThreadCount nSubtasks = 0;
-  bool bWorkersFinished = false;
-
-  auto&& subtasksFinally = SRMakeFinally([&] {
-    if (!bWorkersFinished) {
-      task.WaitComplete();
-    }
-    for (SRThreadPool::TThreadCount i = 0; i < nSubtasks; i++) {
-      pSubtasks[i].~taSubtask();
-    }
-  }); (void)subtasksFinally;
-
-  while (nSubtasks < nWorkers) {
-    new (pSubtasks + nSubtasks) taSubtask(&task, nSubtasks);
-    nSubtasks++;
-    _tpWorkers.Enqueue(pSubtasks + nSubtasks - 1);
-  }
-
-  bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
-  task.WaitComplete();
-
-  return task.TakeAggregateError(SRString::MakeUnowned("Failed " __FUNCTION__));
-}
-
 template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTaskNumSpec<DoubleNumber>& numSpec,
   const TPqaAmount amount) 
 {
@@ -269,7 +186,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
     }
 
     //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
-    resErr = SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(nWorkers, trainTask, nQuestions, commonBuf.Get(),
+    resErr = SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(trainTask, nQuestions, commonBuf.Get(),
       [&](CETrainSubtaskDistrib<taNumber> *pCurSt, const size_t curStart, const size_t nextStart)
     {
       new (pCurSt) CETrainSubtaskDistrib<taNumber>(&trainTask, pAQs + curStart, pAQs + nextStart);

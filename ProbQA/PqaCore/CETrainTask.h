@@ -10,7 +10,10 @@
 
 namespace ProbQA {
 
-template<typename taNumber> class CETrainTask : public CETask<taNumber> {
+//TODO: refactor to fwd/decl/impl/h header design for CpuEngine and CETrainTask classes
+template<typename taNumber> class CpuEngine;
+
+template<typename taNumber> class CETrainTask : public CETask {
 public: // variables
   std::atomic<TPqaId> *_last;
   TPqaId *_prev;

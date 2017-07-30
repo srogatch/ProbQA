@@ -4,5 +4,8 @@
 
 #pragma once
 
-#include "../PqaCore/CETask.decl.h"
-#include "../PqaCore/CETask.impl.h"
+namespace ProbQA {
+
+class BaseCpuEngine;
+
+} // namespace ProbQA

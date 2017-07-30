@@ -72,9 +72,6 @@
     <ClInclude Include="CEQuiz.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
-    <ClInclude Include="CETask.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
     <ClInclude Include="CETrainSubtaskAdd.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
@@ -92,6 +89,30 @@
     </ClInclude>
     <ClInclude Include="DoubleNumber.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseCpuEngine.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseCpuEngine.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseCpuEngine.impl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseCpuEngine.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETask.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETask.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETask.impl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETask.h">
+      <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -134,7 +155,7 @@
     <ClCompile Include="CETrainSubtaskAdd.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
-    <ClCompile Include="CETask.cpp">
+    <ClCompile Include="BaseCpuEngine.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>
