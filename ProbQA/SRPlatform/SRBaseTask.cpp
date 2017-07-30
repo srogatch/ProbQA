@@ -10,21 +10,18 @@
 
 namespace SRPlat {
 
-#define BTLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pTp->GetLogger())
-
-SRBaseTask::SRBaseTask(SRThreadPool *pTp) : _pTp(pTp) {
-}
+#define BTLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetThreadPool().GetLogger())
 
 void SRBaseTask::FinalizeSubtask(SRBaseSubtask *pSubtask) {
   TNSubtasks nNew;
   {
-    SRLock<SRCriticalSection> csl(_pTp->GetCS());
+    SRLock<SRCriticalSection> csl(GetThreadPool().GetCS());
     nNew = --_nToDo;
   }
   if (nNew <= 0) {
     if (nNew < 0) {
       auto mb = SRMessageBuilder("A task got a negative number of remaining subtasks to do: ")(nNew);
-      _pTp->GetLogger()->Log(ISRLogger::Severity::Critical, mb.GetUnownedSRString());
+      GetThreadPool().GetLogger()->Log(ISRLogger::Severity::Critical, mb.GetUnownedSRString());
       HandleTaskFailure(SRException(mb.GetOwnedSRString()));
     }
     _isComplete.WakeAll();
@@ -43,7 +40,7 @@ void SRBaseTask::HandleTaskFailure(SRException &&ex) {
 }
 
 void SRBaseTask::WaitComplete() {
-  SRCriticalSection &cs = _pTp->GetCS();
+  SRCriticalSection &cs = GetThreadPool().GetCS();
   SRLock<SRCriticalSection> csl(cs);
   while (_nToDo > 0) {
     _isComplete.Wait(cs);

@@ -9,12 +9,16 @@ namespace ProbQA {
 template<typename taNumber> class CETrainTask;
 
 template<typename taNumber> class CETrainSubtaskAdd : public SRBaseSubtask {
-public: // variables
+public: // types
+  typedef CETrainTask<taNumber> TTask;
+
+private: // variables
   SRPlat::SRThreadPool::TThreadCount _iWorker;
 
 public: // methods
-  CETrainSubtaskAdd(CETrainTask<taNumber> *pTask, const SRPlat::SRThreadPool::TThreadCount iWorker)
-    : SRBaseSubtask(&pTask), _iWorker(iWorker) { }
+  CETrainSubtaskAdd(TTask *pTask, const SRPlat::SRThreadPool::TThreadCount iWorker)
+    : SRBaseSubtask(pTask), _iWorker(iWorker) { }
+  virtual void Run() override;
 };
 
 } // namespace ProbQA

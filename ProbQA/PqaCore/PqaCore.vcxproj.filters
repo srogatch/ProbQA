@@ -16,6 +16,12 @@
     <Filter Include="Header Files\Interface">
       <UniqueIdentifier>{1b22f91e-cb28-4095-8cba-a09cdda2d801}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\CPU Engine">
+      <UniqueIdentifier>{23f1a4a0-b5c3-4538-a0e7-735e399b9b37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\CPU Engine">
+      <UniqueIdentifier>{384f2e33-56f4-4e0f-b073-1fdb96f183d0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -45,12 +51,6 @@
     <ClInclude Include="Interface\PqaErrorParams.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="CpuEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DoubleNumber.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PqaNumber.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -63,28 +63,34 @@
     <ClInclude Include="MaintenanceSwitch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CETask.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainTask.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainSubtaskDistrib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainSubtaskAdd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CEQuiz.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ErrorHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CETrainTaskNumSpec.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CECreateQuizOperation.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEQuiz.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETask.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskAdd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskDistrib.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTask.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTaskNumSpec.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuEngine.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="DoubleNumber.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -107,9 +113,6 @@
     <ClCompile Include="PqaErrors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CpuEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PqaException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -120,7 +123,19 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CEQuiz.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CpuEngine.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CETrainSubtaskDistrib.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CETrainSubtaskAdd.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CETask.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

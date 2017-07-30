@@ -221,6 +221,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CEQuiz.cpp" />
+    <ClCompile Include="CETask.cpp" />
+    <ClCompile Include="CETrainSubtaskAdd.cpp" />
+    <ClCompile Include="CETrainSubtaskDistrib.cpp" />
     <ClCompile Include="CpuEngine.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>

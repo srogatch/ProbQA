@@ -35,6 +35,7 @@ AggregateErrorParams::Impl* AggregateErrorParams::EnsureImpl() {
   if (_pImpl == nullptr) {
     _pImpl = new Impl();
   }
+  return _pImpl;
 }
 
 void AggregateErrorParams::Add(PqaError&& pe) {

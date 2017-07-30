@@ -25,11 +25,8 @@ private: // variables
   // It can be a little more than the number of subtasks, if failures happen in the task code too.
   std::atomic<TNSubtasks> _nFailures;
   SRConditionVariable _isComplete;
-  //// Cache-insensitive data
-  SRThreadPool *_pTp;
 
 public: // methods
-  explicit SRBaseTask(SRThreadPool *pTp);
   virtual ~SRBaseTask() { }
 
   void FinalizeSubtask(SRBaseSubtask *pSubtask);
@@ -44,9 +41,7 @@ public: // methods
 
   void WaitComplete();
 
-  SRThreadPool* GetThreadPool() const {
-    return _pTp;
-  }
+  virtual SRThreadPool& GetThreadPool() const = 0;
 };
 
 } // namespace SRPlat

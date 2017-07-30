@@ -33,7 +33,7 @@ template<typename taNumber> SRThreadPool::TThreadCount CpuEngine<taNumber>::Calc
 }
 
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
-  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular), _shutdownRequested(0),
+  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular),
   _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)),
   _tpWorkers(CalcCompThreads()), _nMemOpThreads(CalcMemOpThreads())
 {
@@ -147,18 +147,18 @@ CpuEngine<taNumber>::SplitAndRunSubtasks(const size_t nWorkers, CETask<taNumber>
       task.WaitComplete();
     }
     for (size_t i = 0; i < nSubtasks; i++) {
-      pSubtasks[i].~taSubtask<taNumber>();
+      pSubtasks[i].~taSubtask();
     }
   }); (void)subtasksFinally;
 
-  while (nSubtasks < nWorkers && nextStart < nQuestions) {
+  while (nSubtasks < nWorkers && nextStart < nItems) {
     size_t curStart = nextStart;
     nextStart += perWorker.quot;
     if ((long long)nSubtasks < perWorker.rem) {
       nextStart++;
     }
-    assert(nextStart <= nQuestions);
-    taCallback(pSubtasks + nSubtasks, curStart, nextStart);
+    assert(nextStart <= nItems);
+    onVisit(pSubtasks + nSubtasks, curStart, nextStart);
     // For finalization, it's important to increment subtask counter right after another subtask has been
     //   constructed.
     nSubtasks++;
@@ -172,24 +172,24 @@ CpuEngine<taNumber>::SplitAndRunSubtasks(const size_t nWorkers, CETask<taNumber>
 }
 
 template<typename taNumber> template<typename taSubtask> PqaError CpuEngine<taNumber>::RunWorkerOnlySubtasks(
-  const size_t nWorkers, CETask<taNumber> &task, void *pSubtaskMem)
+  typename taSubtask::TTask &task, void *pSubtaskMem)
 {
-  taSubtask *pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
-  size_t nSubtasks = 0;
+  const SRThreadPool::TThreadCount nWorkers = task.GetWorkerCount();
+  taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
+  SRThreadPool::TThreadCount nSubtasks = 0;
   bool bWorkersFinished = false;
 
   auto&& subtasksFinally = SRMakeFinally([&] {
     if (!bWorkersFinished) {
       task.WaitComplete();
     }
-    for (size_t i = 0; i < nSubtasks; i++) {
-      pSubtasks[i].~taSubtask<taNumber>();
+    for (SRThreadPool::TThreadCount i = 0; i < nSubtasks; i++) {
+      pSubtasks[i].~taSubtask();
     }
   }); (void)subtasksFinally;
 
   while (nSubtasks < nWorkers) {
-    //TODO: implement
-    new (pSubtasks + nSubtasks) typename taSubtask(&task, nSubtasks);
+    new (pSubtasks + nSubtasks) taSubtask(&task, nSubtasks);
     nSubtasks++;
     _tpWorkers.Enqueue(pSubtasks + nSubtasks - 1);
   }
@@ -198,105 +198,6 @@ template<typename taNumber> template<typename taSubtask> PqaError CpuEngine<taNu
   task.WaitComplete();
 
   return task.TakeAggregateError(SRString::MakeUnowned("Failed " __FUNCTION__));
-}
-
-template<typename taNumber> void CpuEngine<taNumber>::RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd) {
-  CETrainTask<taNumber> *pTask = static_cast<CETrainTask<taNumber>*>(tsd._pTask);
-  if (pTask->IsCancelled()) {
-    return;
-  }
-  for (const AnsweredQuestion *pAQ = tsd._pFirst, *pEn= tsd._pLim; pAQ < pEn; pAQ++) {
-    // Check ranges
-    const TPqaId iQuestion = pAQ->_iQuestion;
-    if (iQuestion < 0 || iQuestion >= _dims._nQuestions) {
-      const TPqaId nKB = _dims._nQuestions;
-      pTask->AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, nKB - 1),
-        SRString::MakeUnowned("Question index is not in KB range.")));
-      return;
-    }
-    if (_questionGaps.IsGap(iQuestion)) {
-      pTask->AddError(PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iQuestion), SRString::MakeUnowned(
-        "Question index is not in KB (but rather at a gap).")));
-      return;
-    }
-    const TPqaId iAnswer = pAQ->_iAnswer;
-    if (iAnswer < 0 || iAnswer >= _dims._nAnswers) {
-      const TPqaId nKB = _dims._nAnswers;
-      pTask->AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, nKB - 1),
-        SRString::MakeUnowned("Answer index is not in KB range.")));
-      return;
-    }
-    // Sort questions into buckets so that workers in the next phase do not race for data.
-    const TPqaId iBucket = iQuestion % _workers.size();
-    const TPqaId iPrev = pTask->_iPrev.fetch_add(1);
-    TPqaId expected = pTask->_last[iBucket].load(std::memory_order_acquire);
-    while (!pTask->_last[iBucket].compare_exchange_weak(expected, iPrev, std::memory_order_acq_rel,
-      std::memory_order_acquire));
-    pTask->_prev[iPrev] = expected;
-  }
-}
-
-template<> void CpuEngine<DoubleNumber>::RunTrainAdd(CETrainSubtaskAdd<DoubleNumber> &tsa) {
-  CETrainTask<DoubleNumber> &task = static_cast<CETrainTask<DoubleNumber>&>(*tsa._pTask);
-  const CETrainTask<DoubleNumber>& cTask = task; // enable optimizations with const
-  TPqaId iLast = cTask._last[tsa._iWorker];
-  if (iLast == cInvalidPqaId) {
-    return;
-  }
-  const TPqaId *const cPrev = cTask._prev;
-  // Enable optimizations with const
-  const __m256d& fullAddend = cTask._numSpec._fullAddend;
-  const __m256d& collAddend = cTask._numSpec._collAddend;
-  do {
-    const AnsweredQuestion& aqFirst = cTask._pAQs[iLast];
-    iLast = cPrev[iLast];
-    if (iLast == cInvalidPqaId) {
-      // Use SSE2 instead of AVX here to supposedly reduce the load on the CPU core (better hyperthreading).
-      __m128d sum = _mm_set_pd(
-        _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
-        _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-          .GetValue());
-      sum = _mm_add_pd(sum, *reinterpret_cast<const __m128d*>(&fullAddend));
-      _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-        .SetValue(sum.m128d_f64[0]);
-      _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m128d_f64[1]);
-      return;
-    }
-    const AnsweredQuestion& aqSecond = cTask._pAQs[iLast];
-    if (aqFirst._iQuestion == aqSecond._iQuestion) {
-      // Vectorize 3 additions, with twice the amount in element #1
-      __m256d sum = _mm256_set_pd(0,
-        _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-          .GetValue(),
-        _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
-        _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-          .GetValue());
-      sum = _mm256_add_pd(sum, collAddend);
-      _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-        .SetValue(sum.m256d_f64[0]);
-      _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m256d_f64[1]);
-      _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-        .SetValue(sum.m256d_f64[2]);
-    }
-    else {
-      // Finally we can vectorize all the 4 additions
-      __m256d sum = _mm256_set_pd(
-        _mD[SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
-        _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-          .GetValue(),
-        _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].GetValue(),
-        _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-          .GetValue());
-      sum = _mm256_add_pd(sum, fullAddend);
-      _sA[SRCast::ToSizeT(aqFirst._iAnswer)][SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-        .SetValue(sum.m256d_f64[0]);
-      _mD[SRCast::ToSizeT(aqFirst._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m256d_f64[1]);
-      _sA[SRCast::ToSizeT(aqSecond._iAnswer)][SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)]
-        .SetValue(sum.m256d_f64[2]);
-      _mD[SRCast::ToSizeT(aqSecond._iQuestion)][SRCast::ToSizeT(cTask._iTarget)].SetValue(sum.m256d_f64[3]);
-    }
-    iLast = cPrev[iLast];
-  } while (iLast != cInvalidPqaId);
 }
 
 template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTaskNumSpec<DoubleNumber>& numSpec,
@@ -321,7 +222,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   }
 
   PqaError resErr;
-  const size_t nWorkers = _tpWorkers.GetWorkerCount();
+  const SRThreadPool::TThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   //// Do a single allocation for all needs. Allocate memory out of locks.
   // For proper alignment, the data must be laid out in the decreasing order of item alignments.
   const size_t ttLastOffs = std::max(sizeof(CETrainSubtaskDistrib<taNumber>), sizeof(CETrainSubtaskAdd<taNumber>))
@@ -330,7 +231,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   const size_t nTotalBytes = ttPrevOffs + sizeof(TPqaId) * SRCast::ToSizeT(nQuestions);
   SRSmartMPP<TMemPool, uint8_t> commonBuf(_memPool, nTotalBytes);
 
-  CETrainTask<taNumber> trainTask(this, iTarget, pAQs);
+  CETrainTask<taNumber> trainTask(nWorkers, this, iTarget, pAQs);
   trainTask._prev = reinterpret_cast<TPqaId*>(commonBuf.Get() + ttPrevOffs);
   trainTask._last = reinterpret_cast<std::atomic<TPqaId>*>(commonBuf.Get() + ttLastOffs);
   InitTrainTaskNumSpec(trainTask._numSpec, amount);
@@ -378,7 +279,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
     }
 
     // Update the KB with the given training data.
-    resErr = RunWorkerOnlySubtasks<CETrainSubtaskAdd<taNumber>>(nWorkers, trainTask, commonBuf.Get());
+    resErr = RunWorkerOnlySubtasks<CETrainSubtaskAdd<taNumber>>(trainTask, commonBuf.Get());
     if (!resErr.isOk()) {
       return resErr;
     }
@@ -487,7 +388,6 @@ template<typename taNumber> void CpuEngine<taNumber>::UpdatePriorsWithAnsweredQu
   //  pTargProb[j] /= sum;
   //}
 
-  const size_t nWorkers = _workers.size();
   //TODO: implement
 }
 

@@ -14,8 +14,6 @@ namespace ProbQA {
 
 template<typename taNumber> class CEQuiz;
 template<typename taNumber> class CETask;
-template<typename taNumber> class CETrainSubtaskDistrib;
-template<typename taNumber> class CETrainSubtaskAdd;
 template<typename taNumber> class CETrainTaskNumSpec;
 template<typename taNumber> class CECreateQuizResume;
 
@@ -29,7 +27,6 @@ public: // constants
   static const size_t cMemPoolMaxSimds = 1 << 10;
 
 public: // types
-  typedef SRPlat::SRSpinSync<32> TStpSync;
   typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, cMemPoolMaxSimds> TMemPool;
 
 private: // variables
@@ -53,32 +50,14 @@ private: // variables
   MaintenanceSwitch _maintSwitch; // regular/maintenance mode switch
   SRPlat::SRReaderWriterSync _rws; // KB read-write
   SRPlat::SRCriticalSection _csQuizReg; // quiz registry
-  
-  //TODO: remove after refactoring to SRThreadPool
-  //SRPlat::SRCriticalSection _csWorkers; // queue for async workers
-  //TODO: remove after refactoring to SRThreadPool
-  //TStpSync _stpSync; // SubTask Pool Sync
 
   GapTracker<TPqaId> _quizGaps; // Guarded by _csQuizReg
   std::vector<CEQuiz<taNumber>*> _quizzes; // Guarded by _csQuizReg
 
   GapTracker<TPqaId> _questionGaps; // Guarded by _rws in maintenance mode. Read-only in regular mode.
   GapTracker<TPqaId> _targetGaps; // Guarded by _rws in maintenance mode. Read-only in regular mode.
-  
-  //TODO: remove after refactoring to SRThreadPool
-  //uint8_t _shutdownRequested : 1; // guarded by _csWorkers
-  //TODO: remove after refactoring to SRThreadPool
-  //std::queue<CESubtask<taNumber>*> _quWork; // guarded by _csWorkers
-  //TODO: remove after refactoring to SRThreadPool
-  //SRPlat::SRConditionVariable _haveWork;
-
-  //TODO: remove after refactoring to SRThreadPool
-  //std::vector<std::vector<CESubtask<taNumber>*>> _stPool; // Guarded by _stpSync
 
   //// Cache-insensitive data
-  //TODO: remove after refactoring to SRThreadPool
-  // The size of this vector must not change after construction of CpuEngine, because it's accessed without locks.
-  //std::vector<std::thread> _workers;
   std::atomic<SRPlat::ISRLogger*> _pLogger;
 
 private: // methods
@@ -87,12 +66,10 @@ private: // methods
 
   template<typename taSubtask, typename taCallback> PqaError SplitAndRunSubtasks(const size_t nWorkers,
     CETask<taNumber> &task, const size_t nItems, void *pSubtaskMem, const taCallback &onVisit);
-  template<typename taSubtask> PqaError RunWorkerOnlySubtasks(const size_t nWorkers,
-    CETask<taNumber> &task, void *pSubtaskMem);
+  // taSubtask must have a constructor taking 2 arguments: TTask and worker ID.
+  template<typename taSubtask> PqaError RunWorkerOnlySubtasks(typename taSubtask::TTask &task, void *pSubtaskMem);
 
 #pragma region Behind Train() interface method
-  void RunTrainDistrib(CETrainSubtaskDistrib<taNumber> &tsd);
-  void RunTrainAdd(CETrainSubtaskAdd<taNumber> &tsa);
   void InitTrainTaskNumSpec(CETrainTaskNumSpec<taNumber>& numSpec, const TPqaAmount amount);
   PqaError TrainInternal(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount);
@@ -104,8 +81,32 @@ private: // methods
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
-  const EngineDimensions& GetDims() { return _dims; }
   TMemPool& GetMemPool() { return _memPool; }
+  SRPlat::SRThreadPool& GetWorkers() { return _tpWorkers; }
+
+  const EngineDimensions& GetDims() const { return _dims; }
+  const GapTracker<TPqaId>& GetQuestionGaps() const { return _questionGaps; }
+
+  const taNumber& GetA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget) const {
+    return _sA[SRPlat::SRCast::ToSizeT(iAnswer)][SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iTarget)];
+  }
+  taNumber& ModA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget) {
+    return _sA[SRPlat::SRCast::ToSizeT(iAnswer)][SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iTarget)];
+  }
+  
+  const taNumber& GetD(const TPqaId iQuestion, const TPqaId iTarget) const {
+    return _mD[SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iTarget)];
+  }
+  taNumber& ModD(const TPqaId iQuestion, const TPqaId iTarget) {
+    return _mD[SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iTarget)];
+  }
+
+  const taNumber& GetB(const TPqaId iTarget) const {
+    return _vB[SRPlat::SRCast::ToSizeT(iTarget)];
+  }
+  taNumber& ModB(const TPqaId iTarget) {
+    return _vB[SRPlat::SRCast::ToSizeT(iTarget)];
+  }
 
   void UpdatePriorsWithAnsweredQuestions(CECreateQuizResume<taNumber>& resumeOp);
 

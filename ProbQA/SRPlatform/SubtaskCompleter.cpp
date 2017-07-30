@@ -15,7 +15,7 @@
 namespace SRPlat {
 
 #define STCLOG(pTaskVar, severityVar) \
-  SRLogStream(ISRLogger::Severity::severityVar, pTaskVar->GetThreadPool()->GetLogger())
+  SRLogStream(ISRLogger::Severity::severityVar, pTaskVar->GetThreadPool().GetLogger())
 
 SubtaskCompleter::~SubtaskCompleter() {
   if (_pSubtask != nullptr) {
