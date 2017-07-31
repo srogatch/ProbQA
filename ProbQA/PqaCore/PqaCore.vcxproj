@@ -198,13 +198,11 @@
     <ClInclude Include="BaseCpuEngine.fwd.h" />
     <ClInclude Include="BaseCpuEngine.decl.h" />
     <ClInclude Include="BaseCpuEngine.h" />
-    <ClInclude Include="BaseCpuEngine.impl.h" />
     <ClInclude Include="CECreateQuizOperation.h" />
     <ClInclude Include="CEQuiz.h" />
     <ClInclude Include="CETask.fwd.h" />
     <ClInclude Include="CETask.decl.h" />
     <ClInclude Include="CETask.h" />
-    <ClInclude Include="CETask.impl.h" />
     <ClInclude Include="CETrainSubtaskAdd.h" />
     <ClInclude Include="CETrainSubtaskDistrib.h" />
     <ClInclude Include="CETrainTask.h" />

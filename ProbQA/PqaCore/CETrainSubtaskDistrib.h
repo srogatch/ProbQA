@@ -15,7 +15,7 @@ public: // variables
   CETrainSubtaskDistrib(CETrainTask<taNumber> *pTask, const AnsweredQuestion *pFirst, const AnsweredQuestion *pLim);
   const AnsweredQuestion *_pFirst;
   const AnsweredQuestion *_pLim;
-  virtual void Run() override;
+  virtual void Run() override final;
 };
 
 } // namespace ProbQA

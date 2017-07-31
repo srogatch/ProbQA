@@ -18,7 +18,7 @@ private: // variables
 public: // methods
   CETrainSubtaskAdd(TTask *pTask, const SRPlat::SRThreadPool::TThreadCount iWorker)
     : SRBaseSubtask(pTask), _iWorker(iWorker) { }
-  virtual void Run() override;
+  virtual void Run() override final;
 };
 
 } // namespace ProbQA

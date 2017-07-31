@@ -96,9 +96,6 @@
     <ClInclude Include="BaseCpuEngine.decl.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
-    <ClInclude Include="BaseCpuEngine.impl.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
     <ClInclude Include="BaseCpuEngine.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
@@ -106,9 +103,6 @@
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
     <ClInclude Include="CETask.decl.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETask.impl.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
     <ClInclude Include="CETask.h">
