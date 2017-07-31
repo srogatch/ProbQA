@@ -23,9 +23,9 @@ public: // variables
   CETrainTaskNumSpec<taNumber> _numSpec;
   
 public: // methods
-  explicit CETrainTask(const SRPlat::SRThreadPool::TThreadCount nWorkers, CpuEngine<taNumber> *pCe,
+  explicit CETrainTask(CpuEngine<taNumber> *pCe, const SRPlat::SRThreadPool::TThreadCount nWorkers,
     const TPqaId iTarget, const AnsweredQuestion* const pAQs)
-    : CETask(nWorkers, pCe), _iPrev(0), _iTarget(iTarget), _pAQs(pAQs) { }
+    : CETask(pCe, nWorkers), _iPrev(0), _iTarget(iTarget), _pAQs(pAQs) { }
   CETrainTask(const CETrainTask&) = delete;
   CETrainTask& operator=(const CETrainTask&) = delete;
   CETrainTask(CETrainTask&&) = delete;

@@ -9,19 +9,13 @@
 
 namespace ProbQA {
 
-inline CETask::CETask(const SRPlat::SRThreadPool::TThreadCount nWorkers, BaseCpuEngine *pCe)
-  : _pCe(pCe), _nWorkers(nWorkers) { }
-
-inline SRPlat::SRThreadPool& CETask::GetThreadPool() const {
-  return _pCe->GetWorkers();
-}
+inline CETask::CETask(BaseCpuEngine *pCe, const SRPlat::SRThreadPool::TThreadCount nWorkers)
+  : CEBaseTask(pCe), _nWorkers(nWorkers) { }
 
 inline void CETask::AddError(PqaError&& pe) {
   SRPlat::SRLock<TSync> sl(_sync);
   _aep.Add(std::forward<PqaError>(pe));
 }
-
-inline BaseCpuEngine* CETask::GetEngine() const { return _pCe; }
 
 inline SRPlat::SRThreadPool::TThreadCount CETask::GetWorkerCount() const { return _nWorkers; }
 

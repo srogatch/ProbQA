@@ -148,7 +148,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   const size_t nTotalBytes = ttPrevOffs + sizeof(TPqaId) * SRCast::ToSizeT(nQuestions);
   SRSmartMPP<TMemPool, uint8_t> commonBuf(_memPool, nTotalBytes);
 
-  CETrainTask<taNumber> trainTask(nWorkers, this, iTarget, pAQs);
+  CETrainTask<taNumber> trainTask(this, nWorkers, iTarget, pAQs);
   trainTask._prev = reinterpret_cast<TPqaId*>(commonBuf.Get() + ttPrevOffs);
   trainTask._last = reinterpret_cast<std::atomic<TPqaId>*>(commonBuf.Get() + ttLastOffs);
   InitTrainTaskNumSpec(trainTask._numSpec, amount);
@@ -223,6 +223,12 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
   taOperation &op)
 {
   try {
+    struct LTask : public CEBaseTask {
+      CEQuiz<taNumber> *_pQuiz;
+    public: // methods
+      explicit LTask(CpuEngine<taNumber> *pCe) : CEBaseTask(pCe) { }
+    } task(this);
+
     const auto msMode = MaintenanceSwitch::Mode::Regular;
     if (!_maintSwitch.TryEnterSpecific<msMode>()) {
       op._err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
@@ -232,8 +238,6 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
     MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
     // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
     //   _maintSwitch guards engine dimensions.
-    const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
-    const size_t nQuestions = SRCast::ToSizeT(_dims._nQuestions);
     op._pQuiz = new CEQuiz<taNumber>(this);
     TPqaId quizId;
     {
@@ -245,20 +249,38 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
       }
       _quizzes[SRCast::ToSizeT(quizId)] = op._pQuiz;
     }
+    //TODO: perhaps get rid of taOperation::_pQuiz , and keep quiz pointer only in the task.
+    task._pQuiz = op._pQuiz;
     {
       SRRWLock<false> rwl(_rws);
 
       //// Copy prior likelihoods for targets
-      //TODO: launch these 3 memory operations in separate threads
-      SRUtils::Copy256<false, false>(op._pQuiz->GetTlhMants(), _vB.Get(),
-        SRSimd::VectsFromBytes(nTargets * sizeof(taNumber)));
-      SRUtils::FillZeroVects<false>(reinterpret_cast<__m256i*>(op._pQuiz->GetTlhExps()),
-        SRSimd::VectsFromBytes(nTargets * sizeof(CEQuiz<taNumber>::TExponent)));
-      SRUtils::FillZeroVects<true>(op._pQuiz->GetQAsked(), SRSimd::VectsFromBits(nQuestions));
+      auto&& lstCopyMants = SRMakeLambdaSubtask(&task, [](const SRBaseSubtask &subtask) {
+        auto& task = static_cast<const LTask&>(*subtask.GetTask());
+        auto& engine = static_cast<const CpuEngine<taNumber>&>(*task.GetEngine());
+        SRUtils::Copy256<false, false>(task._pQuiz->GetTlhMants(), engine._vB.Get(),
+          SRSimd::VectsFromBytes(engine._dims._nTargets * sizeof(taNumber)));
+      });
+      _tpWorkers.Enqueue(&lstCopyMants);
 
-      if (op._err.isOk()) {
-        op.MaybeUpdatePriorsWithAnsweredQuestions(this);
-      }
+      auto&& lstZeroExps = SRMakeLambdaSubtask(&task, [](const SRBaseSubtask &subtask) {
+        auto& task = static_cast<const LTask&>(*subtask.GetTask());
+        auto& engine = static_cast<const CpuEngine<taNumber>&>(*task.GetEngine());
+        SRUtils::FillZeroVects<false>(reinterpret_cast<__m256i*>(task._pQuiz->GetTlhExps()),
+          SRSimd::VectsFromBytes(engine._dims._nTargets * sizeof(CEQuiz<taNumber>::TExponent)));
+      });
+      _tpWorkers.Enqueue(&lstZeroExps);
+
+      auto&& lstZeroQAsked = SRMakeLambdaSubtask(&task, [](const SRBaseSubtask &subtask) {
+        auto& task = static_cast<const LTask&>(*subtask.GetTask());
+        auto& engine = static_cast<const CpuEngine<taNumber>&>(*task.GetEngine());
+        SRUtils::FillZeroVects<true>(task._pQuiz->GetQAsked(), SRSimd::VectsFromBits(engine._dims._nQuestions));
+      });
+      _tpWorkers.Enqueue(&lstZeroQAsked);
+
+      task.WaitComplete();
+
+      op.MaybeUpdatePriorsWithAnsweredQuestions(this);
     }
     if (!op._err.isOk()) {
       delete op._pQuiz;

@@ -108,6 +108,12 @@
     <ClInclude Include="CETask.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CEBaseTask.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEBaseTask.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

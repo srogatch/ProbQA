@@ -19,7 +19,7 @@ public:
   SRFinally& operator=(SRFinally&&) = delete;
 };
 
-template <typename taFunc> SRFinally<taFunc> SRMakeFinally(taFunc&& f) {
+template <typename taFunc> SRFinally<std::decay_t<taFunc>> SRMakeFinally(taFunc&& f) {
   return { std::forward<taFunc>(f) };
 }
 

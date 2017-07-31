@@ -147,6 +147,12 @@
     <ClInclude Include="Interface\SRExitCode.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRLambdaSubtask.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRMinimalTask.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -189,9 +195,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SRSpinSync.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SRBaseSubtask.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SRThreadPool.cpp">

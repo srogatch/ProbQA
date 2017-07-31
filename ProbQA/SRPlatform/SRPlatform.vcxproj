@@ -214,6 +214,7 @@
     <ClInclude Include="Interface\SRFastArray.h" />
     <ClInclude Include="Interface\SRFastManualResetEvent.h" />
     <ClInclude Include="Interface\SRFinally.h" />
+    <ClInclude Include="Interface\SRLambdaSubtask.h" />
     <ClInclude Include="Interface\SRLock.h" />
     <ClInclude Include="Interface\ISRLogger.h" />
     <ClInclude Include="Interface\SRDefaultLogger.h" />
@@ -223,6 +224,7 @@
     <ClInclude Include="Interface\SRMath.h" />
     <ClInclude Include="Interface\SRMemPool.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
+    <ClInclude Include="Interface\SRMinimalTask.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRFastRandom.h" />
     <ClInclude Include="Interface\SRReaderWriterSync.h" />
@@ -255,7 +257,6 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="FileLogger.cpp" />
-    <ClCompile Include="SRBaseSubtask.cpp" />
     <ClCompile Include="SRBaseTask.cpp" />
     <ClCompile Include="SRConditionVariable.cpp" />
     <ClCompile Include="SRCriticalSection.cpp" />
