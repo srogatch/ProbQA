@@ -382,7 +382,7 @@ class TestSubtask : public BaseSubtask {
   int64_t *_pSum;
 public:
   explicit TestSubtask(int64_t& sum) : _pSum(&sum) { }
-  virtual void Run() override {
+  virtual void Run() override final {
     (*_pSum)++;
   }
 };
@@ -442,7 +442,7 @@ public:
   LambdaSubtask(LambdaSubtask&&) = delete;
   LambdaSubtask& operator=(LambdaSubtask&&) = delete;
 
-  virtual void Run() override {
+  virtual void Run() override final {
     _f();
   }
 };

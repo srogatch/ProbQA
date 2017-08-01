@@ -54,38 +54,40 @@ public: // Internal interface methods
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);
-  virtual ~CpuEngine() override;
+  virtual ~CpuEngine() override final;
 
   virtual PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
-    const TPqaAmount amount = 1) override;
+    const TPqaAmount amount = 1) override final;
 
-  virtual TPqaId StartQuiz(PqaError& err) override;
-  virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nQuestions, const AnsweredQuestion* const pAQs) override;
-  virtual TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) override;
-  virtual PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) override;
-  virtual TPqaId ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest) override;
-  virtual PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1) override;
-  virtual PqaError ReleaseQuiz(const TPqaId iQuiz) override;
-
-
-  virtual PqaError SaveKB(const char* const filePath, const bool bDoubleBuffer) override;
-  virtual uint64_t GetTotalQuestionsAsked(PqaError& err) override;
-
-  virtual PqaError StartMaintenance(const bool forceQuizes) override;
-  virtual PqaError FinishMaintenance() override;
-
-  virtual PqaError AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) override;
-  virtual PqaError AddTargets(TPqaId nTargets, AddTargetParam *pAtps) override;
-  virtual PqaError RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds) override;
-  virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) override;
+  virtual TPqaId StartQuiz(PqaError& err) override final;
+  virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nQuestions, const AnsweredQuestion* const pAQs) override final;
+  virtual TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) override final;
+  virtual PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) override final;
+  virtual TPqaId ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest)
+    override final;
+  virtual PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1)
+    override final;
+  virtual PqaError ReleaseQuiz(const TPqaId iQuiz) override final;
 
 
-  virtual PqaError Compact(CompactionResult &cr) override;
+  virtual PqaError SaveKB(const char* const filePath, const bool bDoubleBuffer) override final;
+  virtual uint64_t GetTotalQuestionsAsked(PqaError& err) override final;
 
-  virtual PqaError ReleaseCompactionResult(CompactionResult &cr) override;
+  virtual PqaError StartMaintenance(const bool forceQuizes) override final;
+  virtual PqaError FinishMaintenance() override final;
 
-  virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override;
-  virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) override;
+  virtual PqaError AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) override final;
+  virtual PqaError AddTargets(TPqaId nTargets, AddTargetParam *pAtps) override final;
+  virtual PqaError RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds) override final;
+  virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) override final;
+
+
+  virtual PqaError Compact(CompactionResult &cr) override final;
+
+  virtual PqaError ReleaseCompactionResult(CompactionResult &cr) override final;
+
+  virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override final;
+  virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) override final;
 };
 
 } // namespace ProbQA

@@ -17,7 +17,7 @@ public:
 
   const SRPlat::SRString& GetFeature() { return _feature; }
 
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("Feature=")(_feature).GetOwnedSRString();
   }
 };
@@ -30,7 +30,7 @@ public:
   }
   const SRPlat::SRString& GetExceptionTypeName() { return _etn; }
   
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("ExceptionType=")(_etn).GetOwnedSRString();
   }
 };
@@ -50,7 +50,7 @@ public: // methods
     _nTargets(nTargets), _minTargets(minTargets)
   { }
 
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("[nAnswers=")(_nAnswers)(" of ")(_minAnswers)("] [nQuestions=")(_nQuestions)(" of ")
       (_minQuestions)("] [nTargets=")(_nTargets)(" of ")(_minTargets).AppendChar(']').GetOwnedSRString();
   }
@@ -62,7 +62,7 @@ public:
   explicit MaintenanceModeErrorParams(const uint8_t activeMode) : _activeMode(activeMode) { }
   uint8_t GetActiveMode() const { return _activeMode; }
 
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("ActiveMode=#")(int64_t(_activeMode)).GetOwnedSRString();
   }
 };
@@ -75,7 +75,7 @@ public:
   { }
   const SRPlat::SRString& GetRejectedOp() { return _rejectedOp; }
 
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("RejectedOperation=")(_rejectedOp).GetOwnedSRString();
   }
 };
@@ -92,7 +92,7 @@ public:
   TPqaId GetMinIndex() const { return _minIndex; }
   TPqaId GetMaxIndex() const { return  _maxIndex; }
 
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("subjIndex=")(_subjIndex)(" not in ")(_minIndex)("...")(_maxIndex)
       .GetOwnedSRString();
   }
@@ -103,7 +103,7 @@ class PQACORE_API InternalErrorParams : public IPqaErrorParams {
   int64_t _line;
 public:
   explicit InternalErrorParams(const char* const sourceFN, const int64_t line) : _sourceFN(sourceFN), _line(line) { }
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("Internal error at ")(_sourceFN)("(")(_line)(")").GetOwnedSRString();
   }
 };
@@ -120,14 +120,14 @@ private: // methods
 
 public:
   explicit AggregateErrorParams();
-  virtual ~AggregateErrorParams() override;
+  virtual ~AggregateErrorParams() override final;
 
   void Add(PqaError&& pe);
   size_t Count() const;
 
   AggregateErrorParams* Move();
 
-  virtual SRPlat::SRString ToString() override;
+  virtual SRPlat::SRString ToString() override final;
 };
 
 class PQACORE_API NegativeCountErrorParams : public IPqaErrorParams {
@@ -135,7 +135,7 @@ class PQACORE_API NegativeCountErrorParams : public IPqaErrorParams {
 public:
   explicit NegativeCountErrorParams(const int64_t count) : _count(count) { }
   int64_t GetCount() const { return _count; }
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("count=")(_count).GetOwnedSRString();
   }
 };
@@ -145,7 +145,7 @@ class PQACORE_API NonPositiveAmountErrorParams : public IPqaErrorParams {
 public:
   explicit NonPositiveAmountErrorParams(const TPqaAmount amount) : _amount(amount) { }
   TPqaAmount GetAmount() const { return _amount; }
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("amount=")(_amount).GetOwnedSRString();
   }
 };
@@ -155,7 +155,7 @@ class PQACORE_API AbsentIdErrorParams : public IPqaErrorParams {
 public:
   explicit AbsentIdErrorParams(const TPqaId id) : _id(id) { }
   TPqaId GetId() const { return _id; }
-  virtual SRPlat::SRString ToString() override {
+  virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("id=")(_id).GetOwnedSRString();
   }
 };

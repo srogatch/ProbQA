@@ -28,7 +28,7 @@ private: // methods
   static SRString GetDefaultMessage() { return SRString::MakeUnowned("Multiple exceptions have occured."); }
 
 public:
-  virtual ~SRMultiException() override;
+  virtual ~SRMultiException() override final;
   explicit SRMultiException() : SRException(GetDefaultMessage()) { }
   SRMultiException(const SRMultiException &fellow);
   SRMultiException& operator=(const SRMultiException &fellow);
@@ -37,7 +37,7 @@ public:
 
   SREXCEPTION_TYPICAL(SRMulti);
 
-  virtual SRString ToString() override;
+  virtual SRString ToString() override final;
 
   size_t AddException(SRException &&ex);
   // Take ownership of pEx and add it to the collection.

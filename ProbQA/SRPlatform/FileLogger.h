@@ -34,9 +34,9 @@ protected: // Methods
   
 public: // Methods
   explicit FileLogger(const SRString& baseName);
-  virtual ~FileLogger() override;
-  virtual bool Log(const Severity sev, const SRString& message) override;
-  virtual SRString GetFileName() override;
+  virtual ~FileLogger() override final;
+  virtual bool Log(const Severity sev, const SRString& message) override final;
+  virtual SRString GetFileName() override final;
 };
 
 } // namespace SRPlat

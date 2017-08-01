@@ -36,10 +36,10 @@ private: // methods
 
 public:
   explicit SRThreadPool(const TThreadCount nThreads = std::thread::hardware_concurrency());
-  virtual ~SRThreadPool() override;
+  virtual ~SRThreadPool() override final;
 
-  virtual ISRLogger* GetLogger() const override;
-  virtual void SetLogger(ISRLogger *pLogger) override;
+  virtual ISRLogger* GetLogger() const override final;
+  virtual void SetLogger(ISRLogger *pLogger) override final;
 
   // If f==nullptr , the function sets the default callback with |this| as data.
   void SetCriticalCallback(FCriticalCallback f, void *pData = nullptr);
