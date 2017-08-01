@@ -4,11 +4,10 @@
 
 #pragma once
 
+#include "../PqaCore/CETrainTask.fwd.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 
 namespace ProbQA {
-
-template<typename taNumber> class CETrainTask;
 
 template<typename taNumber> class CETrainSubtaskDistrib : public SRPlat::SRBaseSubtask {
 public: // variables

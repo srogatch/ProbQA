@@ -6,12 +6,10 @@
 
 #include "../PqaCore/CECreateQuizOperation.fwd.h"
 #include "../PqaCore/CpuEngine.fwd.h"
+#include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/Interface/PqaErrors.h"
 
 namespace ProbQA {
-
-//TODO: refactor to fwd/decl/h header design
-template<typename taNumber> class CEQuiz;
 
 class CECreateQuizOpBase {
 public: // constants

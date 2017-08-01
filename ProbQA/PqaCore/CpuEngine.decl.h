@@ -5,14 +5,14 @@
 #pragma once
 
 #include "../PqaCore/CpuEngine.fwd.h"
+#include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/CECreateQuizOperation.fwd.h"
 #include "../PqaCore/PqaNumber.h"
 #include "../PqaCore/BaseCpuEngine.h"
 
 namespace ProbQA {
 
-//TODO: refactor to fwd/decl/h header design
-template<typename taNumber> class CEQuiz;
+// So long as it's data-only structure, it doesn't need fwd/decl/impl header design.
 template<typename taNumber> class CETrainTaskNumSpec;
 
 template<typename taNumber> class CpuEngine : public BaseCpuEngine {

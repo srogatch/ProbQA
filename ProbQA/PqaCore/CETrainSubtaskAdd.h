@@ -4,9 +4,9 @@
 
 #pragma once
 
-namespace ProbQA {
+#include "../PqaCore/CETrainTask.fwd.h"
 
-template<typename taNumber> class CETrainTask;
+namespace ProbQA {
 
 template<typename taNumber> class CETrainSubtaskAdd : public SRBaseSubtask {
 public: // types

@@ -132,6 +132,12 @@
     <ClInclude Include="CEQuiz.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CETrainTask.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTask.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

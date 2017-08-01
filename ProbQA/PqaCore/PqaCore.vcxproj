@@ -211,6 +211,8 @@
     <ClInclude Include="CETask.h" />
     <ClInclude Include="CETrainSubtaskAdd.h" />
     <ClInclude Include="CETrainSubtaskDistrib.h" />
+    <ClInclude Include="CETrainTask.decl.h" />
+    <ClInclude Include="CETrainTask.fwd.h" />
     <ClInclude Include="CETrainTask.h" />
     <ClInclude Include="CpuEngine.decl.h" />
     <ClInclude Include="CpuEngine.fwd.h" />
