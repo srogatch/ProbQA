@@ -219,9 +219,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
   CATCH_TO_ERR_RETURN;
 }
 
-template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNumber>::CreateQuizInternal(
-  taOperation &op)
-{
+template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECreateQuizOpBase &op) {
   try {
     struct LTask : public CEBaseTask {
       CEQuiz<taNumber> *_pQuiz;
@@ -238,7 +236,7 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
     MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
     // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
     //   _maintSwitch guards engine dimensions.
-    op._pQuiz = new CEQuiz<taNumber>(this);
+    task._pQuiz = new CEQuiz<taNumber>(this);
     TPqaId quizId;
     {
       SRLock<SRCriticalSection> csl(_csQuizReg);
@@ -247,10 +245,8 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
         assert(quizId == TPqaId(_quizzes.size()));
         _quizzes.emplace_back(nullptr);
       }
-      _quizzes[SRCast::ToSizeT(quizId)] = op._pQuiz;
+      _quizzes[SRCast::ToSizeT(quizId)] = task._pQuiz;
     }
-    //TODO: perhaps get rid of taOperation::_pQuiz , and keep quiz pointer only in the task.
-    task._pQuiz = op._pQuiz;
     {
       SRRWLock<false> rwl(_rws);
 
@@ -280,10 +276,22 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
 
       task.WaitComplete();
 
-      op.MaybeUpdatePriorsWithAnsweredQuestions(this);
+      //// If it's "resume quiz" operation, update the priors with the questions answered.
+      switch (CECreateQuizOpBase::Operation opCode = op.GetCode()) {
+      case CECreateQuizOpBase::Operation::Resume:
+        static_cast<CECreateQuizResume<taNumber>&>(op).UpdatePriorsWithAnsweredQuestions(this, task._pQuiz);
+        break;
+      case CECreateQuizOpBase::Operation::Start:
+        // Do nothing
+        break;
+      default:
+        op._err = PqaError(PqaErrorCode::UnhandledCase, nullptr, SRMessageBuilder("In" __FUNCTION__ "Unhandled"
+          " CECreateQuizOpBase::Operation #")(static_cast<size_t>(opCode)).GetOwnedSRString());
+        break;
+      }
     }
     if (!op._err.isOk()) {
-      delete op._pQuiz;
+      delete task._pQuiz;
       SRLock<SRCriticalSection> csl(_csQuizReg);
       _quizzes[SRCast::ToSizeT(quizId)] = nullptr;
       _quizGaps.Release(quizId);
@@ -295,43 +303,8 @@ template<typename taNumber> template<typename taOperation> TPqaId CpuEngine<taNu
   return cInvalidPqaId;
 }
 
-template<typename taNumber> void CpuEngine<taNumber>::UpdatePriorsWithAnsweredQuestions(
-  CECreateQuizResume<taNumber>& resumeOp)
-{
-  //// Sequential code (single-threaded) for reference
-  //NOTE: it may be better to iterate by targets first instead, so to apply all multiplications for the first
-  //  target and then move on to the next target. This involves 1 unsequential memory access per answered question
-  //  application, while if we iterate first by questions, each question application involves 2 memory accesses: load
-  //  and store.
-  //const TPqaId nTargets = _dims._nTargets;
-  //taNumber *pTargProb = resumeOp._pQuiz->GetTargProbs();
-  //TPqaId i = 0;
-  //for (; i + 1 < resumeOp._nQuestions; i++) {
-  //  const AnsweredQuestion& aq = resumeOp._pAQs[i];
-  //  for (TPqaId j = 0; j < nTargets; j++) {
-  //    // Multiplier compensation is less robust than summation of logarithms, but it's substantially faster and is
-  //    //   supported by AVX2. The idea is to make the multipliers equal to 1 in the average case p[j]=1/M, where M is
-  //    //   the number of targets.
-  // //FIXME: this will blow to infinity the top most likely targets, making them all equal, which is highly undesirable
-  //    pTargProb[j] *= (nTargets * _sA[aq._iAnswer][aq._iQuestion][j] / _mD[aq._iQuestion][j]);
-  //  }
-  //}
-  //taNumber sum(0); //TODO: instead, sort then sum
-  //const AnsweredQuestion& aq = resumeOp._pAQs[i];
-  //for (TPqaId j = 0; j < nTargets; j++) {
-  //  taNumber product = pTargProb[j] * (nTargets * _sA[aq._iAnswer][aq._iQuestion][j] / _mD[aq._iQuestion][j]);
-  //  pTargProb[j] = product;
-  //  sum += product; //TODO: assign to a bucket instead
-  //}
-  //for (TPqaId j = 0; j < nTargets; j++) {
-  //  pTargProb[j] /= sum;
-  //}
-
-  //TODO: implement
-}
-
 template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {
-  CECreateQuizStart<taNumber> startOp(err);
+  CECreateQuizStart startOp(err);
   return CreateQuizInternal(startOp);
 }
 

@@ -4,14 +4,12 @@
 
 #pragma once
 
+#include "../PqaCore/CpuEngine.fwd.h"
+#include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/CETrainTaskNumSpec.h"
 #include "../PqaCore/CETask.h"
-#include "../PqaCore/Interface/PqaCommon.h"
 
 namespace ProbQA {
-
-//TODO: refactor to fwd/decl/impl/h header design for CpuEngine and CETrainTask classes
-template<typename taNumber> class CpuEngine;
 
 template<typename taNumber> class CETrainTask : public CETask {
 public: // variables

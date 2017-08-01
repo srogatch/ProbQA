@@ -4,34 +4,51 @@
 
 #pragma once
 
-#include "../PqaCore/Interface/PqaCommon.h"
+#include "../PqaCore/CEQuiz.decl.h"
+#include "../PqaCore/DoubleNumber.h"
+#include "../PqaCore/CpuEngine.h"
 
 namespace ProbQA {
 
-template<typename taNumber> class CpuEngine;
+template<typename taNumber> inline taNumber* CEQuiz<taNumber>::GetTlhMants() { return _pTlhMants; }
 
-template<typename taNumber> class CEQuiz {
-public:
-  typedef int64_t TExponent;
+template<typename taNumber> inline typename CEQuiz<taNumber>::TExponent* CEQuiz<taNumber>::GetTlhExps()
+{ return _pTlhExps; }
 
-private: // variables
-  std::vector<AnsweredQuestion> _answers;
-  // Target LikeliHood mantissas: for better performance, they are usually NOT normalized to probabilities by dividing
-  //   by their sum. For precision and to avoid underflow, mantissas and exponents are stored separately.
-  taNumber *_pTlhMants;
-  // Exponents for the target likelyhoods: x[i] = _pTlhs[i] * pow(2, _pExps[i])
-  TExponent *_pTlhExps;
-  // For each question, the corresponding bit indicates whether it has already been asked in this quiz
-  __m256i *_isQAsked;
-  CpuEngine<taNumber> *_pEngine;
-  TPqaId _activeQuestion = cInvalidPqaId;
-public:
-  explicit CEQuiz(CpuEngine<taNumber> *pEngine);
-  ~CEQuiz();
-  taNumber* GetTlhMants() { return _pTlhMants; }
-  TExponent* GetTlhExps() { return _pTlhExps; }
-  __m256i *GetQAsked() { return _isQAsked; }
-  CpuEngine<taNumber>* GetEngine() { return _pEngine; }
-};
+template<typename taNumber> inline __m256i* CEQuiz<taNumber>::GetQAsked() { return _isQAsked; }
+
+template<typename taNumber> inline CpuEngine<taNumber>* CEQuiz<taNumber>::GetEngine() { return _pEngine; }
+
+template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngine)
+  : _pEngine(pEngine)
+{
+  const EngineDimensions& dims = _pEngine->GetDims();
+  const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
+  const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
+  typedef CpuEngine<taNumber>::TMemPool TMemPool;
+  TMemPool& memPool = _pEngine->GetMemPool();
+
+  // First allocate all the memory so to revert if anything fails.
+  SRPlat::SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, SRPlat::SRSimd::VectsFromBits(nQuestions));
+  SRPlat::SRSmartMPP<TMemPool, taNumber> smppMantissas(memPool, nTargets);
+  SRPlat::SRSmartMPP<TMemPool, TExponent> smppExponents(memPool, nTargets);
+
+  // As all the memory is allocated, safely proceed with finishing construction of CEQuiz object.
+  _pTlhExps = smppExponents.Detach();
+  _pTlhMants = smppMantissas.Detach();
+  _isQAsked = smppIsQAsked.Detach();
+}
+
+template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
+  const EngineDimensions& dims = _pEngine->GetDims();
+  const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
+  const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
+  auto& memPool = _pEngine->GetMemPool();
+  //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
+  //  of targets and questions.
+  memPool.ReleaseMem(_pTlhExps, sizeof(*_pTlhExps) * nTargets);
+  memPool.ReleaseMem(_pTlhMants, sizeof(*_pTlhMants) * nTargets);
+  memPool.ReleaseMem(_isQAsked, SRPlat::SRBitHelper::GetAlignedSizeBytes(nQuestions));
+}
 
 } // namespace ProbQA

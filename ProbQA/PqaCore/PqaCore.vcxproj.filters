@@ -69,9 +69,6 @@
     <ClInclude Include="CECreateQuizOperation.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
-    <ClInclude Include="CEQuiz.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
     <ClInclude Include="CETrainSubtaskAdd.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
@@ -114,6 +111,27 @@
     <ClInclude Include="CEBaseTask.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CpuEngine.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuEngine.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CECreateQuizOperation.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CECreateQuizOperation.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEQuiz.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEQuiz.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEQuiz.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -142,9 +160,6 @@
     </ClCompile>
     <ClCompile Include="PqaErrorParams.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CEQuiz.cpp">
-      <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CpuEngine.cpp">
       <Filter>Source Files\CPU Engine</Filter>

@@ -200,7 +200,11 @@
     <ClInclude Include="BaseCpuEngine.h" />
     <ClInclude Include="CEBaseTask.decl.h" />
     <ClInclude Include="CEBaseTask.h" />
+    <ClInclude Include="CECreateQuizOperation.decl.h" />
+    <ClInclude Include="CECreateQuizOperation.fwd.h" />
     <ClInclude Include="CECreateQuizOperation.h" />
+    <ClInclude Include="CEQuiz.fwd.h" />
+    <ClInclude Include="CEQuiz.decl.h" />
     <ClInclude Include="CEQuiz.h" />
     <ClInclude Include="CETask.fwd.h" />
     <ClInclude Include="CETask.decl.h" />
@@ -208,6 +212,8 @@
     <ClInclude Include="CETrainSubtaskAdd.h" />
     <ClInclude Include="CETrainSubtaskDistrib.h" />
     <ClInclude Include="CETrainTask.h" />
+    <ClInclude Include="CpuEngine.decl.h" />
+    <ClInclude Include="CpuEngine.fwd.h" />
     <ClInclude Include="CpuEngine.h" />
     <ClInclude Include="DoubleNumber.h" />
     <ClInclude Include="GapTracker.h" />
@@ -228,7 +234,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BaseCpuEngine.cpp" />
-    <ClCompile Include="CEQuiz.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CETrainSubtaskDistrib.cpp" />
     <ClCompile Include="CpuEngine.cpp" />
