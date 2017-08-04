@@ -9,8 +9,9 @@
 
 namespace ProbQA {
 
-template<typename taSubtask, typename taCallback> inline PqaError
-BaseCpuEngine::SplitAndRunSubtasks(CETask &task, const size_t nItems, void *pSubtaskMem, const taCallback &onVisit) {
+template<typename taSubtask, typename taCallback> inline PqaError BaseCpuEngine::SplitAndRunSubtasks(
+  CETask &task, const size_t nItems, void *pSubtaskMem, const taCallback &subtaskPlNew)
+{
   taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
   const SRPlat::SRThreadPool::TThreadCount nWorkers = task.GetWorkerCount();
   SRPlat::SRThreadPool::TThreadCount nSubtasks = 0;
@@ -34,7 +35,7 @@ BaseCpuEngine::SplitAndRunSubtasks(CETask &task, const size_t nItems, void *pSub
       nextStart++;
     }
     assert(nextStart <= nItems);
-    onVisit(pSubtasks + nSubtasks, curStart, nextStart);
+    subtaskPlNew(pSubtasks + nSubtasks, curStart, nextStart);
     // For finalization, it's important to increment subtask counter right after another subtask has been
     //   constructed.
     nSubtasks++;

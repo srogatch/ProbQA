@@ -138,6 +138,24 @@
     <ClInclude Include="CETrainTask.decl.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CEUpdatePriorsTask.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEUpdatePriorsTask.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEUpdatePriorsTask.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CEUpdatePriorsSubtaskMul.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskDistrib.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskDistrib.decl.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -170,13 +188,16 @@
     <ClCompile Include="CpuEngine.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
-    <ClCompile Include="CETrainSubtaskDistrib.cpp">
-      <Filter>Source Files\CPU Engine</Filter>
-    </ClCompile>
     <ClCompile Include="CETrainSubtaskAdd.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="BaseCpuEngine.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CECreateQuizOperation.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

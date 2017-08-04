@@ -35,11 +35,11 @@ public: //methods
 
 template<typename taNumber> class CECreateQuizResume : public CECreateQuizOpBase {
 public: // variables
-  const TPqaId _nQuestions;
+  const TPqaId _nAnswered;
   const AnsweredQuestion* const _pAQs;
 
 public: //methods
-  explicit CECreateQuizResume(PqaError& err, const TPqaId nQuestions, const AnsweredQuestion* const pAQs);
+  explicit CECreateQuizResume(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs);
   virtual Operation GetCode() override final;
   void UpdatePriorsWithAnsweredQuestions(CpuEngine<taNumber> *pCe, CEQuiz<taNumber> *pQuiz);
 };

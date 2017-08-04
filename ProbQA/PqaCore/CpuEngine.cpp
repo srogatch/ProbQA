@@ -276,6 +276,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
 
       task.WaitComplete();
 
+      //TODO: perhaps move it out of the reader-writer lock and acquire/release the lock again in 
+      //  CECreateQuizResume<taNumber>::UpdatePriorsWithAnsweredQuestions() after the operations which do not need
+      //  locking.
       //// If it's "resume quiz" operation, update the priors with the questions answered.
       switch (CECreateQuizOpBase::Operation opCode = op.GetCode()) {
       case CECreateQuizOpBase::Operation::Resume:
@@ -308,10 +311,10 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err)
   return CreateQuizInternal(startOp);
 }
 
-template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err, const TPqaId nQuestions,
+template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err, const TPqaId nAnswered,
   const AnsweredQuestion* const pAQs) 
 {
-  CECreateQuizResume<taNumber> resumeOp(err, nQuestions, pAQs);
+  CECreateQuizResume<taNumber> resumeOp(err, nAnswered, pAQs);
   return CreateQuizInternal(resumeOp);
 }
 

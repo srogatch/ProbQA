@@ -1,3 +1,7 @@
+// Probabilistic Question-Answering system
+// @2017 Sarge Rogatch
+// This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
+
 #pragma once
 
 #include "../SRPlatform/Interface/SRAlignedDeleter.h"
@@ -29,6 +33,13 @@ private: // variables
 private: // methods
   static size_t GetPaddedByteCount(const size_t nItems) {
     return (nItems * sizeof(taItem) + _cSimdByteMask) & (~_cSimdByteMask);
+  }
+  // Optimized version for the case when the item size is a power of 2 no larger than SIMD size. If it's larger than
+  //   SIMD size, it would require left shitf rather than right shift for computing the number of vectors.
+  static typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, size_t>
+  GetNVects(const size_t nItems) {
+    static constexpr uint8_t logItemBytes = SRMath::StaticCeilLog2(sizeof(taItem));
+    return SRMath::RShiftRoundUp(nItems, SRSimd::_cLogNBytes - logItemBytes);
   }
   static taItem* ThrowingAllocBytes(const size_t paddedBytes) {
     taItem *pItems = reinterpret_cast<taItem*>(_mm_malloc(paddedBytes, sizeof(__m256i)));
@@ -133,6 +144,7 @@ public: // methods
     assert(iStart <= iLim);
     size_t nVects = iLim - iStart;
     __m256i *p = reinterpret_cast<__m256i *>(_pItems + iStart);
+    const __m256i& vect = *reinterpret_cast<const __m256i*>(&item);
     for (; nVects > 0; nVects--, p++) {
       taCache ? _mm256_store_si256(p, vect) : _mm256_stream_si256(p, vect);
     }
@@ -143,7 +155,7 @@ public: // methods
 
   template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0>
   FillAll(const taItem& item) {
-    size_t nVects = GetPaddedByteCount(_count) >> SRSimd::_cLogNBytes;
+    size_t nVects = GetNVects(_count);
     __m256i *p = reinterpret_cast<__m256i *>(_pItems);
     const __m256i vect = SRUtils::Set1(item);
     for (; nVects > 0; nVects--, p++) {

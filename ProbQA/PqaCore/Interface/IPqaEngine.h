@@ -24,7 +24,7 @@ public:
   virtual TPqaId StartQuiz(PqaError& err) = 0;
   // Start a new quiz with the given answers applied.
   // Returns quiz ID.
-  virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nQuestions, const AnsweredQuestion* const pAQs) = 0;
+  virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs) = 0;
   // Returns the ID of the next question to ask. If this method is called without RecordAnswer(), then the active
   //   question is skipped.
   // Returns -1 on error (e.g. when maintenance in progress or when out of questions).

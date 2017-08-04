@@ -53,7 +53,7 @@ protected: // methods
   explicit BaseCpuEngine(const EngineDefinition& engDef);
 
   template<typename taSubtask, typename taCallback> PqaError SplitAndRunSubtasks(CETask &task, const size_t nItems,
-    void *pSubtaskMem, const taCallback &onVisit);
+    void *pSubtaskMem, const taCallback &subtaskPlNew);
   // taSubtask must have a constructor taking 2 arguments: TTask and worker ID.
   template<typename taSubtask> PqaError RunWorkerOnlySubtasks(typename taSubtask::TTask &task, void *pSubtaskMem);
 
