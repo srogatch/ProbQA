@@ -14,7 +14,7 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<> void CECreateQuizResume<DoubleNumber>::UpdatePriorsWithAnsweredQuestions(
+template<> void CECreateQuizResume<DoubleNumber>::ApplyAnsweredQuestions(
   CpuEngine<DoubleNumber> *pCe, CEQuiz<DoubleNumber> *pQuiz)
 {
   //TODO: implement
@@ -50,9 +50,20 @@ template<> void CECreateQuizResume<DoubleNumber>::UpdatePriorsWithAnsweredQuesti
   const EngineDimensions& dims = pCe->GetDims();
   const size_t nVects = SRSimd::VectsFromComps<double>(dims._nTargets);
   const SRThreadPool::TThreadCount nWorkers = pCe->GetWorkers().GetWorkerCount();
-  CEUpdatePriorsTask<DoubleNumber> task(pCe, pQuiz, _nAnswered, _pAQs);
   const size_t sizeWithSubtasks = sizeof(CEUpdatePriorsSubtaskMul<DoubleNumber>) * nWorkers;
-  SRSmartMPP<CpuEngine<DoubleNumber>::TMemPool, uint8_t> commonBuf(pCe->GetMemPool(), sizeWithSubtasks);
+  SRSmartMPP<CpuEngine<DoubleNumber>::TMemPool, uint8_t> commonBuf(pCe->GetMemPool(),
+    /* This assumes that the subtasks end with the buffer end. */ sizeWithSubtasks);
+  CEUpdatePriorsTask<DoubleNumber> task(pCe, pQuiz, _nAnswered, _pAQs, CalcVectsInCache());
+
+  pCe->SplitAndRunSubtasksSlim<CEUpdatePriorsSubtaskMul<DoubleNumber>>(task, nVects,
+    /* This assumes that the subtasks are at the beginning of the buffer. */ commonBuf.Get(),
+    [&](CEUpdatePriorsSubtaskMul<DoubleNumber> *pCurSt, const size_t curStart, const size_t nextStart)
+  {
+    new (pCurSt) CEUpdatePriorsSubtaskMul<DoubleNumber>(&task, curStart, nextStart);
+  });
+
+  //TODO: finally apply _nAnswered and _pAQs to pQuiz->_isQAsked, pQuiz->_answers and maybe also update
+  //  pQuiz->_activeQuestion .
 }
 
 template class CECreateQuizResume<DoubleNumber>;

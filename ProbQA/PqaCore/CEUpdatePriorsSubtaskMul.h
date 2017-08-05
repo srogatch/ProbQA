@@ -10,11 +10,14 @@
 namespace ProbQA {
 
 template<typename taNumber> class CEUpdatePriorsSubtaskMul : public SRPlat::SRBaseSubtask {
-  const TPqaId _iFirstTarget;
-  const TPqaId _iLimTarget;
+  const TPqaId _iFirstVT; // first vector of targets
+  const TPqaId _iLimVT; // limit vector of targets
+
+private: // methods
+  template<bool taCache> void RunInternal(const CEUpdatePriorsTask<taNumber>& task);
 
 public: // methods
-  CEUpdatePriorsSubtaskMul(CEUpdatePriorsTask<taNumber> *pTask, const TPqaId iFirstTarget, const TPqaId iLimTarget);
+  CEUpdatePriorsSubtaskMul(CEUpdatePriorsTask<taNumber> *pTask, const TPqaId iFirstVT, const TPqaId iLimVT);
   virtual void Run() override final;
 };
 

@@ -41,6 +41,7 @@
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRCast.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
+#include "../SRPlatform/Interface/SRCpuInfo.h"
 #include "../SRPlatform/Interface/SRCriticalSection.h"
 #include "../SRPlatform/Interface/SRDefaultLogger.h"
 #include "../SRPlatform/Interface/SRException.h"

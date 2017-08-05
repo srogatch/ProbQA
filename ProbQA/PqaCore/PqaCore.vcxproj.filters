@@ -156,6 +156,9 @@
     <ClInclude Include="CETrainSubtaskDistrib.decl.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CEBaseTask.fwd.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

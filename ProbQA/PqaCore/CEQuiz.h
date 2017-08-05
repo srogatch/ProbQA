@@ -10,14 +10,14 @@
 
 namespace ProbQA {
 
-template<typename taNumber> inline taNumber* CEQuiz<taNumber>::GetTlhMants() { return _pTlhMants; }
+template<typename taNumber> inline taNumber* CEQuiz<taNumber>::GetTlhMants() const { return _pTlhMants; }
 
-template<typename taNumber> inline typename CEQuiz<taNumber>::TExponent* CEQuiz<taNumber>::GetTlhExps()
+template<typename taNumber> inline typename CEQuiz<taNumber>::TExponent* CEQuiz<taNumber>::GetTlhExps() const
 { return _pTlhExps; }
 
-template<typename taNumber> inline __m256i* CEQuiz<taNumber>::GetQAsked() { return _isQAsked; }
+template<typename taNumber> inline __m256i* CEQuiz<taNumber>::GetQAsked() const { return _isQAsked; }
 
-template<typename taNumber> inline CpuEngine<taNumber>* CEQuiz<taNumber>::GetEngine() { return _pEngine; }
+template<typename taNumber> inline CpuEngine<taNumber>* CEQuiz<taNumber>::GetEngine() const { return _pEngine; }
 
 template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngine)
   : _pEngine(pEngine)

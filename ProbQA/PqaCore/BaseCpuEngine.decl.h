@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../PqaCore/BaseCpuEngine.fwd.h"
+#include "../PqaCore/CEBaseTask.fwd.h"
 #include "../PqaCore/CETask.fwd.h"
 #include "../PqaCore/Interface/IPqaEngine.h"
 #include "../PqaCore/GapTracker.h"
@@ -52,11 +53,6 @@ protected: // methods
 
   explicit BaseCpuEngine(const EngineDefinition& engDef);
 
-  template<typename taSubtask, typename taCallback> PqaError SplitAndRunSubtasks(CETask &task, const size_t nItems,
-    void *pSubtaskMem, const taCallback &subtaskPlNew);
-  // taSubtask must have a constructor taking 2 arguments: TTask and worker ID.
-  template<typename taSubtask> PqaError RunWorkerOnlySubtasks(typename taSubtask::TTask &task, void *pSubtaskMem);
-
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
   TMemPool& GetMemPool() { return _memPool; }
@@ -64,6 +60,17 @@ public: // Internal interface methods
 
   const EngineDimensions& GetDims() const { return _dims; }
   const GapTracker<TPqaId>& GetQuestionGaps() const { return _questionGaps; }
+
+  //// subtaskPlNew must take 3 arguments: subtask pointer, index of the first item and index of the limit item
+  template<typename taSubtask, typename taCallback> PqaError SplitAndRunSubtasks(CETask &task, const size_t nItems,
+    void *pSubtaskMem, const taCallback &subtaskPlNew);
+  // The slim version doesn't need CETask (just CEBaseTask is enough), doesn't report a PqaError (because CEBaseTask
+  //   doesn't have it), and uses thread pool's worker count rather than task's worker count.
+  template<typename taSubtask, typename taCallback> void SplitAndRunSubtasksSlim(CEBaseTask &task,
+    const size_t nItems, void *pSubtaskMem, const taCallback &subtaskPlNew);
+
+  // taSubtask must have a constructor taking 2 arguments: TTask and worker ID.
+  template<typename taSubtask> PqaError RunWorkerOnlySubtasks(typename taSubtask::TTask &task, void *pSubtaskMem);
 };
 
 } // namespace ProbQA

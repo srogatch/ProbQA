@@ -282,7 +282,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
       //// If it's "resume quiz" operation, update the priors with the questions answered.
       switch (CECreateQuizOpBase::Operation opCode = op.GetCode()) {
       case CECreateQuizOpBase::Operation::Resume:
-        static_cast<CECreateQuizResume<taNumber>&>(op).UpdatePriorsWithAnsweredQuestions(this, task._pQuiz);
+        static_cast<CECreateQuizResume<taNumber>&>(op).ApplyAnsweredQuestions(this, task._pQuiz);
         break;
       case CECreateQuizOpBase::Operation::Start:
         // Do nothing

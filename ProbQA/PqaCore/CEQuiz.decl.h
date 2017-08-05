@@ -28,10 +28,10 @@ private: // variables
 public:
   explicit CEQuiz(CpuEngine<taNumber> *pEngine);
   ~CEQuiz();
-  taNumber* GetTlhMants();
-  TExponent* GetTlhExps();
-  __m256i* GetQAsked();
-  CpuEngine<taNumber>* GetEngine();
+  taNumber* GetTlhMants() const;
+  TExponent* GetTlhExps() const;
+  __m256i* GetQAsked() const;
+  CpuEngine<taNumber>* GetEngine() const;
 };
 
 } // namespace ProbQA

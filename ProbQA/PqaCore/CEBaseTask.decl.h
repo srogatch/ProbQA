@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "../PqaCore/CEBaseTask.fwd.h"
 #include "../PqaCore/BaseCpuEngine.fwd.h"
 
 namespace ProbQA {

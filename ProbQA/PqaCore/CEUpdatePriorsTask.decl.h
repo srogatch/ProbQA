@@ -12,13 +12,15 @@
 namespace ProbQA {
 
 template<typename taNumber> class CEUpdatePriorsTask : public CEBaseTask {
-  CEQuiz<taNumber> *_pQuiz;
+public: // variables
+  const CEQuiz<taNumber> *const _pQuiz;
   const AnsweredQuestion* const _pAQs;
   const TPqaId _nAnswered;
+  const uint32_t _nVectsInCache;
 
-public:
+public: // methods
   CEUpdatePriorsTask(CpuEngine<taNumber> *pCe, CEQuiz<taNumber> *pQuiz, const TPqaId nAnswered,
-    const AnsweredQuestion* const pAQs);
+    const AnsweredQuestion* const pAQs, const uint32_t nVectsInCache);
 };
 
 } // namespace ProbQA

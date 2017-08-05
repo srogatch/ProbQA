@@ -208,6 +208,7 @@
     <ClInclude Include="Interface\SRBitArray.h" />
     <ClInclude Include="Interface\SRCast.h" />
     <ClInclude Include="Interface\SRConditionVariable.h" />
+    <ClInclude Include="Interface\SRCpuInfo.h" />
     <ClInclude Include="Interface\SRCriticalSection.h" />
     <ClInclude Include="Interface\SRException.h" />
     <ClInclude Include="Interface\SRExitCode.h" />

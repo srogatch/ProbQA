@@ -3,6 +3,7 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
+#include "../SRPlatform/Interface/SRCpuInfo.h"
 #include "../SRPlatform/Interface/SRMinimalTask.h"
 #include "../SRPlatform/Interface/SRLambdaSubtask.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"

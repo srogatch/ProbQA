@@ -23,7 +23,7 @@ public:
   }
   template<typename taComp> static size_t VectsFromComps(const size_t nComps) {
     static_assert(sizeof(taComp) <= _cNBytes, "Component must no larger than SIMD vector.");
-    static constexpr size_t logCompBytes = SRMath::StaticCeilLog2(sizeof(taComp));
+    constexpr size_t logCompBytes = SRMath::StaticCeilLog2(sizeof(taComp));
     // SRMath::StaticIsPowOf2() would also work here, but we want to check correctness of logCompBytes too.
     static_assert(sizeof(taComp) == (1 << logCompBytes), "Component size must be exactly a power of 2.");
     return SRMath::RShiftRoundUp(nComps, _cLogNBytes - logCompBytes);
