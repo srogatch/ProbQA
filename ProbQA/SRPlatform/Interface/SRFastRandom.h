@@ -54,7 +54,7 @@ public: // methods
   }
 
   // Generate 4 random numbers at once with AVX2
-  template<> __m256i Generate() {
+  template<> __m256i __vectorcall Generate() {
     __m256i x = _mm256_load_si256(_s+0);
     const __m256i y = _mm256_load_si256(_s+1);
     _mm256_store_si256(_s + 0, y);

@@ -43,15 +43,15 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
       const __m256d *pAdjustments = reinterpret_cast<const __m256d*>(&engine.GetA(task._pAQs[i]._iAnswer,
         task._pAQs[i]._iQuestion, 0));
       for (size_t j = iBlockStart; j < iBlockLim; j++) {
+        //TODO: verify that taCache based branchings are compile-time
         const __m256d oldMants = (taCache ? _mm256_load_pd(reinterpret_cast<const double*>(pMants + j))
           : _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pMants + j))));
-        const __m256d adjs = (taCache ? _mm256_load_pd(reinterpret_cast<const double*>(pAdjustments + j))
-          : _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pAdjustments + j))));
+        const __m256d adjs = _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(
+          pAdjustments + j)));
         const __m256d product = _mm256_mul_pd(oldMants, adjs);
         const __m256i prodExps = _mm256_srli_epi64(_mm256_and_si256(gDoubleExpMask, _mm256_castpd_si256(product)), 52);
         const __m256i oldExps = (taCache ? _mm256_load_si256(pExps + j) : _mm256_stream_load_si256(pExps + j));
         const __m256i newExps = _mm256_add_epi64(prodExps, oldExps);
-        //TODO: verify that the branchings below are compile-time
         if (taCache) {
           _mm256_store_si256(pExps + j, newExps);
         } else {
@@ -65,6 +65,20 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
           _mm256_stream_pd(reinterpret_cast<double*>(pMants + j), newMants);
         }
       }
+    }
+    if (taCache) {
+      const size_t nBytes = (iBlockLim - iBlockStart) << SRSimd::_cLogNBytes;
+      // The bounds may be used in the next block or by another thread.
+      if (iBlockStart > SRCast::ToSizeT(_iFirstVT)) {
+        // Can flush left because it's for the current thread only and has been processed.
+        SRUtils::FlushCache<true, false>(pMants + iBlockStart, nBytes);
+        SRUtils::FlushCache<true, false>(pExps + iBlockStart, nBytes);
+      } else {
+        // Can't flush left because another thread may be using it
+        SRUtils::FlushCache<false, false>(pMants + iBlockStart, nBytes);
+        SRUtils::FlushCache<false, false>(pExps + iBlockStart, nBytes);
+      }
+      _mm_sfence();
     }
     if (iBlockLim >= SRCast::ToSizeT(_iLimVT)) {
       break;

@@ -8,8 +8,18 @@
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRExitCode.h"
+#include "../SRPlatform/Interface/SRCpuInfo.h"
 
 namespace SRPlat {
+
+extern "C" {
+
+// pFirstCl and pLimCl must be cache-line-aligned pointers, so that the distance between them is a multiple of clSize .
+// clSize is the CPU cache line size passed here to simplify assembly code.
+// This function always flushes pFirstCl, then checks whether the address (plus cache line size) exceeds pLimCl .
+SRPLATFORM_API void __fastcall SRFlushCache(const void *pFirstCl, const void *pLimCl, const size_t clSize);
+
+}
 
 class SRPLATFORM_API SRUtils {
 public: // Methods
@@ -24,12 +34,17 @@ public: // Methods
     const void *pLoad, size_t nVects);
   // Broadcast item to all components of 256-bit vector register.
   template<typename taItem> inline static typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i>
-  Set1(const taItem& item);
+  __vectorcall Set1(const taItem& item);
   //NOTE: it does nothing if p is perfectly aligned for SIMD.
-  template<size_t taGran> inline static void* FillPrologue(void *p, const __m256i vect);
+  template<size_t taGran> inline static void* __vectorcall FillPrologue(void *p, const __m256i vect);
   // pLim must point just behind the end of the region to fill.
   //NOTE: it does nothing if pLim is perfectly aligned for SIMD.
-  template<size_t taGran> inline static void* FillEpilogue(void *pLim, const __m256i vect);
+  template<size_t taGran> inline static void* __vectorcall FillEpilogue(void *pLim, const __m256i vect);
+
+  // taFlushLeft and taFlushRight indicate whether the partial cache lines in the beginning and in the end of the array
+  //   should be flushed too.
+  //NOTE: a fence is needed after a (series of) call(s) to this function.
+  template<bool taFlushLeft, bool taFlushRight> inline static void FlushCache(const void *pStart, const size_t nBytes);
 };
 
 template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static 
@@ -150,6 +165,44 @@ template<size_t taGran> inline static void* SRUtils::FillEpilogue(void *pLim, co
     }
   }
   return pLim;
+}
+
+template<bool taFlushLeft, bool taFlushRight> inline void SRUtils::FlushCache(const void *pStart, const size_t nBytes) {
+  uintptr_t addrStart = reinterpret_cast<uintptr_t>(pStart);
+  uintptr_t addrLim = addrStart + nBytes;
+  const uintptr_t clStart = addrStart & SRCpuInfo::_cacheLineMask;
+  const uintptr_t clLim = addrLim & SRCpuInfo::_cacheLineMask;
+  if (clStart == clLim) {
+    // The whole array fits one cache line
+#pragma warning( push )
+#pragma warning( disable : 4127 ) // conditional expression is constant
+    if (taFlushRight && (taFlushLeft || (addrStart == clStart))) {
+#pragma warning( pop )
+      //TODO: _mm_clflushopt() should be faster when available
+      _mm_clflush(reinterpret_cast<const void*>(clStart));
+    }
+    return;
+  }
+  assert(clStart <= addrStart);
+  if (clStart != addrStart) {
+    if (taFlushLeft) {
+      addrStart = clStart;
+    } else {
+      addrStart = clStart + SRCpuInfo::_cacheLineBytes;
+    }
+  }
+  assert(clLim <= addrLim);
+  if (clLim != addrLim) {
+    if (taFlushRight) {
+      addrLim = clLim + SRCpuInfo::_cacheLineBytes;
+    } else {
+      addrLim = clLim;
+    }
+  }
+  if (addrStart < addrLim) {
+    SRFlushCache(reinterpret_cast<const void*>(addrStart), reinterpret_cast<const void*>(addrLim),
+      SRCpuInfo::_cacheLineBytes);
+  }
 }
 
 } // namespace SRPlat

@@ -114,9 +114,6 @@
     <ClInclude Include="Interface\SRAlignedDeleter.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\SRCast.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\SRSimd.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
@@ -154,6 +151,9 @@
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
     <ClInclude Include="Interface\SRCpuInfo.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRCast.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
   </ItemGroup>
@@ -215,5 +215,15 @@
     <ClCompile Include="SubtaskCompleter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="SRFlushCache.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="SRPlatformDll.def">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -108,7 +108,7 @@ public: // methods
   }
 
   template<bool taCache> typename std::enable_if_t<
-    sizeof(__m256i) % sizeof(taItem) == 0 && (sizeof(__m256i) > sizeof(taItem))>
+    sizeof(__m256i) % sizeof(taItem) == 0 && (sizeof(__m256i) > sizeof(taItem))> __vectorcall
   Fill(const taItem& item, size_t iStart, size_t iLim)
   {
     assert(iStart <= iLim);
@@ -139,7 +139,7 @@ public: // methods
   }
 
   // Optimized method for sizeof(__m256i) == sizeof(taItem)
-  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) == sizeof(taItem)>
+  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) == sizeof(taItem)> __vectorcall
   Fill(const taItem& item, size_t iStart, size_t iLim) {
     assert(iStart <= iLim);
     size_t nVects = iLim - iStart;
@@ -153,7 +153,7 @@ public: // methods
     }
   }
 
-  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0>
+  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0> __vectorcall
   FillAll(const taItem& item) {
     size_t nVects = GetNVects(_count);
     __m256i *p = reinterpret_cast<__m256i *>(_pItems);
