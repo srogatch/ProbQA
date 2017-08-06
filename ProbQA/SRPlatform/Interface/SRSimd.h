@@ -21,6 +21,7 @@ public:
   static size_t VectsFromBits(const size_t nBits) {
     return SRMath::RShiftRoundUp(nBits, _cLogNBits);
   }
+
   template<typename taComp> static size_t VectsFromComps(const size_t nComps) {
     static_assert(sizeof(taComp) <= _cNBytes, "Component must no larger than SIMD vector.");
     constexpr size_t logCompBytes = SRMath::StaticCeilLog2(sizeof(taComp));
@@ -28,6 +29,33 @@ public:
     static_assert(sizeof(taComp) == (1 << logCompBytes), "Component size must be exactly a power of 2.");
     return SRMath::RShiftRoundUp(nComps, _cLogNBytes - logCompBytes);
   }
+
+  template<typename taResult, typename taParam> static taResult __vectorcall Cast(const taParam par);
+
+  template<bool taCache, typename taVect> static std::enable_if_t<sizeof(taVect)==sizeof(__m256i), taVect> __vectorcall
+  Load(const taVect *const p)
+  {
+    const __m256i *const genP = reinterpret_cast<const __m256i*>(p);
+    //TODO: verify that taCache based branchings are compile-time
+    const __m256i ans = (taCache ? _mm256_load_si256(genP) : _mm256_stream_load_si256(genP));
+    return Cast<taVect>(ans);
+  }
+
+  template<bool taCache, typename taVect> static std::enable_if_t<sizeof(taVect)==sizeof(__m256i)> __vectorcall
+  Store(taVect *p, const taVect v)
+  {
+    __m256i *genP = reinterpret_cast<__m256i*>(p);
+    //TODO: verify that this casting turns into no-op in assembly, so that the value just stays in the register
+    const __m256i genV = Cast<__m256i>(v);
+    taCache ? _mm256_store_si256(genP, genV) : _mm256_stream_si256(genP, genV);
+  }
 };
+
+template<> inline __m256d SRSimd::Cast(const __m256i par) {
+  return _mm256_castsi256_pd(par);
+}
+template<> inline __m256i SRSimd::Cast(const __m256d par) {
+  return _mm256_castpd_si256(par);
+}
 
 } // namespace SRPlat

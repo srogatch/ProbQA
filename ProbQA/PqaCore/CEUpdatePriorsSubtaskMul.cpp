@@ -40,30 +40,26 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
   for(;;) {
     const size_t iBlockLim = std::min(SRCast::ToSizeT(_iLimVT), iBlockStart + nVectsInBlock);
     for (size_t i = 0; i < SRCast::ToSizeT(task._nAnswered); i++) {
-      const __m256d *pAdjustments = reinterpret_cast<const __m256d*>(&engine.GetA(task._pAQs[i]._iAnswer,
-        task._pAQs[i]._iQuestion, 0));
+      const AnsweredQuestion& aq = task._pAQs[i];
+      const __m256d *pAdjMuls = reinterpret_cast<const __m256d*>(&engine.GetA(aq._iAnswer, aq._iQuestion, 0));
+      const __m256d *pAdjDivs = reinterpret_cast<const __m256d*>(&engine.GetD(aq._iQuestion, 0));
       for (size_t j = iBlockStart; j < iBlockLim; j++) {
+        const __m256d adjMuls = SRSimd::Load<false>(pAdjMuls + j);
+        const __m256d adjDivs = SRSimd::Load<false>(pAdjDivs + j);
+        // P(answer(aq._iQuestion)==aq._iAnswer GIVEN target==(j0,j1,j2,j3))
+        const __m256d P_qa_given_t = _mm256_div_pd(adjMuls, adjDivs);
+
         //TODO: verify that taCache based branchings are compile-time
-        const __m256d oldMants = (taCache ? _mm256_load_pd(reinterpret_cast<const double*>(pMants + j))
-          : _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(pMants + j))));
-        const __m256d adjs = _mm256_castsi256_pd(_mm256_stream_load_si256(reinterpret_cast<const __m256i*>(
-          pAdjustments + j)));
-        const __m256d product = _mm256_mul_pd(oldMants, adjs);
-        const __m256i prodExps = _mm256_srli_epi64(_mm256_and_si256(gDoubleExpMask, _mm256_castpd_si256(product)), 52);
-        const __m256i oldExps = (taCache ? _mm256_load_si256(pExps + j) : _mm256_stream_load_si256(pExps + j));
-        const __m256i newExps = _mm256_add_epi64(prodExps, oldExps);
-        if (taCache) {
-          _mm256_store_si256(pExps + j, newExps);
-        } else {
-          _mm256_stream_si256(pExps + j, newExps);
-        }
+        const __m256d oldMants = SRSimd::Load<taCache>(pMants + j);
+        const __m256d product = _mm256_mul_pd(oldMants, P_qa_given_t);
         const __m256d newMants = _mm256_or_pd(_mm256_castsi256_pd(gDoubleExp0),
           _mm256_andnot_pd(_mm256_castsi256_pd(gDoubleExpMask), product));
-        if (taCache) {
-          _mm256_store_pd(reinterpret_cast<double*>(pMants + j), newMants);
-        } else {
-          _mm256_stream_pd(reinterpret_cast<double*>(pMants + j), newMants);
-        }
+        SRSimd::Store<taCache>(pMants + j, newMants);
+
+        const __m256i prodExps = _mm256_srli_epi64(_mm256_and_si256(gDoubleExpMask, _mm256_castpd_si256(product)), 52);
+        const __m256i oldExps = SRSimd::Load<taCache>(pExps+j);
+        const __m256i newExps = _mm256_add_epi64(prodExps, oldExps);
+        SRSimd::Store<taCache>(pExps + j, newExps);
       }
     }
     if (taCache) {

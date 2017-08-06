@@ -1,3 +1,4 @@
+; http://lallouslab.net/2016/01/11/introduction-to-writing-x64-assembly-in-visual-studio/
 _DATA SEGMENT
 
 _DATA ENDS
@@ -6,6 +7,7 @@ _TEXT SEGMENT
 
 PUBLIC SRFlushCache
 
+; https://docs.microsoft.com/en-us/cpp/build/overview-of-x64-calling-conventions
 ; RCX=pFirstCl
 ; RDX=pLimCl
 ; R8=clSize
