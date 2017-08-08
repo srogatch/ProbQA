@@ -115,7 +115,7 @@ public: // methods
     // Can't promote to a class-level constant because it's only applicable when item size is a divisor of SIMD size.
     constexpr size_t cnItemsPerSimd = sizeof(__m256i) / sizeof(item);
     constexpr size_t cMaskIPS = cnItemsPerSimd - 1;
-    static_assert((cnItemsPerSimd & cMaskIPS) == 0, "Number of items must be a power of 2.");
+    static_assert((cnItemsPerSimd & cMaskIPS) == 0, "Number of items per SIMD must be a power of 2.");
 
     const __m256i vect = SRUtils::Set1(item);
     const size_t iVStart = (iStart + cMaskIPS) & (~cMaskIPS);

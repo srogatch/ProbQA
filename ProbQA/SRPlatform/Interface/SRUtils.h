@@ -170,8 +170,8 @@ template<size_t taGran> inline static void* SRUtils::FillEpilogue(void *pLim, co
 template<bool taFlushLeft, bool taFlushRight> inline void SRUtils::FlushCache(const void *pStart, const size_t nBytes) {
   uintptr_t addrStart = reinterpret_cast<uintptr_t>(pStart);
   uintptr_t addrLim = addrStart + nBytes;
-  const uintptr_t clStart = addrStart & SRCpuInfo::_cacheLineMask;
-  const uintptr_t clLim = addrLim & SRCpuInfo::_cacheLineMask;
+  const uintptr_t clStart = addrStart & ~SRCpuInfo::_cacheLineMask;
+  const uintptr_t clLim = addrLim & ~SRCpuInfo::_cacheLineMask;
   if (clStart == clLim) {
     // The whole array fits one cache line
 #pragma warning( push )

@@ -17,7 +17,7 @@ namespace ProbQA {
 template<> void CECreateQuizResume<DoubleNumber>::ApplyAnsweredQuestions(
   CpuEngine<DoubleNumber> *pCe, CEQuiz<DoubleNumber> *pQuiz)
 {
-  //TODO: implement
+  //TODO: validate the input (answered questions)
 
   //// Sequential code (single-threaded) for reference
   //NOTE: it may be better to iterate by targets first instead, so to apply all multiplications for the first
