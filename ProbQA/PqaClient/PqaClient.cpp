@@ -142,6 +142,7 @@ void BenchmarkAtomic() {
   thrs.reserve(maxThreads + 1);
 
   for (uint32_t nThreads = 1; nThreads <= maxThreads; nThreads++) {
+    gCounter.store(0, std::memory_order_release);
     auto start = std::chrono::high_resolution_clock::now();
     for (uint32_t i = 0; i < nThreads; i++) {
       thrs.emplace_back(CountingThread);
@@ -155,7 +156,6 @@ void BenchmarkAtomic() {
       (long long)gCounter.load(std::memory_order_acquire));
 
     thrs.clear();
-    gCounter.store(0, std::memory_order_release);
   }
 }
 
@@ -475,6 +475,46 @@ void BenchmarkLambda() {
     (long long)sum);
 }
 
+typedef uint32_t TCacheLineEntry;
+const int64_t cnCacheEntryIncrements = 100 * 1000 * 1000;
+const uint16_t gCacheLineBytes = 64;
+volatile TCacheLineEntry *gpCacheLine = nullptr;
+
+void CacheEntryIncrement(const uint32_t iWorker) {
+  for (int64_t i = 0; i < cnCacheEntryIncrements; i++) {
+    gpCacheLine[iWorker]++;
+  }
+}
+
+void BenchmarkCacheLine() {
+  const uint32_t maxThreads = std::thread::hardware_concurrency();
+  gpCacheLine = reinterpret_cast<TCacheLineEntry*>(_mm_malloc(maxThreads * sizeof(TCacheLineEntry), gCacheLineBytes));
+  std::vector<std::thread> thrs;
+  thrs.reserve(maxThreads + 1);
+
+  for (uint32_t nThreads = 1; nThreads <= maxThreads; nThreads++) {
+    memset(const_cast<TCacheLineEntry*>(gpCacheLine), 0, maxThreads * sizeof(TCacheLineEntry));
+    auto start = std::chrono::high_resolution_clock::now();
+    for (uint32_t i = 0; i < nThreads; i++) {
+      thrs.emplace_back(CacheEntryIncrement, i);
+    }
+    for (uint32_t i = 0; i < nThreads; i++) {
+      thrs[i].join();
+    }
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+    int64_t sum = 0;
+    for (uint32_t i = 0; i < nThreads; i++) {
+      sum += gpCacheLine[i];
+    }
+    printf("Contended cache line: %d threads give %.3lf Ops/sec, sum=%lld\n", (int)nThreads,
+      (nThreads * cnCacheEntryIncrements) / nSec, (long long)sum);
+
+    thrs.clear();
+  }
+  _mm_free(const_cast<TCacheLineEntry*>(gpCacheLine));
+}
+
 int __cdecl main() {
   //std::atomic<double> test1;
   //bool test2 = test1.is_lock_free();
@@ -492,8 +532,10 @@ int __cdecl main() {
   //BenchmarkStdFunctionMemPool();
   //BenchmarkStdFunctionStdAlloc();
   //BenchmarkSubtask();
-  BenchmarkSmallQueue();
-  BenchmarkLambda();
+  //BenchmarkSmallQueue();
+  //BenchmarkLambda();
+
+  BenchmarkCacheLine();
 
   return 0;
 }

@@ -9,6 +9,8 @@
 namespace SRPlat {
 
 class SRSimd {
+  template<typename taResult, typename taParam> struct CastImpl;
+
 public:
   static constexpr uint8_t _cLogNBits = 8; //AVX2, 256 bits, log2(256)=8
   static constexpr uint8_t _cLogNBytes = _cLogNBits - 3;
@@ -30,7 +32,7 @@ public:
     return SRMath::RShiftRoundUp(nComps, _cLogNBytes - logCompBytes);
   }
 
-  template<typename taResult, typename taParam> static taResult __vectorcall Cast(const taParam par);
+  template<typename taResult, typename taParam> static  taResult __vectorcall Cast(const taParam par);
 
   template<bool taCache, typename taVect> static std::enable_if_t<sizeof(taVect)==sizeof(__m256i), taVect> __vectorcall
   Load(const taVect *const p)
@@ -51,11 +53,18 @@ public:
   }
 };
 
-template<> inline __m256d SRSimd::Cast(const __m256i par) {
-  return _mm256_castsi256_pd(par);
-}
-template<> inline __m256i SRSimd::Cast(const __m256d par) {
-  return _mm256_castpd_si256(par);
+template<typename T> struct SRSimd::CastImpl<T,T> {
+  static T DoIt(const T par) { return par; }
+};
+template<> struct SRSimd::CastImpl<__m256d, __m256i> {
+  static __m256d DoIt(const __m256i par) { return _mm256_castsi256_pd(par); }
+};
+template<> struct SRSimd::CastImpl<__m256i, __m256d> {
+  static __m256i DoIt(const __m256d par) { return _mm256_castpd_si256(par); }
+};
+
+template<typename taResult, typename taParam> inline static taResult __vectorcall SRSimd::Cast(const taParam par) {
+  return CastImpl<taResult, taParam>::DoIt(par);
 }
 
 } // namespace SRPlat
