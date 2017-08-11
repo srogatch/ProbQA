@@ -19,6 +19,7 @@ public:
   virtual PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount = 1) = 0;
 
+  //// There must be no concurrent requests on the same quiz. This is not thread-safe.
 #pragma region Regular-only mode operations
   // Returns new quiz ID.
   virtual TPqaId StartQuiz(PqaError& err) = 0;

@@ -281,6 +281,9 @@
       <Project>{66ebbc7d-97c5-4a7e-84d8-623da032f3d3}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Docs\CpuEngineGuidelines.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />

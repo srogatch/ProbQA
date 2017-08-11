@@ -22,6 +22,9 @@
     <Filter Include="Source Files\CPU Engine">
       <UniqueIdentifier>{384f2e33-56f4-4e0f-b073-1fdb96f183d0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{b5ffd68c-1e88-47d2-b6ec-937d77baf86a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -203,5 +206,10 @@
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Docs\CpuEngineGuidelines.txt">
+      <Filter>Docs</Filter>
+    </Text>
   </ItemGroup>
 </Project>

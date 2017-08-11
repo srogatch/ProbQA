@@ -493,7 +493,7 @@ void BenchmarkCacheLine() {
   thrs.reserve(maxThreads + 1);
 
   for (uint32_t nThreads = 1; nThreads <= maxThreads; nThreads++) {
-    memset(const_cast<TCacheLineEntry*>(gpCacheLine), 0, maxThreads * sizeof(TCacheLineEntry));
+    std::memset(const_cast<TCacheLineEntry*>(gpCacheLine), 0, maxThreads * sizeof(TCacheLineEntry));
     auto start = std::chrono::high_resolution_clock::now();
     for (uint32_t i = 0; i < nThreads; i++) {
       thrs.emplace_back(CacheEntryIncrement, i);

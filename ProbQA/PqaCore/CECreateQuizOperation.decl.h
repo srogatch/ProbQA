@@ -23,6 +23,10 @@ public: // variables
 
 public: // methods
   explicit CECreateQuizOpBase(PqaError& err);
+  CECreateQuizOpBase(const CECreateQuizOpBase&) = delete;
+  CECreateQuizOpBase& operator=(const CECreateQuizOpBase&) = delete;
+  CECreateQuizOpBase(CECreateQuizOpBase&&) = delete;
+  CECreateQuizOpBase& operator=(CECreateQuizOpBase&&) = delete;
   virtual Operation GetCode() = 0;
   virtual ~CECreateQuizOpBase();
 };

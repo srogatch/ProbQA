@@ -59,7 +59,7 @@ public:
   PqaError(PqaError&& fellow);
   ~PqaError();
 
-  bool isOk() const { return _code == PqaErrorCode::None; }
+  bool IsOk() const { return _code == PqaErrorCode::None; }
   PqaErrorCode GetCode() const { return _code; }
   IPqaErrorParams* GetParams() const { return _pParams; }
   const SRPlat::SRString& GetMessage() const { return _message; }

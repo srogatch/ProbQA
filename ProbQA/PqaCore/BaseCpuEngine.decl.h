@@ -57,6 +57,7 @@ public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
   TMemPool& GetMemPool() { return _memPool; }
   SRPlat::SRThreadPool& GetWorkers() { return _tpWorkers; }
+  SRPlat::SRReaderWriterSync& GetRws() { return _rws; }
 
   const EngineDimensions& GetDims() const { return _dims; }
   const GapTracker<TPqaId>& GetQuestionGaps() const { return _questionGaps; }

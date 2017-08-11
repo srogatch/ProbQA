@@ -32,6 +32,7 @@ public:
   TExponent* GetTlhExps() const;
   __m256i* GetQAsked() const;
   CpuEngine<taNumber>* GetEngine() const;
+  std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
 };
 
 } // namespace ProbQA

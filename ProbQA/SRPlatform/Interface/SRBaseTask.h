@@ -27,6 +27,9 @@ private: // variables
   SRConditionVariable _isComplete;
 
 public: // methods
+  //NOTE: the destructor doesn't call WaitComplete() for performance reasons (save extra enter/leave CS) and because
+  //  the derived object is already destructed, as well as may some satellite objects handling On*() events. Client
+  //  code must ensure WaitComplete() is called before destructing a task that has subtasks running.
   virtual ~SRBaseTask() { }
 
   void FinalizeSubtask(SRBaseSubtask *pSubtask);

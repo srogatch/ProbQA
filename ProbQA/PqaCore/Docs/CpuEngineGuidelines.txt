@@ -1,0 +1,18 @@
+Optimization priorities:
+  There is often a tradeof between throughput and latency because the implementation that performs the minimum number of
+    operations as a total over all threads (maximum throughput) is often different from implementation that minimizes
+    the time it takes to serve a request (minimum latency). In the other words, minimum step complexity in a parallel
+    algorithm (minimum latency) is often achieved at the expense of increasing the work complexity of the parallel
+    algorithm (i.e. decreasing the throughput), especially compared to the algorithmic complexity of a sequential
+    algorithm achieving the same goal.
+  Things like the constant multiplier of the complexity estimate, as well as CPU cache (e.g. false sharing) and
+    inter-core communication (locking memory addresses) also matter. Furthermore, CPU and DRAM capability in terms
+    of the number of operations per second may differ up to 100 times depending on the DRAM usage pattern. So if an
+    algorithm uses DRAM better, it may be the preferred solution over an algorithm that has better step or work
+    complexity.
+  So taking all the above into account, different optimization strategies should be applied to different pieces of
+    CpuEngine. The general guideline is: for more heavily locked code (e.g. within SRW exclusive lock), optimize its
+    step complexity (minimize latency, thus the duration of holding the lock), even at expense of work complexity
+    (sacrificing the throughput, while the others are unlikely to use the CpuEngine because it's heavily locked).
+    For lightly locked code (e.g. MaintenanceSwitch only, in Regular mode), optimize its work complexity (up to
+    resorting to a single thread) so long as latency stays low enough to be unnoticeable by the user (e.g. 0.1 second).
