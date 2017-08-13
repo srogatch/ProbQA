@@ -16,6 +16,7 @@
 
 // CPU-specific header files
 #include <immintrin.h>
+#include <intrin.h>
 
 // STL
 #pragma warning( push )

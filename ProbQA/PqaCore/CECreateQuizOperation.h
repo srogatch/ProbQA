@@ -12,15 +12,11 @@ inline CECreateQuizOpBase::CECreateQuizOpBase(PqaError& err) : _err(err) { }
 inline CECreateQuizOpBase::~CECreateQuizOpBase() { };
 
 inline CECreateQuizStart::CECreateQuizStart(PqaError& err) : CECreateQuizOpBase(err) { }
-inline CECreateQuizOpBase::Operation CECreateQuizStart::GetCode() { return Operation::Start; }
 
 template<typename taNumber> inline CECreateQuizResume<taNumber>::CECreateQuizResume(
   PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs)
   : CECreateQuizOpBase(err), _nAnswered(nAnswered), _pAQs(pAQs)
 { }
-
-template<typename taNumber> inline CECreateQuizOpBase::Operation CECreateQuizResume<taNumber>::GetCode()
-{ return Operation::Resume; }
 
 template<typename taNumber> inline std::enable_if_t<SRPlat::SRSimd::_cNBytes % sizeof(taNumber) == 0, uint32_t>
 CECreateQuizResume<taNumber>::CalcVectsInCache()

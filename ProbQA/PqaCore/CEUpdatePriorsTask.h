@@ -8,9 +8,9 @@
 
 namespace ProbQA {
 
-template<typename taNumber> inline CEUpdatePriorsTask<taNumber>::CEUpdatePriorsTask(CpuEngine<taNumber> *pCe,
-  CEQuiz<taNumber> *pQuiz, const TPqaId nAnswered, const AnsweredQuestion* const pAQs, const uint32_t nVectsInCache)
-  : CEBaseTask(pCe), _pQuiz(pQuiz), _nAnswered(nAnswered), _pAQs(pAQs), _nVectsInCache(nVectsInCache)
+template<typename taNumber> inline CEUpdatePriorsTask<taNumber>::CEUpdatePriorsTask(CpuEngine<taNumber> &engine,
+  CEQuiz<taNumber> &quiz, const TPqaId nAnswered, const AnsweredQuestion* const pAQs, const uint32_t nVectsInCache)
+  : CEBaseTask(engine), _pQuiz(&quiz), _nAnswered(nAnswered), _pAQs(pAQs), _nVectsInCache(nVectsInCache)
 { }
 
 } // namespace ProbQA

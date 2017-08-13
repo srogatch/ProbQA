@@ -20,7 +20,7 @@
 #define SR_COMBINE2(x, y) x ## y
 #define SR_COMBINE(x, y) SR_COMBINE2(x, y)
 
-#define SR_FILE_LINE __FILE__ "(" SR_LINE_STRING "):"
+#define SR_FILE_LINE __FILE__ "(" SR_LINE_STRING "): "
 
 #define SR_LOG_WINFAIL(severityVar, loggerVar, lastErrVar) do { \
   (loggerVar)->Log( \

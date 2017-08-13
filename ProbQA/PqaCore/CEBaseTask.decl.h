@@ -13,9 +13,9 @@ class CEBaseTask : public SRPlat::SRBaseTask {
   BaseCpuEngine *_pCe;
 
 public: // variables
-  explicit CEBaseTask(BaseCpuEngine *pCe);
+  explicit CEBaseTask(BaseCpuEngine &engine);
   virtual SRPlat::SRThreadPool& GetThreadPool() const override final;
-  BaseCpuEngine* GetEngine() const;
+  BaseCpuEngine& GetBaseEngine() const;
 };
 
 } // namespace ProbQA

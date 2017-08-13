@@ -9,6 +9,8 @@
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRExitCode.h"
 #include "../SRPlatform/Interface/SRCpuInfo.h"
+#include "../SRPlatform/Interface/SRSimd.h"
+#include "SRMacros.h"
 
 namespace SRPlat {
 
@@ -45,6 +47,9 @@ public: // Methods
   //   should be flushed too.
   //NOTE: a fence is needed after a (series of) call(s) to this function.
   template<bool taFlushLeft, bool taFlushRight> inline static void FlushCache(const void *pStart, const size_t nBytes);
+
+  // paddedBytes must be a multiple of SIMD size
+  static void* ThrowingSimdAlloc(const size_t paddedBytes);
 };
 
 template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static 
@@ -203,6 +208,15 @@ template<bool taFlushLeft, bool taFlushRight> inline void SRUtils::FlushCache(co
     SRFlushCache(reinterpret_cast<const void*>(addrStart), reinterpret_cast<const void*>(addrLim),
       SRCpuInfo::_cacheLineBytes);
   }
+}
+
+inline void* SRUtils::ThrowingSimdAlloc(const size_t paddedBytes) {
+  assert(nBytes % SRSimd::_cNBytes == 0);
+  void *ans = _mm_malloc(paddedBytes, SRSimd::_cNBytes);
+  if (ans == nullptr) {
+    throw SRException(SRMessageBuilder(SR_FILE_LINE " failed to allocate ")(paddedBytes)(" bytes.").GetOwnedSRString());
+  }
+  return ans;
 }
 
 } // namespace SRPlat

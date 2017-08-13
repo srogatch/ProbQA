@@ -8,9 +8,9 @@
 
 namespace ProbQA {
 
-template<typename taNumber> inline CETrainTask<taNumber>::CETrainTask(CpuEngine<taNumber> *pCe,
+template<typename taNumber> inline CETrainTask<taNumber>::CETrainTask(CpuEngine<taNumber> &ce,
   const SRPlat::SRThreadPool::TThreadCount nWorkers, const TPqaId iTarget, const AnsweredQuestion* const pAQs)
-  : CETask(pCe, nWorkers), _iPrev(0), _iTarget(iTarget), _pAQs(pAQs)
+  : CETask(ce, nWorkers), _iPrev(0), _iTarget(iTarget), _pAQs(pAQs)
 { }
 
 } // namespace ProbQA

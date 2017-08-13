@@ -19,7 +19,7 @@ public: // variables
   const uint32_t _nVectsInCache;
 
 public: // methods
-  CEUpdatePriorsTask(CpuEngine<taNumber> *pCe, CEQuiz<taNumber> *pQuiz, const TPqaId nAnswered,
+  CEUpdatePriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz, const TPqaId nAnswered,
     const AnsweredQuestion* const pAQs, const uint32_t nVectsInCache);
 };
 

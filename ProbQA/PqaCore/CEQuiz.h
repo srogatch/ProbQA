@@ -10,45 +10,61 @@
 
 namespace ProbQA {
 
-template<typename taNumber> inline taNumber* CEQuiz<taNumber>::GetTlhMants() const { return _pTlhMants; }
+//////////////////////////////// CEBaseQuiz implementation /////////////////////////////////////////////////////////////
 
-template<typename taNumber> inline typename CEQuiz<taNumber>::TExponent* CEQuiz<taNumber>::GetTlhExps() const
-{ return _pTlhExps; }
-
-template<typename taNumber> inline __m256i* CEQuiz<taNumber>::GetQAsked() const { return _isQAsked; }
-
-template<typename taNumber> inline CpuEngine<taNumber>* CEQuiz<taNumber>::GetEngine() const { return _pEngine; }
-
-template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngine)
-  : _pEngine(pEngine)
-{
+inline CEBaseQuiz::CEBaseQuiz(BaseCpuEngine *pEngine) : _pEngine(pEngine) {
   const EngineDimensions& dims = _pEngine->GetDims();
   const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
-  typedef CpuEngine<taNumber>::TMemPool TMemPool;
+  typedef BaseCpuEngine::TMemPool TMemPool;
   TMemPool& memPool = _pEngine->GetMemPool();
 
   // First allocate all the memory so to revert if anything fails.
   SRPlat::SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, SRPlat::SRSimd::VectsFromBits(nQuestions));
-  SRPlat::SRSmartMPP<TMemPool, taNumber> smppMantissas(memPool, nTargets);
   SRPlat::SRSmartMPP<TMemPool, TExponent> smppExponents(memPool, nTargets);
 
-  // As all the memory is allocated, safely proceed with finishing construction of CEQuiz object.
+  // As all the memory is allocated, safely proceed with finishing construction of CEBaseQuiz object.
   _pTlhExps = smppExponents.Detach();
-  _pTlhMants = smppMantissas.Detach();
   _isQAsked = smppIsQAsked.Detach();
 }
 
-template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
-  const EngineDimensions& dims = _pEngine->GetDims();
+inline CEBaseQuiz::~CEBaseQuiz() {
+  const EngineDimensions& dims = GetBaseEngine()->GetDims();
   const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
-  auto& memPool = _pEngine->GetMemPool();
+  auto& memPool = GetBaseEngine()->GetMemPool();
   //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
   //  of targets and questions.
   memPool.ReleaseMem(_pTlhExps, sizeof(*_pTlhExps) * nTargets);
-  memPool.ReleaseMem(_pTlhMants, sizeof(*_pTlhMants) * nTargets);
   memPool.ReleaseMem(_isQAsked, SRPlat::SRBitHelper::GetAlignedSizeBytes(nQuestions));
+}
+
+//////////////////////////////// CEQuiz implementation /////////////////////////////////////////////////////////////////
+
+template<typename taNumber> inline CpuEngine<taNumber>* CEQuiz<taNumber>::GetEngine() const {
+  return static_cast<CpuEngine<taNumber>*>(GetBaseEngine());
+}
+
+template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngine) : CEBaseQuiz(pEngine) {
+  const EngineDimensions& dims = pEngine->GetDims();
+  const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
+  typedef typename CpuEngine<taNumber>::TMemPool TMemPool;
+  TMemPool& memPool = pEngine->GetMemPool();
+
+  // First allocate all the memory so to revert if anything fails.
+  SRPlat::SRSmartMPP<TMemPool, taNumber> smppMantissas(memPool, nTargets);
+
+  // As all the memory is allocated, safely proceed with finishing construction of CEQuiz object.
+  _pTlhMants = smppMantissas.Detach();
+}
+
+template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
+  const EngineDimensions& dims = GetBaseEngine()->GetDims();
+  const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
+  auto& memPool = GetBaseEngine()->GetMemPool();
+  //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
+  //  of targets.
+  memPool.ReleaseMem(_pTlhMants, sizeof(*_pTlhMants) * nTargets);
 }
 
 } // namespace ProbQA

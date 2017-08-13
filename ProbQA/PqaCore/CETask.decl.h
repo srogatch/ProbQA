@@ -21,7 +21,7 @@ private: // variables
   const SRPlat::SRThreadPool::TThreadCount _nWorkers;
 
 public: // variables
-  explicit CETask(BaseCpuEngine *pCe, const SRPlat::SRThreadPool::TThreadCount nWorkers);
+  explicit CETask(BaseCpuEngine &bce, const SRPlat::SRThreadPool::TThreadCount nWorkers);
   // This method returns the worker count allocated for the current task. The thread pool may have a different worker
   //   count.
   SRPlat::SRThreadPool::TThreadCount GetWorkerCount() const;

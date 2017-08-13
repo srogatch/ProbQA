@@ -9,8 +9,8 @@
 
 namespace ProbQA {
 
-inline CETask::CETask(BaseCpuEngine *pCe, const SRPlat::SRThreadPool::TThreadCount nWorkers)
-  : CEBaseTask(pCe), _nWorkers(nWorkers) { }
+inline CETask::CETask(BaseCpuEngine &bce, const SRPlat::SRThreadPool::TThreadCount nWorkers)
+  : CEBaseTask(bce), _nWorkers(nWorkers) { }
 
 inline void CETask::AddError(PqaError&& pe) {
   SRPlat::SRLock<TSync> sl(_sync);

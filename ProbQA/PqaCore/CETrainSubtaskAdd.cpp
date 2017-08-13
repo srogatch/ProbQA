@@ -14,7 +14,7 @@ namespace ProbQA {
 
 template<> void CETrainSubtaskAdd<DoubleNumber>::Run() {
   auto& cTask = static_cast<const CETrainTask<DoubleNumber>&>(*GetTask()); // enable optimizations with const
-  auto& engine = static_cast<CpuEngine<DoubleNumber>&>(*cTask.GetEngine());
+  auto& engine = static_cast<CpuEngine<DoubleNumber>&>(cTask.GetBaseEngine());
   TPqaId iLast = cTask._last[_iWorker];
   if (iLast == cInvalidPqaId) {
     return;

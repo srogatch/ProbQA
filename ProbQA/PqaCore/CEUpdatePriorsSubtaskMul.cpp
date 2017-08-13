@@ -26,7 +26,7 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
   const CEUpdatePriorsTask<DoubleNumber>& task)
 {
   constexpr uint8_t logNumsPerVect = SRSimd::_cLogNBytes - SRMath::StaticCeilLog2(sizeof(DoubleNumber));
-  auto& engine = static_cast<const CpuEngine<DoubleNumber>&>(*task.GetEngine());
+  auto& engine = static_cast<const CpuEngine<DoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<DoubleNumber> &quiz = *task._pQuiz;
 
   __m256d *pMants = reinterpret_cast<__m256d*>(quiz.GetTlhMants());

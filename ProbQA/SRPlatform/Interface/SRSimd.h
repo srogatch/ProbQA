@@ -12,10 +12,14 @@ class SRSimd {
   template<typename taResult, typename taParam> struct CastImpl;
 
 public:
+  typedef __m256i TIntSimd;
+
   static constexpr uint8_t _cLogNBits = 8; //AVX2, 256 bits, log2(256)=8
   static constexpr uint8_t _cLogNBytes = _cLogNBits - 3;
   static constexpr size_t _cNBits = 1 << _cLogNBits;
   static constexpr size_t _cNBytes = 1 << _cLogNBytes;
+
+  static constexpr size_t _cByteMask = _cNBytes - 1;
 
   static size_t VectsFromBytes(const size_t nBytes) {
     return SRMath::RShiftRoundUp(nBytes, _cLogNBytes);
@@ -50,6 +54,10 @@ public:
     //TODO: verify that this casting turns into no-op in assembly, so that the value just stays in the register
     const __m256i genV = Cast<__m256i>(v);
     taCache ? _mm256_store_si256(genP, genV) : _mm256_stream_si256(genP, genV);
+  }
+
+  template<size_t taItemSize> static size_t GetPaddedBytes(const size_t nItems) {
+    return (nItems * taItemSize + _cByteMask) & (~_cByteMask);
   }
 };
 

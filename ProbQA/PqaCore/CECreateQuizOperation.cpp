@@ -14,22 +14,23 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<> void CECreateQuizResume<DoubleNumber>::ApplyAnsweredQuestions(
-  CpuEngine<DoubleNumber> *pCe, CEQuiz<DoubleNumber> *pQuiz)
+template<> void CECreateQuizResume<DoubleNumber>::UpdateLikelihoods(BaseCpuEngine &baseCe, CEBaseQuiz &baseQuiz)
 {
+  auto &engine = static_cast<CpuEngine<DoubleNumber>&>(baseCe);
+  auto &quiz = static_cast<CEQuiz<DoubleNumber>&>(baseQuiz);
   //The input must have been validated
-  const EngineDimensions& dims = pCe->GetDims();
+  const EngineDimensions& dims = engine.GetDims();
   const size_t nVects = SRSimd::VectsFromComps<double>(dims._nTargets);
-  const SRThreadPool::TThreadCount nWorkers = pCe->GetWorkers().GetWorkerCount();
+  const SRThreadPool::TThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
   const size_t sizeWithSubtasks = sizeof(CEUpdatePriorsSubtaskMul<DoubleNumber>) * nWorkers;
-  SRSmartMPP<CpuEngine<DoubleNumber>::TMemPool, uint8_t> commonBuf(pCe->GetMemPool(),
+  SRSmartMPP<CpuEngine<DoubleNumber>::TMemPool, uint8_t> commonBuf(engine.GetMemPool(),
     /* This assumes that the subtasks end with the buffer end. */ sizeWithSubtasks);
-  CEUpdatePriorsTask<DoubleNumber> task(pCe, pQuiz, _nAnswered, _pAQs, CalcVectsInCache());
+  CEUpdatePriorsTask<DoubleNumber> task(engine, quiz, _nAnswered, _pAQs, CalcVectsInCache());
 
   {
-    SRRWLock<false> rwl(pCe->GetRws());
+    SRRWLock<false> rwl(engine.GetRws());
 
-    pCe->SplitAndRunSubtasksSlim<CEUpdatePriorsSubtaskMul<DoubleNumber>>(task, nVects,
+    engine.SplitAndRunSubtasksSlim<CEUpdatePriorsSubtaskMul<DoubleNumber>>(task, nVects,
       /* This assumes that the subtasks are at the beginning of the buffer. */ commonBuf.Get(),
       [&](CEUpdatePriorsSubtaskMul<DoubleNumber> *pCurSt, const size_t curStart, const size_t nextStart)
     {

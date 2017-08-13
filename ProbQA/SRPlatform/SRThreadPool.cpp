@@ -31,7 +31,8 @@ struct SRThreadPool::RareData {
 
 #define TPLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetLogger())
 
-SRThreadPool::SRThreadPool(const TThreadCount nThreads) : _shutdownRequested(0), _nWorkers(nThreads)
+SRThreadPool::SRThreadPool(const TThreadCount nThreads) : _qu(SRMath::CeilLog2(nThreads)), _nWorkers(nThreads),
+  _shutdownRequested(0)
 {
   _pRd = reinterpret_cast<RareData*>(malloc(sizeof(RareData) + sizeof(std::thread) * _nWorkers));
   _pRd->_pLogger = SRDefaultLogger::Get();
@@ -76,6 +77,7 @@ ISRLogger* SRThreadPool::GetLogger() const {
 
 bool SRThreadPool::DefaultCriticalCallback(void *, SRException &&) {
   SRUtils::ExitProgram(SRExitCode::ThreadPoolCritical);
+  //return false; // just to please the compiler
 }
 
 bool SRThreadPool::RunCriticalCallback(SRException &&ex) {
@@ -97,15 +99,14 @@ void SRThreadPool::WorkerEntry() {
     SubtaskCompleter stc;
     try {
       SRLock<SRCriticalSection> csl(_cs);
-      while (_qu.size() == 0) {
+      while (_qu.Size() == 0) {
         if (_shutdownRequested) {
           return;
         }
         _haveWork.Wait(_cs);
       }
-      stc.Set(_qu.front());
+      stc.Set(_qu.PopGet());
       pTask = stc.Get()->GetTask();
-      _qu.pop();
     }
     catch (SRException& ex) {
       TPLOG(Critical) << "Worker thread got an SRException in worker body: " << ex.ToString();
@@ -146,10 +147,36 @@ void SRThreadPool::Enqueue(SRBaseSubtask *pSt) {
     if (_shutdownRequested) {
       throw SRException(SRString::MakeUnowned("An attempt to push a subtask to a shut(ting) down thread pool."));
     }
-    _qu.push(pSt);
+    _qu.Push(pSt);
     pSt->GetTask()->_nToDo++;
   }
   _haveWork.WakeOne();
+}
+
+void SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> subtasks) {
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    if (_shutdownRequested) {
+      throw SRException(SRString::MakeUnowned("An attempt to push multiple subtasks to a shut(ting) down thread pool."));
+    }
+    _qu.Push(subtasks.begin(), subtasks.size());
+    for (SRBaseSubtask *pSt : subtasks) {
+      pSt->GetTask()->_nToDo++; // the subtasks may belong to different tasks
+    }
+  }
+  _haveWork.WakeAll();
+}
+
+void SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> subtasks, SRBaseTask &task) {
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    if (_shutdownRequested) {
+      throw SRException(SRString::MakeUnowned("An attempt to push multiple subtasks to a shut(ting) down thread pool."));
+    }
+    _qu.Push(subtasks.begin(), subtasks.size());
+    task._nToDo += static_cast<SRBaseTask::TNSubtasks>(subtasks.size());
+  }
+  _haveWork.WakeAll();
 }
 
 void SRThreadPool::RequestShutdown() {

@@ -9,12 +9,12 @@
 
 namespace ProbQA {
 
-inline CEBaseTask::CEBaseTask(BaseCpuEngine *pCe) : _pCe(pCe) { }
+inline CEBaseTask::CEBaseTask(BaseCpuEngine &engine) : _pCe(&engine) { }
 
 inline SRPlat::SRThreadPool& CEBaseTask::GetThreadPool() const {
   return _pCe->GetWorkers();
 }
 
-inline BaseCpuEngine* CEBaseTask::GetEngine() const { return _pCe; }
+inline BaseCpuEngine& CEBaseTask::GetBaseEngine() const { return *_pCe; }
 
 } // namespace ProbQA

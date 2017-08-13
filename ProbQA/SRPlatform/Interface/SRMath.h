@@ -23,6 +23,15 @@ public:
     return (num + (T(1) << nBits) - 1) >> nBits;
   }
 
+  static uint8_t CeilLog2(const uint64_t val) {
+    unsigned long index;
+    if(!_BitScanReverse64(&index, val)) {
+      return 0;
+    }
+    //return index + ((val == (1ui64<<index)) ? 0 : 1);
+    return static_cast<uint8_t>(index + ((val&(val - 1)) ? 1 : 0));
+  }
+
   constexpr static uint8_t StaticFloorLog2(const size_t n) {
     return n  <= 1 ? 0ui8 : (StaticFloorLog2(n >> 1) + 1ui8);
   }

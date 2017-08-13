@@ -7,6 +7,7 @@
 #include "../SRPlatform/Interface/SRCriticalSection.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
 #include "../SRPlatform/Interface/ISRLogCustomizable.h"
+#include "../SRPlatform/Interface/SRQueue.h"
 
 namespace SRPlat {
 
@@ -21,7 +22,7 @@ public: // types
   typedef uint32_t TThreadCount;
 
 private: // variables
-  std::queue<SRBaseSubtask*> _qu;
+  SRQueue<SRBaseSubtask*> _qu;
   SRCriticalSection _cs;
   SRConditionVariable _haveWork;
   // It has to be const to allow accessing without locks by the clients.
@@ -45,7 +46,13 @@ public:
   void SetCriticalCallback(FCriticalCallback f, void *pData = nullptr);
 
   TThreadCount GetWorkerCount() const { return _nWorkers; }
+
   void Enqueue(SRBaseSubtask *pSt);
+  // The subtasks can belong to different tasks.
+  void __vectorcall Enqueue(std::initializer_list<SRBaseSubtask*> subtasks);
+  // The subtasks must belong to the same task passed as a parameter.
+  void __vectorcall Enqueue(std::initializer_list<SRBaseSubtask*> subtasks, SRBaseTask &task);
+
   // Request shutdown. This emthod doesn't wait for all threads to exit: only destructor does.
   void RequestShutdown();
 

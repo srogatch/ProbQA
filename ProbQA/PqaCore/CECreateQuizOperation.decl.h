@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../PqaCore/CECreateQuizOperation.fwd.h"
+#include "../PqaCore/BaseCpuEngine.fwd.h"
 #include "../PqaCore/CpuEngine.fwd.h"
 #include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/Interface/PqaErrors.h"
@@ -12,12 +13,6 @@
 namespace ProbQA {
 
 class CECreateQuizOpBase {
-public: // constants
-  enum class Operation : uint8_t {
-    None = 0,
-    Start = 1,
-    Resume = 2
-  };
 public: // variables
   PqaError& _err;
 
@@ -27,14 +22,14 @@ public: // methods
   CECreateQuizOpBase& operator=(const CECreateQuizOpBase&) = delete;
   CECreateQuizOpBase(CECreateQuizOpBase&&) = delete;
   CECreateQuizOpBase& operator=(CECreateQuizOpBase&&) = delete;
-  virtual Operation GetCode() = 0;
   virtual ~CECreateQuizOpBase();
+  virtual void UpdateLikelihoods(BaseCpuEngine &baseCe, CEBaseQuiz &baseQuiz) { (void)baseCe; (void)baseQuiz; };
+  virtual bool IsResume() const { return false; }
 };
 
 class CECreateQuizStart : public CECreateQuizOpBase {
 public: //methods
   explicit CECreateQuizStart(PqaError& err);
-  virtual Operation GetCode() override final;
 };
 
 template<typename taNumber> class CECreateQuizResume : public CECreateQuizOpBase {
@@ -49,8 +44,8 @@ private: //methods
 
 public: //methods
   explicit CECreateQuizResume(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs);
-  virtual Operation GetCode() override final;
-  void ApplyAnsweredQuestions(CpuEngine<taNumber> *pCe, CEQuiz<taNumber> *pQuiz);
+  void UpdateLikelihoods(BaseCpuEngine &baseCe, CEBaseQuiz &baseQuiz) override final;
+  bool IsResume() const override final { return true; }
 };
 
 } // namespace ProbQA

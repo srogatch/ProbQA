@@ -148,7 +148,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   const size_t nTotalBytes = ttPrevOffs + sizeof(TPqaId) * SRCast::ToSizeT(nQuestions);
   SRSmartMPP<TMemPool, uint8_t> commonBuf(_memPool, nTotalBytes);
 
-  CETrainTask<taNumber> trainTask(this, nWorkers, iTarget, pAQs);
+  CETrainTask<taNumber> trainTask(*this, nWorkers, iTarget, pAQs);
   //TODO: these are slow because threads share a cache line. It's not clear yet how to workaround this: the data is not
   //  per-source thread, but rather per target thread (after distribution).
   trainTask._prev = reinterpret_cast<TPqaId*>(commonBuf.Get() + ttPrevOffs);
@@ -223,19 +223,11 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQu
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECreateQuizOpBase &op) {
   try {
-    struct InSrwTask : public CEBaseTask {
-      CEQuiz<taNumber> *_pQuiz;
-    public: // methods
-      explicit InSrwTask(CpuEngine<taNumber> *pCe) : CEBaseTask(pCe) { }
-    } tInSrw(this); // Tasks with SRW locked.
-
     struct NoSrwTask : public CETask {
       CEQuiz<taNumber> *_pQuiz;
     public: // methods
-      explicit NoSrwTask(CpuEngine<taNumber> *pCe) : CETask(pCe, /*nWorkers*/ 3) { }
-    } tNoSrw(this);
-
-    const CECreateQuizOpBase::Operation opCode = op.GetCode();
+      explicit NoSrwTask(CpuEngine<taNumber> &ce) : CETask(ce, /*nWorkers*/ 3) { }
+    } tNoSrw(*this); // Subtasks without SRW locked
 
     const auto msMode = MaintenanceSwitch::Mode::Regular;
     if (!_maintSwitch.TryEnterSpecific<msMode>()) {
@@ -247,7 +239,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
 
     // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
     //   _maintSwitch guards engine dimensions in Regular mode (but not in Maintenance mode).
-    tInSrw._pQuiz = tNoSrw._pQuiz = new CEQuiz<taNumber>(this);
+    tNoSrw._pQuiz = new CEQuiz<taNumber>(this);
     TPqaId quizId;
     {
       SRLock<SRCriticalSection> csl(_csQuizReg);
@@ -260,106 +252,64 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
     }
 
     {
-      SRTaskWaiter noSrwTaskWaiter;
       auto&& lstZeroExps = SRMakeLambdaSubtask(&tNoSrw, [](const SRBaseSubtask &subtask) {
         auto& task = static_cast<const NoSrwTask&>(*subtask.GetTask());
-        auto& engine = static_cast<const CpuEngine<taNumber>&>(*task.GetEngine());
+        auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
         SRUtils::FillZeroVects<false>(reinterpret_cast<__m256i*>(task._pQuiz->GetTlhExps()),
           SRSimd::VectsFromBytes(engine._dims._nTargets * sizeof(CEQuiz<taNumber>::TExponent)));
       });
-      _tpWorkers.Enqueue(&lstZeroExps);
-      noSrwTaskWaiter.SetTask(&tNoSrw);
-
-      auto&& lstSetQAsked = SRMakeLambdaSubtask(&tNoSrw, [&op, opCode](const SRBaseSubtask &subtask) {
+      auto&& lstSetQAsked = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
         auto& task = static_cast<NoSrwTask&>(*subtask.GetTask());
-        auto& engine = static_cast<const CpuEngine<taNumber>&>(*task.GetEngine());
+        auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
         __m256i *pQAsked = task._pQuiz->GetQAsked();
         SRUtils::FillZeroVects<true>(pQAsked, SRSimd::VectsFromBits(engine._dims._nQuestions));
-        // Validate the indexes and set "is question asked" bits
-        switch (opCode) {
-        case CECreateQuizOpBase::Operation::Resume: {
+        if (op.IsResume()) {
+          // Validate the indexes and set "is question asked" bits
           auto& resumeOp = static_cast<CECreateQuizResume<taNumber>&>(op);
           const EngineDimensions& dims = engine.GetDims();
           for (size_t i = 0; i<SRCast::ToSizeT(resumeOp._nAnswered); i++) {
             const TPqaId iQuestion = resumeOp._pAQs[i]._iQuestion;
             if (iQuestion < 0 || iQuestion >= dims._nQuestions) {
               task.AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0,
-                dims._nQuestions-1), SRString::MakeUnowned("Question index is not in KB range.")));
+                dims._nQuestions - 1), SRString::MakeUnowned(SR_FILE_LINE "Question index is not in KB range.")));
               return;
             }
             const TPqaId iAnswer = resumeOp._pAQs[i]._iAnswer;
-            if(iAnswer < 0 || iAnswer >= dims._nAnswers) {
+            if (iAnswer < 0 || iAnswer >= dims._nAnswers) {
               task.AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0,
-                dims._nAnswers-1), SRString::MakeUnowned("Answer index is not in KB range.")));
+                dims._nAnswers - 1), SRString::MakeUnowned(SR_FILE_LINE "Answer index is not in KB range.")));
               return;
             }
             *(reinterpret_cast<uint8_t*>(pQAsked) + (iQuestion >> 3)) |= 1ui8 << (iQuestion & 7);
           }
         }
-          break;
-        case CECreateQuizOpBase::Operation::Start:
-          // Do nothing
-          break;
-        default:
-          task.AddError(PqaError(PqaErrorCode::UnhandledCase, nullptr, SRMessageBuilder("In" SR_FILE_LINE "Unhandled"
-            " CECreateQuizOpBase::Operation #")(static_cast<size_t>(opCode)).GetOwnedSRString()));
-          return;
-        }
       });
-      _tpWorkers.Enqueue(&lstSetQAsked);
+      auto&& lstAddAnswers = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
+        auto& resumeOp = static_cast<const CECreateQuizResume<taNumber>&>(op);
+        auto& task = static_cast<const NoSrwTask&>(*subtask.GetTask());
+        std::vector<AnsweredQuestion>& answers = task._pQuiz->ModAnswers();
+        answers.insert(answers.end(), resumeOp._pAQs, resumeOp._pAQs + resumeOp._nAnswered);
+      });
 
-      switch (opCode) {
-      case CECreateQuizOpBase::Operation::Resume: {
-        // Add a subtask of tNoSrw to update CEQuiz::_answers
-        auto& resumeOp = static_cast<CECreateQuizResume<taNumber>&>(op);
-        auto&& lstAddAnswers = SRMakeLambdaSubtask(&tNoSrw, [&resumeOp](const SRBaseSubtask &subtask) {
-          auto& task = static_cast<const NoSrwTask&>(*subtask.GetTask());
-          std::vector<AnsweredQuestion>& answers = task._pQuiz->ModAnswers();
-          answers.insert(answers.end(), resumeOp._pAQs, resumeOp._pAQs + resumeOp._nAnswered);
-        });
+      //BUG: subtasks get destructed earlier than the task waiter.
+      SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
+      
+      _tpWorkers.Enqueue({ &lstZeroExps, &lstSetQAsked }, tNoSrw);
+      if(op.IsResume()) {
         _tpWorkers.Enqueue(&lstAddAnswers);
-        break;
-      }
-      case CECreateQuizOpBase::Operation::Start:
-        // Do nothing
-        break;
-      default:
-        op._err = PqaError(PqaErrorCode::UnhandledCase, nullptr, SRMessageBuilder("In" SR_FILE_LINE "Unhandled"
-          " CECreateQuizOpBase::Operation #")(static_cast<size_t>(opCode)).GetOwnedSRString());
-        break;
       }
 
-      if(op._err.IsOk()) {
+      {
         SRRWLock<false> rwl(_rws);
-
         // Copy prior likelihood mantissas for targets
-        auto&& lstCopyMants = SRMakeLambdaSubtask(&tInSrw, [](const SRBaseSubtask &subtask) {
-          auto& task = static_cast<const InSrwTask&>(*subtask.GetTask());
-          auto& engine = static_cast<const CpuEngine<taNumber>&>(*task.GetEngine());
-          SRUtils::Copy256<false, false>(task._pQuiz->GetTlhMants(), engine._vB.Get(),
-            SRSimd::VectsFromBytes(engine._dims._nTargets * sizeof(taNumber)));
-        });
-        _tpWorkers.Enqueue(&lstCopyMants);
-
-        // No need to call it in a "finally" so long as only SRThreadPool::Enqueue() may fail above.
-        tInSrw.WaitComplete();
+        SRUtils::Copy256<false, false>(tNoSrw._pQuiz->GetTlhMants(), _vB.Get(),
+          SRSimd::VectsFromBytes(_dims._nTargets * sizeof(taNumber)));
       }
     }
     op._err = tNoSrw.TakeAggregateError();
     if(op._err.IsOk()) {
       //// If it's "resume quiz" operation, update the prior likelihoods with the questions answered.
-      switch (opCode) {
-      case CECreateQuizOpBase::Operation::Resume:
-        static_cast<CECreateQuizResume<taNumber>&>(op).ApplyAnsweredQuestions(this, tNoSrw._pQuiz);
-        break;
-      case CECreateQuizOpBase::Operation::Start:
-        // Do nothing
-        break;
-      default:
-        op._err = PqaError(PqaErrorCode::UnhandledCase, nullptr, SRMessageBuilder("In" SR_FILE_LINE "Unhandled"
-          " CECreateQuizOpBase::Operation #")(static_cast<size_t>(opCode)).GetOwnedSRString());
-        break;
-      }
+      op.UpdateLikelihoods(*this, *tNoSrw._pQuiz);
     }
     if (!op._err.IsOk()) {
       delete tNoSrw._pQuiz;

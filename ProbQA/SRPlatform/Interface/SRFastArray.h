@@ -25,29 +25,25 @@ protected: // variables
 //   not block this possibility.
 template<typename taItem, bool taCacheDefault> class SRFastArray : public SRFastArrayBase {
 public: // constants
-  static constexpr size_t _cSimdByteMask = SRSimd::_cNBytes - 1;
 
 private: // variables
   taItem *_pItems;
 
 private: // methods
+  //TODO: consider unifying such methods with SRQueue etc.
   static size_t GetPaddedByteCount(const size_t nItems) {
-    return (nItems * sizeof(taItem) + _cSimdByteMask) & (~_cSimdByteMask);
+    return SRSimd::GetPaddedBytes<sizeof(taItem)>(nItems);
   }
   // Optimized version for the case when the item size is a power of 2 no larger than SIMD size. If it's larger than
   //   SIMD size, it would require left shitf rather than right shift for computing the number of vectors.
   static typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, size_t>
   GetNVects(const size_t nItems) {
+    // Can't promote to a class variable because it's only valid for power-of-2 item sizes.
     static constexpr uint8_t logItemBytes = SRMath::StaticCeilLog2(sizeof(taItem));
     return SRMath::RShiftRoundUp(nItems, SRSimd::_cLogNBytes - logItemBytes);
   }
   static taItem* ThrowingAllocBytes(const size_t paddedBytes) {
-    taItem *pItems = reinterpret_cast<taItem*>(_mm_malloc(paddedBytes, sizeof(__m256i)));
-    if (pItems == nullptr) {
-      throw SRException(
-        SRMessageBuilder("SRFastArray has failed to allocate ")(paddedBytes)(" bytes.").GetOwnedSRString());
-    }
-    return pItems;
+    return reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
   }
   static taItem* ThrowingAlloc(const size_t nItems, size_t& outPaddedBytes) {
     outPaddedBytes = GetPaddedByteCount(nItems);
@@ -82,7 +78,7 @@ public: // methods
         if (_pItems == nullptr) {
           _count = 0;
           throw SRException(SRMessageBuilder(__FUNCTION__ " has failed to reallocate from ")(oldBytes)(" to ")
-            (targetBytes)(" bytes."));
+            (targetBytes)(" bytes.").GetOwnedSRString());
         }
       }
       _count = fellow._count;
@@ -127,7 +123,7 @@ public: // methods
     __m256i *p = reinterpret_cast<__m256i *>(SRUtils::FillPrologue<sizeof(item)>(_pItems + iStart, vect));
     assert(reinterpret_cast<void*>(p) == reinterpret_cast<void*>(_pItems + iVStart));
     __m256i *pLim = reinterpret_cast<__m256i*>(SRUtils::FillEpilogue<sizeof(item)>(_pItems + iLim, vect));
-    assert(pLim >= p && (((char*)pLim - (char*)p) & _cSimdByteMask)== 0);
+    assert(pLim >= p && (((char*)pLim - (char*)p) & SRSimd::_cByteMask)== 0);
 
     size_t nVects = pLim - p;
     for (; nVects > 0; nVects--, p++) {
