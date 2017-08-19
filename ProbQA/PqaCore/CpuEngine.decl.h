@@ -42,7 +42,6 @@ private: // methods
 
 public: // Internal interface methods
 
-  //TODO: move these to implementation file
   const taNumber& GetA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget) const;
   taNumber& ModA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget);
   

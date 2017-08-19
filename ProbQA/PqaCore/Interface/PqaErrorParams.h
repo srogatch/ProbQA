@@ -80,6 +80,7 @@ public:
   }
 };
 
+// Empty range should be represented by [0;-1] or [1;0] because we return inclusive bounds.
 class PQACORE_API IndexOutOfRangeErrorParams : public IPqaErrorParams {
   TPqaId _subjIndex;
   TPqaId _minIndex;

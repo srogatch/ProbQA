@@ -515,6 +515,48 @@ void BenchmarkCacheLine() {
   _mm_free(const_cast<TCacheLineEntry*>(gpCacheLine));
 }
 
+const int64_t cnLogs = 100 * 1000 * 1000;
+
+void BenchmarkLog2() {
+  double sum = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+  for(int64_t i=1; i<=cnLogs; i++) {
+    sum += std::log2(double(i));
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Log2: %.3lf Ops/sec calculated %.3lf\n", cnLogs / nSec, sum);
+}
+
+void BenchmarkLog2Quads() {
+  double sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnLogs; i+=4) {
+    sum0 += std::log2(double(i));
+    sum1 += std::log2(double(i+1));
+    sum2 += std::log2(double(i + 2));
+    sum3 += std::log2(double(i + 3));
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  double sum = sum0 + sum1 + sum2 + sum3;
+  printf("Quad Log2: %.3lf Ops/sec calculated %.3lf\n", cnLogs / nSec, sum);
+}
+
+void BenchmarkLog2Vect() {
+  __m256d sums = _mm256_setzero_pd();
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnLogs; i += 4) {
+    for(uint8_t j=0; j<=3; j++) {
+      sums.m256d_f64[j] += std::log2(double(i + j));
+    }
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  double sum = sums.m256d_f64[0] + sums.m256d_f64[1] + sums.m256d_f64[2] + sums.m256d_f64[3];
+  printf("Vect Log2: %.3lf Ops/sec calculated %.3lf\n", cnLogs / nSec, sum);
+}
+
 int __cdecl main() {
   //std::atomic<double> test1;
   //bool test2 = test1.is_lock_free();
@@ -535,8 +577,10 @@ int __cdecl main() {
   //BenchmarkSmallQueue();
   //BenchmarkLambda();
 
-  BenchmarkCacheLine();
-
+  //BenchmarkCacheLine();
+  BenchmarkLog2();
+  BenchmarkLog2Quads();
+  BenchmarkLog2Vect();
   return 0;
 }
 

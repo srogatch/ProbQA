@@ -229,10 +229,10 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
       explicit NoSrwTask(CpuEngine<taNumber> &ce) : CETask(ce, /*nWorkers*/ 3) { }
     } tNoSrw(*this); // Subtasks without SRW locked
 
-    const auto msMode = MaintenanceSwitch::Mode::Regular;
+    constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
     if (!_maintSwitch.TryEnterSpecific<msMode>()) {
       op._err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
-        " operation because current mode is not regular (but maintenance/shutdown?)."));
+        " operation (Start/Resume quiz) because current mode is not regular (but maintenance/shutdown?)."));
       return cInvalidPqaId;
     }
     MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
@@ -291,12 +291,11 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
         answers.insert(answers.end(), resumeOp._pAQs, resumeOp._pAQs + resumeOp._nAnswered);
       });
 
-      //BUG: subtasks get destructed earlier than the task waiter.
       SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
-      
-      _tpWorkers.Enqueue({ &lstZeroExps, &lstSetQAsked }, tNoSrw);
       if(op.IsResume()) {
-        _tpWorkers.Enqueue(&lstAddAnswers);
+        _tpWorkers.Enqueue({&lstZeroExps, &lstSetQAsked, &lstAddAnswers}, tNoSrw);
+      } else {
+        _tpWorkers.Enqueue({&lstZeroExps, &lstSetQAsked}, tNoSrw);
       }
 
       {
@@ -342,7 +341,35 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& err, const TPqaId iQuiz) {
-  (void)iQuiz; //TODO: remove when implemented
+  constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
+      " operation (compute next question) because current mode is not regular (but maintenance/shutdown?)."));
+    return cInvalidPqaId;
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+  CEQuiz<taNumber> *pQuiz;
+  {
+    SRLock<SRCriticalSection> csl(_csQuizReg);
+    const TPqaId nQuizzes = _quizzes.size();
+    if(iQuiz < 0 || iQuiz >= nQuizzes) {
+      csl.EarlyRelease();
+      // For nQuizzes == 0, this may return [0;-1] range: we can't otherwise return an empty range because we return
+      //   the range with both bounds inclusive.
+      err = PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuiz, 0, nQuizzes - 1),
+        SRString::MakeUnowned("Quiz index is not in quiz registry range."));
+      return cInvalidPqaId;
+    }
+    if(_quizGaps.IsGap(iQuiz)) {
+      csl.EarlyRelease();
+      err = PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iQuiz), SRString::MakeUnowned(
+        "Quiz index is not in the registry (but rather at a gap)."));
+      return cInvalidPqaId;
+    }
+    pQuiz = _quizzes[iQuiz];
+  }
+  
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));
   return cInvalidPqaId;
