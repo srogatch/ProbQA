@@ -370,11 +370,42 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     pQuiz = _quizzes[iQuiz];
   }
 
+  // In this algorithm, as the weight for entropy summation we calculate Pr(q[i]==k | Q(S-1)) as the sum over all
+  //   targets j of Pr(q[i]==k | t[j]) * Pr(t[j] | Q(S-1)) , because when A is a subset of B and B is a subset of C,
+  //   the following holds true: P(A|C) = P (A|B) * P(B|C) : https://math.stackexchange.com/a/2399444/187933 . In our
+  //   case A is the set of question answering events. B is the set of target selection events. C is the set of
+  //   interrogation events. Different interrogations may lead to the same target. Different targets may lead to the
+  //   same question answered with a specific option. I'm not sure though that subset A <= B <= C inclusion holds,
+  //   so there is an opportunity to proove/disproove this, thus perhaps the quality of question selection can be
+  //   improved by simply using Pr(q[i]=k) as the weight, or by keeping a second space of Pr(q[j1]==k1 | q[j2]==k2),
+  //   and applying Naive Bayes assumption again to the formula
+  //   Pr(q[i]=k | Q(S-1)) = Pr(Q(S-1) | q[i]==k) * Pr(q[i]==k) / Pr(Q(S-1)) , where the latter is not calculated, but
+  //   rather likelihood Pr(Q(S-1) | q[i]==k) * Pr(q[i]==k) is divided by the sum of likelihoods over all k.
+  // Q(S-1) is the interrogation (the set of questions answered with specific options) as it was before applying the
+  //   current candidate question.
+  // By design, Pr(q[i]==k | Q(S-1)) = Pr(Q(S) | Q(S-1)) .
+
   // Normalize priors in the quiz so to avoid normalization after each (question,answer) pair application
-  // For each question i
+  // For each question i, if this question has not been already asked
   //   For each answer k
   //     For each target j
-  //       In a separate array, multiply target probability by P(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j]
+  //       In a separate array, multiply target probability by Pr(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j] and store
+  //         the product in a bucket by exponent.
+  //     Get W[k] as the sum of the likelihoods array by  summing starting with the smallest exponent.
+  //     For each target j
+  //       Divide j-th item in the likelihoods array by W[k] so to get the probability Pr(j)
+  //       Calculate H(i,k,j)=Pr(j)*log2(Pr(j)) substituting 0 for Pr(j)==0, and store H(i,k,j) in a bucket by exponent.
+  //     Calculate H(i,k) as the sum in buckets where H(i,k,j) are stored.
+  //   Verify that the sum of W[k] over all k is close enough to 1.0, and log a warning if not (specifying the sum).
+  //   Calculate avgH(i) as the sum over all k of H(i,k)*W[k]
+  //   Store avgH(i) plus the previous run-length (accumulated sum) in this thread's piece of run-length array.
+  // Calculate totH as the total over all threads of the last item in the run-length array, and create another
+  //   run-length array, where each item is a grand total over totals from different threads.
+  // Generate a uniformly-distributed random number rSel between 0 and totH.
+  // Binary search over grand totals to find the thread-specific piece of run-length, and subtract the total from
+  //   the previous thread from rSel so to get rSubSel
+  // Binary search for rSubSel in the thread-specific run-length array so to find the index of the question to ask.
+
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));
   return cInvalidPqaId;
