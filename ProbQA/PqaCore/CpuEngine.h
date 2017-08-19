@@ -9,12 +9,12 @@
 namespace ProbQA {
 
 template<typename taNumber> inline const taNumber&
-CpuEngine<taNumber>::GetA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget) const {
-  return _sA[SRPlat::SRCast::ToSizeT(iAnswer)][SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iTarget)];
+CpuEngine<taNumber>::GetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) const {
+  return _sA[SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iAnswer)][SRPlat::SRCast::ToSizeT(iTarget)];
 }
 template<typename taNumber> inline taNumber&
-CpuEngine<taNumber>::ModA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget) {
-  return _sA[SRPlat::SRCast::ToSizeT(iAnswer)][SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iTarget)];
+CpuEngine<taNumber>::ModA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) {
+  return _sA[SRPlat::SRCast::ToSizeT(iQuestion)][SRPlat::SRCast::ToSizeT(iAnswer)][SRPlat::SRCast::ToSizeT(iTarget)];
 }
 
 template<typename taNumber> inline const taNumber&

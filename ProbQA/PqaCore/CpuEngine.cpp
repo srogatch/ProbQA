@@ -29,13 +29,13 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   }
 
   taNumber initAmount(engDef._initAmount);
-  //// Init cube A: A[ao][q][t] is weight for answer option |ao| for question |q| for target |t|
-  _sA.resize(size_t(_dims._nAnswers));
-  for (size_t i = 0, iEn= size_t(_dims._nAnswers); i < iEn; i++) {
-    _sA[i].resize(size_t(_dims._nQuestions));
-    for (size_t j = 0, jEn= size_t(_dims._nQuestions); j < jEn; j++) {
-      _sA[i][j].Resize<false>(size_t(_dims._nTargets));
-      _sA[i][j].FillAll<false>(initAmount);
+  //// Init cube A: A[q][ao][t] is weight for answer option |ao| for question |q| for target |t|
+  _sA.resize(SRCast::ToSizeT(_dims._nQuestions));
+  for (size_t i = 0, iEn= SRCast::ToSizeT(_dims._nQuestions); i < iEn; i++) {
+    _sA[i].resize(SRCast::ToSizeT(_dims._nAnswers));
+    for (size_t k = 0, kEn= SRCast::ToSizeT(_dims._nAnswers); k < kEn; k++) {
+      _sA[i][k].Resize<false>(SRCast::ToSizeT(_dims._nTargets));
+      _sA[i][k].FillAll<false>(initAmount);
     }
   }
 
@@ -369,7 +369,12 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     }
     pQuiz = _quizzes[iQuiz];
   }
-  
+
+  // Normalize priors in the quiz so to avoid normalization after each (question,answer) pair application
+  // For each question i
+  //   For each answer k
+  //     For each target j
+  //       In a separate array, multiply target probability by P(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j]
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));
   return cInvalidPqaId;

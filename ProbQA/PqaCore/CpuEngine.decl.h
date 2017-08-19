@@ -19,7 +19,7 @@ template<typename taNumber> class CpuEngine : public BaseCpuEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
 
 private: // variables
-  // space A: [iAnswer][iQuestion][iTarget] . Guarded by _rws
+  // space A: [iQuestion][iAnswer][iTarget] . Guarded by _rws
   std::vector<std::vector<SRPlat::SRFastArray<taNumber, false>>> _sA;
   // matrix D: [iQuestion][iTarget] . Guarded by _rws
   std::vector<SRPlat::SRFastArray<taNumber, false>> _mD;
@@ -42,8 +42,8 @@ private: // methods
 
 public: // Internal interface methods
 
-  const taNumber& GetA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget) const;
-  taNumber& ModA(const TPqaId iAnswer, const TPqaId iQuestion, const TPqaId iTarget);
+  const taNumber& GetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) const;
+  taNumber& ModA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget);
   
   const taNumber& GetD(const TPqaId iQuestion, const TPqaId iTarget) const;
   taNumber& ModD(const TPqaId iQuestion, const TPqaId iTarget);

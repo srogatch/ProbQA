@@ -41,7 +41,7 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
     const size_t iBlockLim = std::min(SRCast::ToSizeT(_iLimVT), iBlockStart + nVectsInBlock);
     for (size_t i = 0; i < SRCast::ToSizeT(task._nAnswered); i++) {
       const AnsweredQuestion& aq = task._pAQs[i];
-      const __m256d *pAdjMuls = reinterpret_cast<const __m256d*>(&engine.GetA(aq._iAnswer, aq._iQuestion, 0));
+      const __m256d *pAdjMuls = reinterpret_cast<const __m256d*>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));
       const __m256d *pAdjDivs = reinterpret_cast<const __m256d*>(&engine.GetD(aq._iQuestion, 0));
       for (size_t j = iBlockStart; j < iBlockLim; j++) {
         const __m256d adjMuls = SRSimd::Load<false>(pAdjMuls + j);
