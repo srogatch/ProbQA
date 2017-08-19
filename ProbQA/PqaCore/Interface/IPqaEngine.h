@@ -68,6 +68,7 @@ public:
   // Compacts questions and targets so that there are no gaps.
   // Fills the CompactionResult structure passed in. A call to ReleaseCompactionResult() is needed to release the
   //   resources after usage of the structure.
+  //TODO: make this obligatory before exiting the maintenance mode? So to forbid gaps in regular mode.
   virtual PqaError Compact(CompactionResult &cr) = 0;
 #pragma endregion
 

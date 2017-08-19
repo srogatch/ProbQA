@@ -386,13 +386,16 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   // By design, Pr(q[i]==k | Q(S-1)) = Pr(Q(S) | Q(S-1)) .
 
   // Normalize priors in the quiz so to avoid normalization after each (question,answer) pair application
-  // For each question i, if this question has not been already asked
+  // In parallel for each question i, if this question has not been already asked
+  //   TODO: what if this question is in a gap?
   //   For each answer k
   //     For each target j
+  //       TODO: what if this target is in a gap?
   //       In a separate array, multiply target probability by Pr(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j] and store
   //         the product in a bucket by exponent.
   //     Get W[k] as the sum of the likelihoods array by  summing starting with the smallest exponent.
   //     For each target j
+  //       TODO: what if this target is in a gap?
   //       Divide j-th item in the likelihoods array by W[k] so to get the probability Pr(j)
   //       Calculate H(i,k,j)=Pr(j)*log2(Pr(j)) substituting 0 for Pr(j)==0, and store H(i,k,j) in a bucket by exponent.
   //     Calculate H(i,k) as the sum in buckets where H(i,k,j) are stored.
