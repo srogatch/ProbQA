@@ -19,6 +19,8 @@ template<typename taNumber> class CpuEngine : public BaseCpuEngine {
   static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
 
 private: // variables
+  //// N questions, K answers, M targets
+
   // space A: [iQuestion][iAnswer][iTarget] . Guarded by _rws
   std::vector<std::vector<SRPlat::SRFastArray<taNumber, false>>> _sA;
   // matrix D: [iQuestion][iTarget] . Guarded by _rws

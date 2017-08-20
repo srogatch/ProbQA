@@ -386,25 +386,36 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   // By design, Pr(q[i]==k | Q(S-1)) = Pr(Q(S) | Q(S-1)) .
 
   // Normalize priors in the quiz so to avoid normalization after each (question,answer) pair application
+  // Calculate M1 as the number of targets without gaps
   // In parallel for each question i, if this question has not been already asked
-  //   TODO: what if this question is in a gap?
+  //   If this question is in a gap, skip it.
   //   For each answer k
-  //     For each target j
-  //       TODO: what if this target is in a gap?
-  //       In a separate array, multiply target probability by Pr(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j] and store
-  //         the product in a bucket by exponent.
+  //     For each target j in parallel
+  //       If the target is not in a gap:
+  //         In a separate array, SIMD-multiply target probability by Pr(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j].
+  //         Store the product in a bucket by exponent.
   //     Get W[k] as the sum of the likelihoods array by  summing starting with the smallest exponent.
-  //     For each target j
-  //       TODO: what if this target is in a gap?
-  //       Divide j-th item in the likelihoods array by W[k] so to get the probability Pr(j)
-  //       Calculate H(i,k,j)=Pr(j)*log2(Pr(j)) substituting 0 for Pr(j)==0, and store H(i,k,j) in a bucket by exponent.
-  //     Calculate H(i,k) as the sum in buckets where H(i,k,j) are stored.
-  //   Verify that the sum of W[k] over all k is close enough to 1.0, and log a warning if not (specifying the sum).
+  //     For each target j in parallel
+  //       SIMD-divide j-th item in the likelihoods array by W[k] so to get the probability Pr(j)
+  //       If target j is not in a gap:
+  //         Calculate entropy component H(i,k,j)=-Pr(j)*log2(Pr(j)) substituting 0 for Pr(j)==0, and store H(i,k,j) in
+  //           a bucket by exponent. Here -log2(Pr(j)) part is the self-information content.
+  //     Calculate entropy H(i,k) as the sum in buckets where H(i,k,j) are stored.
+  //   Calculate totW as the sum of W[k] over all k, after sorting W[k] so to minimize error, (using SIMD?)
+  //   If totW is not close enough to 1.0:
+  //     Log a warning specifying the total totW.
+  //   For all k, using SIMD
+  //     Normalize W[k] by dividing by their total totW
   //   Calculate avgH(i) as the sum over all k of H(i,k)*W[k]
-  //   Store avgH(i) plus the previous run-length (accumulated sum) in this thread's piece of run-length array.
-  // Calculate totH as the total over all threads of the last item in the run-length array, and create another
+  //   // We must prefer minimum entropy, so the code below subtracts pow(2, avgH(i)), which is the number of targets
+  //   //   seen according to the entropy, from the actual number of targets without gaps M1, and adds 1 so to give
+  //   //   some probability even to questions which lead to equal probabilities of targets (i.e. where the entropy
+  //   //   reaches its maximum log2(M1).
+  //   Store (1 + M1 - pow(2, avgH(i))) plus the previous run-length (accumulated sum) in this thread's piece of
+  //     run-length array.
+  // Calculate totG as the total over all threads of the last item in the run-length array, and create another
   //   run-length array, where each item is a grand total over totals from different threads.
-  // Generate a uniformly-distributed random number rSel between 0 and totH.
+  // Generate a uniformly-distributed random number rSel between 0 and totG.
   // Binary search over grand totals to find the thread-specific piece of run-length, and subtract the total from
   //   the previous thread from rSel so to get rSubSel
   // Binary search for rSubSel in the thread-specific run-length array so to find the index of the question to ask.
