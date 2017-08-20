@@ -52,6 +52,7 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
         //TODO: verify that taCache based branchings are compile-time
         const __m256d oldMants = SRSimd::Load<taCache>(pMants + j);
         const __m256d product = _mm256_mul_pd(oldMants, P_qa_given_t);
+        //TODO: move separate summation of exponent to a common function (available to other subtasks etc.)?
         const __m256d newMants = _mm256_or_pd(_mm256_castsi256_pd(gDoubleExp0),
           _mm256_andnot_pd(_mm256_castsi256_pd(gDoubleExpMask), product));
         SRSimd::Store<taCache>(pMants + j, newMants);

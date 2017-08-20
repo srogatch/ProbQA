@@ -1,3 +1,4 @@
 LIBRARY SRPlatform
 EXPORTS
   SRFlushCache
+  SRLog2MulD

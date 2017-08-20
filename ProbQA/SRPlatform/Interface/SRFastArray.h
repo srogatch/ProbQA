@@ -103,10 +103,11 @@ public: // methods
     return *this;
   }
 
+  // __vectorcall can pass in registers first 4 integer parameters, but 6 first vector parameters. Therefore vector
+  //   parameters should be placed in the end.
   template<bool taCache> typename std::enable_if_t<
     sizeof(__m256i) % sizeof(taItem) == 0 && (sizeof(__m256i) > sizeof(taItem))> __vectorcall
-  Fill(const taItem& item, size_t iStart, size_t iLim)
-  {
+  Fill(size_t iStart, size_t iLim, const taItem item) {
     assert(iStart <= iLim);
     // Can't promote to a class-level constant because it's only applicable when item size is a divisor of SIMD size.
     constexpr size_t cnItemsPerSimd = sizeof(__m256i) / sizeof(item);
@@ -136,7 +137,7 @@ public: // methods
 
   // Optimized method for sizeof(__m256i) == sizeof(taItem)
   template<bool taCache> typename std::enable_if_t<sizeof(__m256i) == sizeof(taItem)> __vectorcall
-  Fill(const taItem& item, size_t iStart, size_t iLim) {
+  Fill(size_t iStart, size_t iLim, const taItem item) {
     assert(iStart <= iLim);
     size_t nVects = iLim - iStart;
     __m256i *p = reinterpret_cast<__m256i *>(_pItems + iStart);
@@ -150,7 +151,7 @@ public: // methods
   }
 
   template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0> __vectorcall
-  FillAll(const taItem& item) {
+  FillAll(const taItem item) {
     size_t nVects = GetNVects(_count);
     __m256i *p = reinterpret_cast<__m256i *>(_pItems);
     const __m256i vect = SRUtils::Set1(item);

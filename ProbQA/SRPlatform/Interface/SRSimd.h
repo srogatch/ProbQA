@@ -71,7 +71,8 @@ template<> struct SRSimd::CastImpl<__m256i, __m256d> {
   static __m256i DoIt(const __m256d par) { return _mm256_castpd_si256(par); }
 };
 
-template<typename taResult, typename taParam> inline static taResult __vectorcall SRSimd::Cast(const taParam par) {
+// For static class members, __vectorcall must be specified again in the definition: https://docs.microsoft.com/en-us/cpp/cpp/vectorcall
+template<typename taResult, typename taParam> inline taResult __vectorcall SRSimd::Cast(const taParam par) {
   return CastImpl<taResult, taParam>::DoIt(par);
 }
 

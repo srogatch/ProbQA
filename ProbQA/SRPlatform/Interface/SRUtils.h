@@ -36,7 +36,7 @@ public: // Methods
     const void *pLoad, size_t nVects);
   // Broadcast item to all components of 256-bit vector register.
   template<typename taItem> inline static typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i>
-  __vectorcall Set1(const taItem& item);
+  __vectorcall Set1(const taItem item);
   //NOTE: it does nothing if p is perfectly aligned for SIMD.
   template<size_t taGran> inline static void* __vectorcall FillPrologue(void *p, const __m256i vect);
   // pLim must point just behind the end of the region to fill.
@@ -52,7 +52,7 @@ public: // Methods
   static void* ThrowingSimdAlloc(const size_t paddedBytes);
 };
 
-template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static 
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline 
 void SRUtils::Copy256(void *pStore, const void *pLoad, size_t nVects)
 {
   const __m256i *pSrc = reinterpret_cast<const __m256i*>(pLoad);
@@ -66,8 +66,8 @@ void SRUtils::Copy256(void *pStore, const void *pLoad, size_t nVects)
   }
 }
 
-template<typename taItem> inline static typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i>
-SRUtils::Set1(const taItem& item)
+template<typename taItem> inline typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i> __vectorcall
+SRUtils::Set1(const taItem item)
 {
   switch (sizeof(item)) {
   case 1:
@@ -87,7 +87,7 @@ SRUtils::Set1(const taItem& item)
   }
 }
 
-template<size_t taGran> inline static void* SRUtils::FillPrologue(void *p, const __m256i vect) {
+template<size_t taGran> inline void* __vectorcall SRUtils::FillPrologue(void *p, const __m256i vect) {
   static_assert(sizeof(vect) % taGran == 0, "Wrong granularity: there must be integer number of granules in SIMD.");
   switch (taGran) {
   case 1:
@@ -131,7 +131,7 @@ template<size_t taGran> inline static void* SRUtils::FillPrologue(void *p, const
   return p;
 }
 
-template<size_t taGran> inline static void* SRUtils::FillEpilogue(void *pLim, const __m256i vect) {
+template<size_t taGran> inline void* __vectorcall SRUtils::FillEpilogue(void *pLim, const __m256i vect) {
   static_assert(sizeof(vect) % taGran == 0, "Wrong granularity: there must be integer number of granules in SIMD.");
   switch (taGran) {
   case 1:

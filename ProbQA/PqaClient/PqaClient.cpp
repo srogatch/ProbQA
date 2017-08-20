@@ -528,6 +528,28 @@ void BenchmarkLog2() {
   printf("Log2: %.3lf Ops/sec calculated %.3lf\n", cnLogs / nSec, sum);
 }
 
+void BenchmarkFpuLog2() {
+  double sum = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnLogs; i++) {
+    sum += SRPlat::SRLog2MulD(double(i), 1);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("FPU Log2: %.3lf Ops/sec calculated %.3lf\n", cnLogs / nSec, sum);
+}
+
+void BenchmarkLn() {
+  double sum = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnLogs; i++) {
+    sum += std::log(double(i));
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  printf("Ln: %.3lf Ops/sec calculated %.3lf\n", cnLogs / nSec, sum);
+}
+
 void BenchmarkLog2Quads() {
   double sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0;
   auto start = std::chrono::high_resolution_clock::now();
@@ -578,9 +600,11 @@ int __cdecl main() {
   //BenchmarkLambda();
 
   //BenchmarkCacheLine();
+  //BenchmarkLog2Quads();
+  //BenchmarkLog2Vect();
   BenchmarkLog2();
-  BenchmarkLog2Quads();
-  BenchmarkLog2Vect();
+  BenchmarkFpuLog2();
+  BenchmarkLn();
   return 0;
 }
 

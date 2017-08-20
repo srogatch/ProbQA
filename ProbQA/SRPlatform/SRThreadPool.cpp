@@ -153,7 +153,7 @@ void SRThreadPool::Enqueue(SRBaseSubtask *pSt) {
   _haveWork.WakeOne();
 }
 
-void SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> subtasks) {
+void __vectorcall SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> subtasks) {
   {
     SRLock<SRCriticalSection> csl(_cs);
     if (_shutdownRequested) {
@@ -167,7 +167,7 @@ void SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> subtasks) {
   _haveWork.WakeAll();
 }
 
-void SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> subtasks, SRBaseTask &task) {
+void __vectorcall SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> subtasks, SRBaseTask &task) {
   {
     SRLock<SRCriticalSection> csl(_cs);
     if (_shutdownRequested) {

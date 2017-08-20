@@ -384,8 +384,16 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   // Q(S-1) is the interrogation (the set of questions answered with specific options) as it was before applying the
   //   current candidate question.
   // By design, Pr(q[i]==k | Q(S-1)) = Pr(Q(S) | Q(S-1)) .
+  // TODO: log() seems 1.77 times faster than log2(), so consider using it for entropy calculation, then exp(avgH)
+  //   instead of pow(2, avgH).
+  // TODO: consider using assembly FYL2X for calculating at once the product of probability and its logarithm
+  //   http://x86.renejeschke.de/html/file_module_x86_id_130.html
 
   // Normalize priors in the quiz so to avoid normalization after each (question,answer) pair application
+  //   Find the maximum int64_t exponent part of the prior among targets not in gaps (in parallel and vectorized)
+  //   For each target j in parallel with SIMD:
+  //     TODO: Adjust the double part of the prior ...
+  //     TODO: ...
   // Calculate M1 as the number of targets without gaps
   // In parallel for each question i, if this question has not been already asked
   //   If this question is in a gap, skip it.

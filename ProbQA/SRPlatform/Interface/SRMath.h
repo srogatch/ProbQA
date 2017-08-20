@@ -4,7 +4,15 @@
 
 #pragma once
 
+#include "../SRPlatform/Interface/SRPlatform.h"
+
 namespace SRPlat {
+
+extern "C" {
+
+SRPLATFORM_API double __fastcall SRLog2MulD(const double toLog, const double toMul);
+
+}
 
 class SRMath {
 public:

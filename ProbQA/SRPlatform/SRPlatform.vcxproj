@@ -305,6 +305,7 @@
   </ItemGroup>
   <ItemGroup>
     <MASM Include="SRFlushCache.asm" />
+    <MASM Include="SRLog2Mul.asm" />
   </ItemGroup>
   <ItemGroup>
     <None Include="SRPlatformDll.def" />

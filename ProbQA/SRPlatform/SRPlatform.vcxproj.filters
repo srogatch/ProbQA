@@ -226,6 +226,9 @@
     <MASM Include="SRFlushCache.asm">
       <Filter>Source Files</Filter>
     </MASM>
+    <MASM Include="SRLog2Mul.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
   </ItemGroup>
   <ItemGroup>
     <None Include="SRPlatformDll.def">
