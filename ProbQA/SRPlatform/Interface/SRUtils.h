@@ -211,7 +211,7 @@ template<bool taFlushLeft, bool taFlushRight> inline void SRUtils::FlushCache(co
 }
 
 inline void* SRUtils::ThrowingSimdAlloc(const size_t paddedBytes) {
-  assert(nBytes % SRSimd::_cNBytes == 0);
+  assert(paddedBytes % SRSimd::_cNBytes == 0);
   void *ans = _mm_malloc(paddedBytes, SRSimd::_cNBytes);
   if (ans == nullptr) {
     throw SRException(SRMessageBuilder(SR_FILE_LINE " failed to allocate ")(paddedBytes)(" bytes.").GetOwnedSRString());

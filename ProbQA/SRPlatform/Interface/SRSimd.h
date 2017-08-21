@@ -59,6 +59,7 @@ public:
   template<size_t taItemSize> static size_t GetPaddedBytes(const size_t nItems) {
     return (nItems * taItemSize + _cByteMask) & (~_cByteMask);
   }
+
 };
 
 template<typename T> struct SRSimd::CastImpl<T,T> {

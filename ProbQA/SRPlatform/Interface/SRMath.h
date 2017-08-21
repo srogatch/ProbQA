@@ -10,6 +10,7 @@ namespace SRPlat {
 
 extern "C" {
 
+// Although this just uses FPU instruction, it's slower than software approximation like std::log2().
 SRPLATFORM_API double __fastcall SRLog2MulD(const double toLog, const double toMul);
 
 }

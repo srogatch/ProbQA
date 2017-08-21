@@ -77,7 +77,7 @@ ISRLogger* SRThreadPool::GetLogger() const {
 
 bool SRThreadPool::DefaultCriticalCallback(void *, SRException &&) {
   SRUtils::ExitProgram(SRExitCode::ThreadPoolCritical);
-  //return false; // just to please the compiler
+  return false; // just to please the compiler
 }
 
 bool SRThreadPool::RunCriticalCallback(SRException &&ex) {

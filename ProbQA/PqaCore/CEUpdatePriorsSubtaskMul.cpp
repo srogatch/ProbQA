@@ -17,6 +17,7 @@ template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSu
   : SRBaseSubtask(pTask), _iFirstVT(iFirstVT), _iLimVT(iLimVT)
 { }
 
+//TODO: move these constants to a common file, so to improve cache usage
 namespace {
   const __m256i gDoubleExpMask = _mm256_set1_epi64x(0x7ffULL << 52);
   const __m256i gDoubleExp0 = _mm256_set1_epi64x(1023ULL << 52);

@@ -565,13 +565,63 @@ void BenchmarkLog2Quads() {
   printf("Quad Log2: %.3lf Ops/sec calculated %.3lf\n", cnLogs / nSec, sum);
 }
 
+// 5 terms Vect Log2 : 405268490.375 Ops / sec calculated 2513272973.836
+// 6 terms Vect Log2: 352875583.127 Ops/sec calculated 2513272985.407
+
+namespace {
+  const __m256i gDoubleExpMask = _mm256_set1_epi64x(0x7ffULL << 52);
+  const __m256i gDoubleExp0 = _mm256_set1_epi64x(1023ULL << 52);
+  const __m256i gTo32bitExp = _mm256_set_epi32(0, 0, 0, 0, 6, 4, 2, 0);
+  const __m128i gExpNormalizer = _mm_set1_epi32(1023);
+  //TODO: some 128-bit variable or two 64-bit variables here?
+  const __m256d gCommMul = _mm256_set1_pd(2.0 / 0.693147180559945309417); // 2.0/ln(2)
+  const __m256d gCoeff1 = _mm256_set1_pd(1.0 / 3);
+  const __m256d gCoeff2 = _mm256_set1_pd(1.0 / 5);
+  const __m256d gCoeff3 = _mm256_set1_pd(1.0 / 7);
+  const __m256d gCoeff4 = _mm256_set1_pd(1.0 / 9);
+  const __m256d gCoeff5 = _mm256_set1_pd(1.0 / 11);
+  const __m256d gVect1 = _mm256_set1_pd(1.0);
+}
+
+__m256d __vectorcall Log2(__m256d x) {
+  const __m256i exps64 = _mm256_srli_epi64(_mm256_and_si256(gDoubleExpMask, _mm256_castpd_si256(x)), 52);
+  const __m256i exps32_avx = _mm256_permutevar8x32_epi32(exps64, gTo32bitExp);
+  const __m128i exps32_sse = _mm256_castsi256_si128(exps32_avx);
+  const __m128i normExps = _mm_sub_epi32(exps32_sse, gExpNormalizer);
+  const __m256d expsPD = _mm256_cvtepi32_pd(normExps);
+  const __m256d y = _mm256_or_pd(_mm256_castsi256_pd(gDoubleExp0),
+    _mm256_andnot_pd(_mm256_castsi256_pd(gDoubleExpMask), x));
+
+  // Calculate t=(y-1)/(y+1) and t**2
+  const __m256d tNum = _mm256_sub_pd(y, gVect1);
+  const __m256d tDen = _mm256_add_pd(y, gVect1);
+  const __m256d t = _mm256_div_pd(tNum, tDen);
+  const __m256d t2 = _mm256_mul_pd(t, t); // t**2
+
+  const __m256d t3 = _mm256_mul_pd(t, t2); // t**3
+  const __m256d terms01 = _mm256_fmadd_pd(gCoeff1, t3, t);
+  const __m256d t5 = _mm256_mul_pd(t3, t2); // t**5
+  const __m256d terms012 = _mm256_fmadd_pd(gCoeff2, t5, terms01);
+  const __m256d t7 = _mm256_mul_pd(t5, t2); // t**7
+  const __m256d terms0123 = _mm256_fmadd_pd(gCoeff3, t7, terms012);
+  const __m256d t9 = _mm256_mul_pd(t7, t2); // t**9
+  const __m256d terms01234 = _mm256_fmadd_pd(gCoeff4, t9, terms0123);
+  const __m256d t11 = _mm256_mul_pd(t9, t2); // t**9
+  const __m256d terms012345 = _mm256_fmadd_pd(gCoeff5, t11, terms01234);
+
+  const __m256d log2_y = _mm256_mul_pd(terms012345, gCommMul);
+  const __m256d log2_x = _mm256_add_pd(log2_y, expsPD);
+
+  return log2_x;
+}
+
 void BenchmarkLog2Vect() {
   __m256d sums = _mm256_setzero_pd();
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i += 4) {
-    for(uint8_t j=0; j<=3; j++) {
-      sums.m256d_f64[j] += std::log2(double(i + j));
-    }
+    const __m256d x = _mm256_set_pd(double(i+3), double(i+2), double(i+1), double(i));
+    const __m256d logs = Log2(x);
+    sums = _mm256_add_pd(sums, logs);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -601,7 +651,7 @@ int __cdecl main() {
 
   //BenchmarkCacheLine();
   //BenchmarkLog2Quads();
-  //BenchmarkLog2Vect();
+  BenchmarkLog2Vect();
   BenchmarkLog2();
   BenchmarkFpuLog2();
   BenchmarkLn();
