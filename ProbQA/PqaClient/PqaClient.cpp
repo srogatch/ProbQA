@@ -609,23 +609,63 @@ __m256d __vectorcall Log2inl(__m256d x) {
 namespace {
   const __m256i gDoubleNotExp = _mm256_set1_epi64x(~(0x7ffULL << 52));
   const __m256i gDoubleExp0 = _mm256_set1_epi64x(1023ULL << 52);
+  const __m256i gDoubleExpM1 = _mm256_set1_epi64x(1022ULL << 52); // exponent "-1"
 
-  const __m128i gExpNormalizer = _mm_set1_epi32(1023);
-  //TODO: some 128-bit variable or two 64-bit variables here?
+  const __m128i gExpNorm0 = _mm_set1_epi32(1023);
+  const __m128i gExpNormM1 = _mm_set1_epi32(1022);
 
   const __m256i gHigh32Permute = _mm256_set_epi32(0, 0, 0, 0, 7, 5, 3, 1);
 
   const __m256d gCommMul1 = _mm256_set1_pd(2.0 / 0.693147180559945309417); // 2.0/ln(2)
-  const __m256d gCommMulSqrt = _mm256_set1_pd(4.0 / 0.693147180559945309417); // 4.0/ln(2)
+  const __m256d gSqrt2 = _mm256_set1_pd(1.4142135623730950488016887242097); // sqrt(2)
   const __m256d gCoeff1 = _mm256_set1_pd(1.0 / 3);
   const __m256d gCoeff2 = _mm256_set1_pd(1.0 / 5);
   const __m256d gCoeff3 = _mm256_set1_pd(1.0 / 7);
   const __m256d gCoeff4 = _mm256_set1_pd(1.0 / 9);
   const __m256d gCoeff5 = _mm256_set1_pd(1.0 / 11);
   const __m256d gVect1 = _mm256_set1_pd(1.0);
+
+  const __m256d gCommMulSqrt = _mm256_set1_pd(4.0 / 0.693147180559945309417); // 4.0/ln(2)
 }
 
 __m256d __vectorcall Log2(__m256d x) {
+  const __m256d yClearExp = _mm256_and_pd(_mm256_castsi256_pd(gDoubleNotExp), x);
+  const __m256d yExp0 = _mm256_or_pd(yClearExp, _mm256_castsi256_pd(gDoubleExp0));
+  const __m256d yExpM1 = _mm256_or_pd(yClearExp, _mm256_castsi256_pd(gDoubleExpM1));
+  const __m256i cmpResAvx = _mm256_castpd_si256(_mm256_cmp_pd(yExp0, gSqrt2, _CMP_GT_OQ));
+  const __m256d y = _mm256_blendv_pd(yExp0, yExpM1, _mm256_castsi256_pd(cmpResAvx));
+  const __m128i cmpResSse = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(cmpResAvx, gHigh32Permute));
+
+  // Calculate t=(y-1)/(y+1) and t**2
+  const __m256d tNum = _mm256_sub_pd(y, gVect1);
+  const __m256d tDen = _mm256_add_pd(y, gVect1);
+  const __m256d t = _mm256_div_pd(tNum, tDen);
+  const __m256d t2 = _mm256_mul_pd(t, t); // t**2
+
+  const __m256d t3 = _mm256_mul_pd(t, t2); // t**3
+  const __m256d terms01 = _mm256_fmadd_pd(gCoeff1, t3, t);
+  const __m256d t5 = _mm256_mul_pd(t3, t2); // t**5
+  const __m256d terms012 = _mm256_fmadd_pd(gCoeff2, t5, terms01);
+  const __m256d t7 = _mm256_mul_pd(t5, t2); // t**7
+  const __m256d terms0123 = _mm256_fmadd_pd(gCoeff3, t7, terms012);
+  const __m256d t9 = _mm256_mul_pd(t7, t2); // t**9
+  const __m256d terms01234 = _mm256_fmadd_pd(gCoeff4, t9, terms0123);
+  const __m256d t11 = _mm256_mul_pd(t9, t2); // t**11
+  const __m256d terms012345 = _mm256_fmadd_pd(gCoeff5, t11, terms01234);
+
+  const __m128i high32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(_mm256_castpd_si256(x), gHigh32Permute));
+  // This requires that x is non-negative, because the sign bit is not cleared before computing the exponent.
+  const __m128i exps32 = _mm_srai_epi32(high32, 20);
+  const __m128i normalizer = _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(gExpNorm0), _mm_castsi128_ps(gExpNormM1),
+    _mm_castsi128_ps(cmpResSse)));
+  const __m128i normExps = _mm_sub_epi32(exps32, normalizer);
+  const __m256d expsPD = _mm256_cvtepi32_pd(normExps);
+
+  const __m256d log2_x = _mm256_fmadd_pd(terms012345, gCommMul1, expsPD);
+  return log2_x;
+}
+
+__m256d __vectorcall Log2sqrt(__m256d x) {
   const __m256d y = _mm256_sqrt_pd(_mm256_or_pd(_mm256_castsi256_pd(gDoubleExp0),
     _mm256_and_pd(_mm256_castsi256_pd(gDoubleNotExp), x)));
 
@@ -649,7 +689,7 @@ __m256d __vectorcall Log2(__m256d x) {
   const __m128i high32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(_mm256_castpd_si256(x), gHigh32Permute));
   // This requires that x is non-negative, because the sign bit is not cleared before computing the exponent.
   const __m128i exps32 = _mm_srai_epi32(high32, 20);
-  const __m128i normExps = _mm_sub_epi32(exps32, gExpNormalizer);
+  const __m128i normExps = _mm_sub_epi32(exps32, gExpNorm0);
   const __m256d expsPD = _mm256_cvtepi32_pd(normExps);
 
   const __m256d log2_x = _mm256_fmadd_pd(terms012345, gCommMulSqrt, expsPD);
