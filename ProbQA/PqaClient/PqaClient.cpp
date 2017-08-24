@@ -603,6 +603,20 @@ __m256d __vectorcall Log2inl(__m256d x) {
   return log2_x;
 }
 
+void BenchmarkLog2VectInl() {
+  __m256d sums = _mm256_setzero_pd();
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnLogs; i += 4) {
+    const __m256d x = _mm256_set_pd(double(i + 3), double(i + 2), double(i + 1), double(i));
+    const __m256d logs = Log2inl(x);
+    sums = _mm256_add_pd(sums, logs);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  double sum = sums.m256d_f64[0] + sums.m256d_f64[1] + sums.m256d_f64[2] + sums.m256d_f64[3];
+  printf("Vect Log2inl: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
+}
+
 // 5 terms Vect Log2 : 405268490.375 Ops / sec calculated 2513272973.836
 // 6 terms Vect Log2: 352875583.127 Ops/sec calculated 2513272985.407
 
@@ -710,18 +724,57 @@ void BenchmarkLog2Vect() {
   printf("Vect Log2: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
 }
 
-void BenchmarkLog2VectInl() {
-  __m256d sums = _mm256_setzero_pd();
-  auto start = std::chrono::high_resolution_clock::now();
+void AsyncLog2Vect(__m256d *pSums) {
   for (int64_t i = 1; i <= cnLogs; i += 4) {
     const __m256d x = _mm256_set_pd(double(i + 3), double(i + 2), double(i + 1), double(i));
-    const __m256d logs = Log2inl(x);
-    sums = _mm256_add_pd(sums, logs);
+    const __m256d logs = Log2(x);
+    *pSums = _mm256_add_pd(*pSums, logs);
   }
-  auto elapsed = std::chrono::high_resolution_clock::now() - start;
-  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-  double sum = sums.m256d_f64[0] + sums.m256d_f64[1] + sums.m256d_f64[2] + sums.m256d_f64[3];
-  printf("Vect Log2inl: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
+}
+
+void BenchmarkLog2VectThreads() {
+  __m256d sums[32];
+  for(uint32_t i=1; i<=std::thread::hardware_concurrency(); i++) {
+    std::vector<std::thread> thrs;
+    thrs.reserve(i);
+    auto start = std::chrono::high_resolution_clock::now();
+    for(uint32_t j=0; j<i; j++) {
+      sums[2*j] = _mm256_setzero_pd();
+      thrs.emplace_back(AsyncLog2Vect, sums + 2*j);
+    }
+    for(uint32_t j=0; j<i; j++) {
+      thrs[j].join();
+    }
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+    double sum = sums[0].m256d_f64[0] + sums[0].m256d_f64[1] + sums[0].m256d_f64[2] + sums[0].m256d_f64[3];
+    printf("%d threads VectLog2: %.3lf Ops/sec calculated %.6lf\n", (int)i, cnLogs / nSec, sum);
+  }
+}
+
+void AsyncLn(double *pSum) {
+  for (int64_t i = 1; i <= cnLogs; i++) {
+    *pSum += std::log(double(i));
+  }
+}
+
+void BenchmarkLnThreads() {
+  double sums[128];
+  for (uint32_t i = 1; i <= std::thread::hardware_concurrency(); i++) {
+    std::vector<std::thread> thrs;
+    thrs.reserve(i);
+    auto start = std::chrono::high_resolution_clock::now();
+    for (uint32_t j = 0; j<i; j++) {
+      sums[8 * j] = 0;
+      thrs.emplace_back(AsyncLn, sums + 8 * j);
+    }
+    for (uint32_t j = 0; j<i; j++) {
+      thrs[j].join();
+    }
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+    printf("%d threads Ln: %.3lf Ops/sec calculated %.6lf\n", int(i), cnLogs / nSec, sums[0]);
+  }
 }
 
 int __cdecl main() {
@@ -749,8 +802,10 @@ int __cdecl main() {
   //BenchmarkLog2VectInl();
   //BenchmarkFpuLog2();
   //BenchmarkLn();
-  BenchmarkLog2Vect();
-  BenchmarkLog2();
+  //BenchmarkLog2Vect();
+  BenchmarkLnThreads();
+  BenchmarkLog2VectThreads();
+  //BenchmarkLog2();
   return 0;
 }
 
