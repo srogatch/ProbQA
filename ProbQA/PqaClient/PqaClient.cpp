@@ -515,24 +515,27 @@ void BenchmarkCacheLine() {
   _mm_free(const_cast<TCacheLineEntry*>(gpCacheLine));
 }
 
-const int64_t cnLogs = 1000 * 1000 * 1000;
+const int64_t cLogsStart = 1000LL * 1000 * 1000;
+const int64_t cnLogs = 1000LL * 1000 * 1000;
 
 void BenchmarkLog2() {
   double sum = 0;
   auto start = std::chrono::high_resolution_clock::now();
   for(int64_t i=1; i<=cnLogs; i++) {
-    sum += std::log2(double(i));
+    const double x = double(i + cLogsStart);
+    sum += std::log2(x);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-  printf("Log2: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
+  printf("std::log2: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
 }
 
 void BenchmarkFpuLog2() {
   double sum = 0;
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i++) {
-    sum += SRPlat::SRLog2MulD(double(i), 1);
+    const double x = double(i + cLogsStart);
+    sum += SRPlat::SRLog2MulD(x, 1);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -543,11 +546,12 @@ void BenchmarkLn() {
   double sum = 0;
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i++) {
-    sum += std::log(double(i));
+    const double x = double(i + cLogsStart);
+    sum += std::log(x);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-  printf("Ln: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
+  printf("Ln: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum / std::log(2.0));
 }
 
 void BenchmarkLog2Quads() {
@@ -622,8 +626,9 @@ void BenchmarkLog2VectInl() {
 
 namespace {
   const __m256i gDoubleNotExp = _mm256_set1_epi64x(~(0x7ffULL << 52));
-  const __m256i gDoubleExp0 = _mm256_set1_epi64x(1023ULL << 52);
-  const __m256i gDoubleExpM1 = _mm256_set1_epi64x(1022ULL << 52); // exponent "-1"
+  const __m256d gDoubleExp0 = _mm256_castsi256_pd(_mm256_set1_epi64x(1023ULL << 52));
+  //const __m256i gDoubleExpM1 = _mm256_set1_epi64x(1022ULL << 52); // exponent "-1"
+  const __m256d gLowestExpBits = _mm256_castsi256_pd(_mm256_set1_epi64x(1ULL << 52));
 
   const __m128i gExpNorm0 = _mm_set1_epi32(1023);
   const __m128i gExpNormM1 = _mm_set1_epi32(1022);
@@ -642,12 +647,16 @@ namespace {
   const __m256d gCommMulSqrt = _mm256_set1_pd(4.0 / 0.693147180559945309417); // 4.0/ln(2)
 }
 
+// Using blendv: 332348915.845 Ops / sec calculated 28454657829.372330
+// Using logical: 332701754.503 Ops/sec calculated 28454657829.372330
+// std::log2(): 95186467.911 Ops/sec calculated 28454657829.372597
 __m256d __vectorcall Log2(__m256d x) {
   const __m256d yClearExp = _mm256_and_pd(_mm256_castsi256_pd(gDoubleNotExp), x);
-  const __m256d yExp0 = _mm256_or_pd(yClearExp, _mm256_castsi256_pd(gDoubleExp0));
-  const __m256d yExpM1 = _mm256_or_pd(yClearExp, _mm256_castsi256_pd(gDoubleExpM1));
+  const __m256d yExp0 = _mm256_or_pd(yClearExp, gDoubleExp0);
+  //const __m256d yExpM1 = _mm256_or_pd(yClearExp, _mm256_castsi256_pd(gDoubleExpM1));
   const __m256i cmpResAvx = _mm256_castpd_si256(_mm256_cmp_pd(yExp0, gSqrt2, _CMP_GT_OQ));
-  const __m256d y = _mm256_blendv_pd(yExp0, yExpM1, _mm256_castsi256_pd(cmpResAvx));
+  //const __m256d y = _mm256_blendv_pd(yExp0, yExpM1, _mm256_castsi256_pd(cmpResAvx));
+  const __m256d y = _mm256_xor_pd(yExp0, _mm256_and_pd(_mm256_castsi256_pd(cmpResAvx), gLowestExpBits));
   const __m128i cmpResSse = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(cmpResAvx, gHigh32Permute));
 
   // Calculate t=(y-1)/(y+1) and t**2
@@ -680,12 +689,15 @@ __m256d __vectorcall Log2(__m256d x) {
 }
 
 namespace {
-  // The limit is 20 because we process only high 32 bits of doubles.
+  // The limit is 29 because we process only high 32 bits of doubles, and out of 20 bits of mantissa there 1 bit is
+  //   used for rounding.
   const uint8_t cnLog2TblBits = 10; // 1024 numbers times 8 bytes = 8KB.
   const uint16_t cZeroExp = 1023;
   const __m128i cSseMantTblMask = _mm_set1_epi32((1 << cnLog2TblBits) - 1);
+  const __m128i cSseRoundingMantTblMask = _mm_set1_epi32( ((1 << (cnLog2TblBits+1)) - 1) << (20-cnLog2TblBits-1) );
+  const __m128i cSseRoundingBit = _mm_set1_epi32(1 <<(20-cnLog2TblBits-1));
   const __m256i cAvxExp2YMask = _mm256_set1_epi64x( ~((1ULL << (52-cnLog2TblBits)) - 1) );
-  double gLog2Table[1 << cnLog2TblBits];
+  double gLog2Table[(1 << cnLog2TblBits)+1];
 }
 
 void InitLog2Table() {
@@ -695,28 +707,38 @@ void InitLog2Table() {
     const double l2z = std::log2(z);
     gLog2Table[i] = l2z;
   }
+  gLog2Table[1 << cnLog2TblBits] = 1;
 }
 
+// With one term and 10 bit table, this gives relative error 0.39684 * 10**-13
 __m256d __vectorcall Log2tbl(__m256d x) {
   const __m256d zClearExp = _mm256_and_pd(_mm256_castsi256_pd(gDoubleNotExp), x);
-  const __m256d z = _mm256_or_pd(zClearExp, _mm256_castsi256_pd(gDoubleExp0));
+  const __m256d z = _mm256_or_pd(zClearExp, gDoubleExp0);
 
+  // Permuting floats seems slower
+  //const __m128i high32 = _mm_castps_si128( _mm256_castps256_ps128(
+  //  _mm256_permutevar8x32_ps(_mm256_castpd_ps(x), gHigh32Permute) ));
   const __m128i high32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(_mm256_castpd_si256(x), gHigh32Permute));
   // This requires that x is non-negative, because the sign bit is not cleared before computing the exponent.
   const __m128i exps32 = _mm_srai_epi32(high32, 20);
   const __m128i normExps = _mm_sub_epi32(exps32, gExpNorm0);
-  const __m256d leading = _mm256_cvtepi32_pd(normExps); // leading integer part for the logarithm
+  // if |leading| is computed here, the performance is 482953667.357 Ops/sec
   
   // Compute y as approximately equal to log2(z)
   const __m128i indexes = _mm_and_si128(cSseMantTblMask, _mm_srai_epi32(high32, 20 - cnLog2TblBits));
   const __m256d y = _mm256_i32gather_pd(gLog2Table, indexes, /*number of bytes per item*/ 8);
   // Compute A as z/exp2(y)
   const __m256d exp2_Y = _mm256_and_pd(z, _mm256_castsi256_pd(cAvxExp2YMask));
-  const __m256d A = _mm256_div_pd(z, exp2_Y);
+  //const __m256d A = _mm256_div_pd(z, exp2_Y);
 
-  // Calculate t=(y-1)/(y+1)
-  const __m256d tNum = _mm256_sub_pd(A, gVect1);
-  const __m256d tDen = _mm256_add_pd(A, gVect1);
+  // Calculate t=(A-1)/(A+1)
+  //const __m256d tNum = _mm256_sub_pd(A, gVect1);
+  //const __m256d tNum = _mm256_div_pd(_mm256_sub_pd(z, exp2_Y), exp2_Y);
+  const __m256d tNum = _mm256_sub_pd(z, exp2_Y);
+  //const __m256d tDen = _mm256_add_pd(A, gVect1);
+  //const __m256d tDen = _mm256_div_pd(_mm256_add_pd(z, exp2_Y), exp2_Y);
+  const __m256d tDen = _mm256_add_pd(z, exp2_Y); // both numerator and denominator would be divided by exp2_Y
+
   const __m256d t = _mm256_div_pd(tNum, tDen);
   //const __m256d t2 = _mm256_mul_pd(t, t); // t**2
 
@@ -732,12 +754,50 @@ __m256d __vectorcall Log2tbl(__m256d x) {
   //const __m256d terms012345 = _mm256_fmadd_pd(gCoeff5, t11, terms01234);
 
   const __m256d log2_z = _mm256_fmadd_pd(/*terms012345*/ t, gCommMul1, y);
+
+  const __m256d leading = _mm256_cvtepi32_pd(normExps); // leading integer part for the logarithm
+
+  const __m256d log2_x = _mm256_add_pd(log2_z, leading);
+  return log2_x;
+}
+
+__m256d __vectorcall Log2tblPrec(__m256d x) {
+  const __m256d zClearExp = _mm256_and_pd(_mm256_castsi256_pd(gDoubleNotExp), x);
+  const __m256d z = _mm256_or_pd(zClearExp, gDoubleExp0);
+
+  const __m128i high32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(_mm256_castpd_si256(x), gHigh32Permute));
+  // This requires that x is non-negative, because the sign bit is not cleared before computing the exponent.
+  const __m128i exps32 = _mm_srai_epi32(high32, 20);
+  const __m128i normExps = _mm_sub_epi32(exps32, gExpNorm0);
+  const __m256d leading = _mm256_cvtepi32_pd(normExps); // leading integer part for the logarithm
+
+  // Compute y as approximately equal to log2(z)
+
+  // Depending on |cnLog2TblBits|th highest bit of mantissa (with the highest bit at index 0), it may be better to
+  //   increment the index.
+  const __m128i indexes = _mm_srai_epi32(
+    _mm_add_epi32(_mm_and_si128(cSseRoundingMantTblMask, high32), cSseRoundingBit), 20 - cnLog2TblBits);
+  const __m256d y = _mm256_i32gather_pd(gLog2Table, indexes, /*number of bytes per item*/ 8);
+  // Compute A as z/exp2(y)
+  //const __m256d exp2_Y = _mm256_and_pd(z, _mm256_castsi256_pd(cAvxExp2YMask));
+  const __m256d exp2_Y = _mm256_castsi256_pd(_mm256_add_epi64(_mm256_castpd_si256(gDoubleExp0),
+    _mm256_slli_epi64(_mm256_cvtepu32_epi64(indexes), 52-cnLog2TblBits) ) );
+  // const __m256d A = _mm256_div_pd(z, exp2_Y);
+
+  // Calculate t=(A-1)/(A+1)
+  //const __m256d tNum = _mm256_div_pd(_mm256_sub_pd(z, exp2_Y), exp2_Y);
+  const __m256d tNum = _mm256_sub_pd(z, exp2_Y);
+  //const __m256d tDen = _mm256_div_pd(_mm256_add_pd(z, exp2_Y), exp2_Y);
+  const __m256d tDen = _mm256_add_pd(z, exp2_Y);
+  const __m256d t = _mm256_div_pd(tNum, tDen); // both numerator and denominator would be divided by exp2_Y
+
+  const __m256d log2_z = _mm256_fmadd_pd(t, gCommMul1, y);
   const __m256d log2_x = _mm256_add_pd(log2_z, leading);
   return log2_x;
 }
 
 __m256d __vectorcall Log2sqrt(__m256d x) {
-  const __m256d y = _mm256_sqrt_pd(_mm256_or_pd(_mm256_castsi256_pd(gDoubleExp0),
+  const __m256d y = _mm256_sqrt_pd(_mm256_or_pd(gDoubleExp0,
     _mm256_and_pd(_mm256_castsi256_pd(gDoubleNotExp), x)));
 
   // Calculate t=(y-1)/(y+1) and t**2
@@ -771,7 +831,8 @@ void BenchmarkLog2tblVect() {
   __m256d sums = _mm256_setzero_pd();
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i += 4) {
-    const __m256d x = _mm256_set_pd(double(i + 3), double(i + 2), double(i + 1), double(i));
+    const __m256d x = _mm256_set_pd(double(i + cLogsStart + 3), double(i + cLogsStart + 2), double(i + cLogsStart + 1),
+      double(i + cLogsStart));
     const __m256d logs = Log2tbl(x);
     sums = _mm256_add_pd(sums, logs);
   }
@@ -781,11 +842,27 @@ void BenchmarkLog2tblVect() {
   printf("Vect Log2tbl: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
 }
 
+void BenchmarkLog2tblPrec() {
+  __m256d sums = _mm256_setzero_pd();
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnLogs; i += 4) {
+    const __m256d x = _mm256_set_pd(double(i + cLogsStart + 3), double(i + cLogsStart + 2), double(i + cLogsStart + 1),
+      double(i + cLogsStart));
+    const __m256d logs = Log2tblPrec(x);
+    sums = _mm256_add_pd(sums, logs);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  double sum = sums.m256d_f64[0] + sums.m256d_f64[1] + sums.m256d_f64[2] + sums.m256d_f64[3];
+  printf("Vect Log2tblPrec: %.3lf Ops/sec calculated %.6lf\n", cnLogs / nSec, sum);
+}
+
 void BenchmarkLog2Vect() {
   __m256d sums = _mm256_setzero_pd();
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i += 4) {
-    const __m256d x = _mm256_set_pd(double(i+3), double(i+2), double(i+1), double(i));
+    const __m256d x = _mm256_set_pd(double(i + cLogsStart +3), double(i + cLogsStart +2), double(i + cLogsStart +1),
+      double(i + cLogsStart));
     const __m256d logs = Log2(x);
     sums = _mm256_add_pd(sums, logs);
   }
@@ -871,15 +948,15 @@ int __cdecl main() {
   //BenchmarkCacheLine();
   //BenchmarkLog2Quads();
   //BenchmarkLog2VectInl();
-  //BenchmarkLn();
-  //BenchmarkLog2Vect();
   //BenchmarkLnThreads();
   //BenchmarkLog2VectThreads();
 
   InitLog2Table();
+  BenchmarkLog2tblPrec();
   BenchmarkLog2tblVect();
+  BenchmarkLog2Vect();
+  BenchmarkLn();
   BenchmarkLog2();
   BenchmarkFpuLog2();
   return 0;
 }
-
