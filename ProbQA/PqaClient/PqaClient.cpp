@@ -515,15 +515,21 @@ void BenchmarkCacheLine() {
   _mm_free(const_cast<TCacheLineEntry*>(gpCacheLine));
 }
 
-const int64_t cLogsStart = 1000LL * 1000 * 1000;
+const int64_t cLogsStart = 1; // 1000LL * 1000 * 1000;
 const int64_t cnLogs = 1000LL * 1000 * 1000;
 
 void BenchmarkLog2() {
   double sum = 0;
   auto start = std::chrono::high_resolution_clock::now();
-  for(int64_t i=1; i<=cnLogs; i++) {
-    const double x = double(i + cLogsStart);
-    sum += std::log2(x);
+  for(int64_t i=1; i<=cnLogs; i+=4) {
+    const double x3 = double(cLogsStart + 3*i);
+    sum += std::log2(x3);
+    const double x2 = double(cLogsStart + 7 * i);
+    sum += std::log2(x2);
+    const double x1 = double(cLogsStart + 17 * i);
+    sum += std::log2(x1);
+    const double x0 = double(cLogsStart + 37 * i);
+    sum += std::log2(x0);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -533,9 +539,15 @@ void BenchmarkLog2() {
 void BenchmarkFpuLog2() {
   double sum = 0;
   auto start = std::chrono::high_resolution_clock::now();
-  for (int64_t i = 1; i <= cnLogs; i++) {
-    const double x = double(i + cLogsStart);
-    sum += SRPlat::SRLog2MulD(x, 1);
+  for (int64_t i = 1; i <= cnLogs; i+=4) {
+    const double x3 = double(cLogsStart + 3*i);
+    sum += SRPlat::SRLog2MulD(x3, 1);
+    const double x2 = double(cLogsStart + 7 * i);
+    sum += SRPlat::SRLog2MulD(x2, 1);
+    const double x1 = double(cLogsStart + 17 * i);
+    sum += SRPlat::SRLog2MulD(x1, 1);
+    const double x0 = double(cLogsStart + 37 * i);
+    sum += SRPlat::SRLog2MulD(x0, 1);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -545,9 +557,15 @@ void BenchmarkFpuLog2() {
 void BenchmarkLn() {
   double sum = 0;
   auto start = std::chrono::high_resolution_clock::now();
-  for (int64_t i = 1; i <= cnLogs; i++) {
-    const double x = double(i + cLogsStart);
-    sum += std::log(x);
+  for (int64_t i = 1; i <= cnLogs; i+=4) {
+    const double x3 = double(cLogsStart + 3*i);
+    sum += std::log(x3);
+    const double x2 = double(cLogsStart + 7 * i);
+    sum += std::log(x2);
+    const double x1 = double(cLogsStart + 17 * i);
+    sum += std::log(x1);
+    const double x0 = double(cLogsStart + 37 * i);
+    sum += std::log(x0);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -772,7 +790,11 @@ __m256d __vectorcall Log2tblPlus(__m256d x) {
   const __m256d zClearExp = _mm256_and_pd(_mm256_castsi256_pd(gDoubleNotExp), x);
   const __m256d z = _mm256_or_pd(zClearExp, gDoubleExp0);
 
-  const __m128i high32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(_mm256_castpd_si256(x), gHigh32Permute));
+  //const __m128i high32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(_mm256_castpd_si256(x), gHigh32Permute));
+  const __m128 hiLane = _mm_castpd_ps(_mm256_extractf128_pd(x, 1));
+  const __m128 loLane = _mm_castpd_ps(_mm256_castpd256_pd128(x));
+  const __m128i high32 = _mm_castps_si128(_mm_shuffle_ps(loLane, hiLane, _MM_SHUFFLE(3, 1, 3, 1)));
+
   // This requires that x is non-negative, because the sign bit is not cleared before computing the exponent.
   const __m128i exps32 = _mm_srai_epi32(high32, 20);
   const __m128i normExps = _mm_sub_epi32(exps32, gExpNorm0);
@@ -874,8 +896,8 @@ void BenchmarkLog2tblVect() {
   __m256d sums = _mm256_setzero_pd();
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i += 4) {
-    const __m256d x = _mm256_set_pd(double(i + cLogsStart + 3), double(i + cLogsStart + 2), double(i + cLogsStart + 1),
-      double(i + cLogsStart));
+    const __m256d x = _mm256_set_pd(double(cLogsStart + 3 * i), double(cLogsStart + 7 * i), double(cLogsStart + 17 * i),
+      double(cLogsStart + 37 * i));
     const __m256d logs = Log2tbl(x);
     sums = _mm256_add_pd(sums, logs);
   }
@@ -889,8 +911,10 @@ void BenchmarkLog2tblPlus() {
   __m256d sums = _mm256_setzero_pd();
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i += 4) {
-    const __m256d x = _mm256_set_pd(double(i + cLogsStart + 3), double(i + cLogsStart + 2), double(i + cLogsStart + 1),
-      double(i + cLogsStart));
+    //const __m256d x = _mm256_set_pd(double(i + cLogsStart + 3), double(i + cLogsStart + 2), double(i + cLogsStart + 1),
+    //  double(i + cLogsStart));
+    const __m256d x = _mm256_set_pd(double(cLogsStart + 3 * i), double(cLogsStart + 7 * i), double(cLogsStart + 17 * i),
+      double(cLogsStart + 37 * i));
     const __m256d logs = Log2tblPlus(x);
     sums = _mm256_add_pd(sums, logs);
   }
@@ -904,8 +928,8 @@ void BenchmarkLog2tblPrec() {
   __m256d sums = _mm256_setzero_pd();
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i += 4) {
-    const __m256d x = _mm256_set_pd(double(i + cLogsStart + 3), double(i + cLogsStart + 2), double(i + cLogsStart + 1),
-      double(i + cLogsStart));
+    const __m256d x = _mm256_set_pd(double(cLogsStart + 3*i), double(cLogsStart + 7*i), double(cLogsStart + 17 *i),
+      double(cLogsStart + 37*i));
     const __m256d logs = Log2tblPrec(x);
     sums = _mm256_add_pd(sums, logs);
   }
@@ -919,8 +943,8 @@ void BenchmarkLog2Vect() {
   __m256d sums = _mm256_setzero_pd();
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 1; i <= cnLogs; i += 4) {
-    const __m256d x = _mm256_set_pd(double(i + cLogsStart +3), double(i + cLogsStart +2), double(i + cLogsStart +1),
-      double(i + cLogsStart));
+    const __m256d x = _mm256_set_pd(double(cLogsStart + 3*i), double(cLogsStart + 7*i), double(cLogsStart + 17*i),
+      double(cLogsStart + 37*i));
     const __m256d logs = Log2(x);
     sums = _mm256_add_pd(sums, logs);
   }
@@ -1011,11 +1035,11 @@ int __cdecl main() {
 
   InitLog2Table();
   BenchmarkLog2tblPlus();
-  BenchmarkLog2tblPrec();
-  BenchmarkLog2tblVect();
-  BenchmarkLog2Vect();
-  BenchmarkLn();
-  BenchmarkLog2();
-  BenchmarkFpuLog2();
+  //BenchmarkLog2tblPrec();
+  //BenchmarkLog2tblVect();
+  //BenchmarkLog2Vect();
+  //BenchmarkLn();
+  //BenchmarkLog2();
+  //BenchmarkFpuLog2();
   return 0;
 }
