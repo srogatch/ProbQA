@@ -7,6 +7,7 @@
 namespace ProbQA {
 
 // This class is not thread-safe.
+//TODO: refactor to get a possibility to fetch 4 bits at once
 template <typename taId> class GapTracker {
   std::vector<taId> _gaps;
   std::vector<bool> _isGap;

@@ -370,6 +370,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     pQuiz = _quizzes[iQuiz];
   }
 
+  //NOTE: parallelization is at question-level
   // In this algorithm, as the weight for entropy summation we calculate Pr(q[i]==k | Q(S-1)) as the sum over all
   //   targets j of Pr(q[i]==k | t[j]) * Pr(t[j] | Q(S-1)) , because when A is a subset of B and B is a subset of C,
   //   the following holds true: P(A|C) = P (A|B) * P(B|C) : https://math.stackexchange.com/a/2399444/187933 . In our
@@ -386,24 +387,27 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   // By design, Pr(q[i]==k | Q(S-1)) = Pr(Q(S) | Q(S-1)) .
   // TODO: log() seems 1.77 times faster than log2(), so consider using it for entropy calculation, then exp(avgH)
   //   instead of pow(2, avgH).
-  // TODO: consider using assembly FYL2X for calculating at once the product of probability and its logarithm
-  //   http://x86.renejeschke.de/html/file_module_x86_id_130.html
 
   // Normalize priors in the quiz so to avoid normalization after each (question,answer) pair application
-  //   Find the maximum int64_t exponent part of the prior among targets not in gaps (in parallel and vectorized)
+  //   Find the maximum double+int64_t parts of the exponent of the prior among targets not in gaps
+  //     (in parallel and vectorized).
+  //     For a gap, assume a large negative number as the exponent
   //   For each target j in parallel with SIMD:
-  //     TODO: Adjust the double part of the prior ...
-  //     TODO: ...
+  //     Just skip if it's a gap
+  //     Adjust the double part of the prior so that the maximum gets exponent about 950
+  //     Put the adjusted double to a bucket by exponent
+  //   Sum the numbers in the buckets in parallel with SIMD
+  //   Divide target likelihood values by their sum, so to get the probabilities
   // Calculate M1 as the number of targets without gaps
   // In parallel for each question i, if this question has not been already asked
   //   If this question is in a gap, skip it.
   //   For each answer k
-  //     For each target j in parallel
+  //     For each target j
   //       If the target is not in a gap:
   //         In a separate array, SIMD-multiply target probability by Pr(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j].
   //         Store the product in a bucket by exponent.
   //     Get W[k] as the sum of the likelihoods array by  summing starting with the smallest exponent.
-  //     For each target j in parallel
+  //     For each target j
   //       SIMD-divide j-th item in the likelihoods array by W[k] so to get the probability Pr(j)
   //       If target j is not in a gap:
   //         Calculate entropy component H(i,k,j)=-Pr(j)*log2(Pr(j)) substituting 0 for Pr(j)==0, and store H(i,k,j) in
