@@ -41,3 +41,4 @@
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRMath.h"
 #include "../SRPlatform/Interface/SRMemPool.h"
+#include "../SRPlatform/Interface/SRMPAllocator.h"

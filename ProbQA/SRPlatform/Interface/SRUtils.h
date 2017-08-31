@@ -34,6 +34,19 @@ public: // Methods
   // Copy nVects of 256-bit vectors.
   template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void Copy256(void *pStore,
     const void *pLoad, size_t nVects);
+
+  // Both store and load pointers are unaligned
+  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void CopyUnalign(void *pStore,
+    const void *pLoad, const size_t nBytes);
+  
+  // Store Aligned, Load Unaligned
+  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void CopySaLu(void *pStore,
+    const void *pLoad, const size_t nBytes);
+
+  // Store Unaligned, Load Aligned
+  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void CopySuLa(void *pStore,
+    const void *pLoad, const size_t nBytes);
+
   // Broadcast item to all components of 256-bit vector register.
   template<typename taItem> inline static typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i>
   __vectorcall Set1(const taItem item);
@@ -64,6 +77,27 @@ void SRUtils::Copy256(void *pStore, const void *pLoad, size_t nVects)
   if (!taCacheStore) {
     _mm_sfence();
   }
+}
+
+// Both store and load pointers are unaligned
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline
+void SRUtils::CopyUnalign(void *pStore, const void *pLoad, const size_t nBytes) {
+  //TODO: implement with AVX2 (stream) store/load 32 bytes at once
+  memcpy(pStore, pLoad, nBytes);
+}
+
+// Store Aligned, Load Unaligned
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline
+void SRUtils::CopySaLu(void *pStore, const void *pLoad, const size_t nBytes) {
+  //TODO: implement with AVX2 (stream) store/load 32 bytes at once
+  memcpy(pStore, pLoad, nBytes);
+}
+
+// Store Unaligned, Load Aligned
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline
+void SRUtils::CopySuLa(void *pStore, const void *pLoad, const size_t nBytes) {
+  //TODO: implement with AVX2 (stream) store/load 32 bytes at once
+  memcpy(pStore, pLoad, nBytes);
 }
 
 template<typename taItem> inline typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i> __vectorcall

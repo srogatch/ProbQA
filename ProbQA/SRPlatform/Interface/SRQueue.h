@@ -40,9 +40,13 @@ public: // methods
       taItem *pNewItems = reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
       // The number of array head items is equal to _iFirst
       const size_t nTailItems = _nItems - _iFirst;
-      //TODO: change to AVX2 implementation which doesn't cache the source array.
-      memcpy(pNewItems, _pItems + _iFirst, sizeof(taItem) * nTailItems); // copy array tail (queue head)
-      memcpy(pNewItems + nTailItems, _pItems, sizeof(taItem) * _iFirst); // copy array head (queue tail)
+      //TODO: parametrize the class with taCache and put it as taCacheStore in 2 copy calls below
+      // copy array tail (queue head)
+      SRUtils::CopySaLu<true, false>(pNewItems, _pItems + _iFirst, sizeof(taItem) * nTailItems);
+      // copy array head (queue tail)
+      SRUtils::CopySuLa<true, false>(pNewItems + nTailItems, _pItems, sizeof(taItem) * _iFirst);
+      // Ideally here we should just abandon the cache lines, without saving them to memory. But not bounds.
+      SRUtils::FlushCache<true, true>(_pItems, _nItems * sizeof(taItem));
       _mm_free(_pItems);
       _pItems = pNewItems;
       // _nItems doesn't change yet
@@ -61,9 +65,11 @@ public: // methods
       taItem *pNewItems = reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
       const size_t nTailItems = std::min(_nItems, capacity - _iFirst); // array tail (queue head)
       const size_t nHeadItems = _nItems - nTailItems; // array head (queue tail), if any
-      //TODO: change to AVX2 implementation which doesn't cache the source array.
-      memcpy(pNewItems, _pItems + _iFirst, sizeof(taItem)*nTailItems);
-      memcpy(pNewItems + nTailItems, _pItems, sizeof(taItem)*nHeadItems);
+      //TODO: parametrize the class with taCache and put it as taCacheStore in 2 copy calls below
+      SRUtils::CopySaLu<true, false>(pNewItems, _pItems + _iFirst, sizeof(taItem)*nTailItems);
+      SRUtils::CopySuLa<true, false>(pNewItems + nTailItems, _pItems, sizeof(taItem)*nHeadItems);
+      // Ideally here we should just abandon the cache lines, without saving them to memory. But not bounds.
+      SRUtils::FlushCache<true, true>(_pItems, capacity * sizeof(taItem));
       _mm_free(_pItems);
       _pItems = pNewItems;
       // _nItems doesn't change yet
@@ -74,9 +80,9 @@ public: // methods
     //TODO: ensure that these translate into CMOVcc instructions: http://x86.renejeschke.de/html/file_module_x86_id_34.html
     const size_t nTail = std::min(nSrc, capacity - std::min(capacity, _iFirst + _nItems));
     const size_t nHead = nSrc - nTail;
-    //TODO: change to AVX2 implementation.
-    memcpy(_pItems + _iFirst + _nItems, pSrc, sizeof(taItem) * nTail);
-    memcpy(_pItems, pSrc + nTail, sizeof(taItem) * nHead);
+    //TODO: parametrize the class with taCache and put it as taCacheStore in 2 copy calls below
+    SRUtils::CopyUnalign<true,false>(_pItems + _iFirst + _nItems, pSrc, sizeof(taItem) * nTail);
+    SRUtils::CopySaLu<true, false>(_pItems, pSrc + nTail, sizeof(taItem) * nHead);
     _nItems += nSrc;
   }
   taItem __vectorcall PopGet() {

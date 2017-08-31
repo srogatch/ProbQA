@@ -162,6 +162,9 @@
     <ClInclude Include="Interface\SRQueue.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRMPAllocator.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -219,6 +222,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SubtaskCompleter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SRMemPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

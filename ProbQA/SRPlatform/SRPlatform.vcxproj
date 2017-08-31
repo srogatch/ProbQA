@@ -247,6 +247,7 @@
     <ClInclude Include="Interface\SRMemPool.h" />
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRMinimalTask.h" />
+    <ClInclude Include="Interface\SRMPAllocator.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRFastRandom.h" />
     <ClInclude Include="Interface\SRQueue.h" />
@@ -288,6 +289,7 @@
     <ClCompile Include="SRException.cpp" />
     <ClCompile Include="SRGenericException.cpp" />
     <ClCompile Include="SRLoggerFactory.cpp" />
+    <ClCompile Include="SRMemPool.cpp" />
     <ClCompile Include="SRMultiException.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRReaderWriterSync.cpp" />
