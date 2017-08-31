@@ -16,12 +16,11 @@ inline CEBaseQuiz::CEBaseQuiz(BaseCpuEngine *pEngine) : _pEngine(pEngine) {
   const EngineDimensions& dims = _pEngine->GetDims();
   const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
-  typedef BaseCpuEngine::TMemPool TMemPool;
-  TMemPool& memPool = _pEngine->GetMemPool();
+  auto& memPool = _pEngine->GetMemPool();
 
   // First allocate all the memory so to revert if anything fails.
-  SRPlat::SRSmartMPP<TMemPool, __m256i> smppIsQAsked(memPool, SRPlat::SRSimd::VectsFromBits(nQuestions));
-  SRPlat::SRSmartMPP<TMemPool, TExponent> smppExponents(memPool, nTargets);
+  SRPlat::SRSmartMPP<__m256i> smppIsQAsked(memPool, SRPlat::SRSimd::VectsFromBits(nQuestions));
+  SRPlat::SRSmartMPP<TExponent> smppExponents(memPool, nTargets);
 
   // As all the memory is allocated, safely proceed with finishing construction of CEBaseQuiz object.
   _pTlhExps = smppExponents.Detach();
@@ -48,11 +47,10 @@ template<typename taNumber> inline CpuEngine<taNumber>* CEQuiz<taNumber>::GetEng
 template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngine) : CEBaseQuiz(pEngine) {
   const EngineDimensions& dims = pEngine->GetDims();
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
-  typedef typename CpuEngine<taNumber>::TMemPool TMemPool;
-  TMemPool& memPool = pEngine->GetMemPool();
+  auto& memPool = pEngine->GetMemPool();
 
   // First allocate all the memory so to revert if anything fails.
-  SRPlat::SRSmartMPP<TMemPool, taNumber> smppMantissas(memPool, nTargets);
+  SRPlat::SRSmartMPP<taNumber> smppMantissas(memPool, nTargets);
 
   // As all the memory is allocated, safely proceed with finishing construction of CEQuiz object.
   _pTlhMants = smppMantissas.Detach();

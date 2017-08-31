@@ -26,4 +26,8 @@ public:
   }
 };
 
+class SRBitArray {
+public:
+};
+
 } // namespace SRPlat

@@ -146,7 +146,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
     * nWorkers;
   const size_t ttPrevOffs = ttLastOffs + sizeof(std::atomic<TPqaId>) * nWorkers;
   const size_t nTotalBytes = ttPrevOffs + sizeof(TPqaId) * SRCast::ToSizeT(nQuestions);
-  SRSmartMPP<TMemPool, uint8_t> commonBuf(_memPool, nTotalBytes);
+  SRSmartMPP<uint8_t> commonBuf(_memPool, nTotalBytes);
 
   CETrainTask<taNumber> trainTask(*this, nWorkers, iTarget, pAQs);
   //TODO: these are slow because threads share a cache line. It's not clear yet how to workaround this: the data is not
@@ -406,7 +406,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   //       If the target is not in a gap:
   //         In a separate array, SIMD-multiply target probability by Pr(q[i]==k | t[j]) = _sA[i][k][j] / _mD[i][j].
   //         Store the product in a bucket by exponent.
-  //     Get W[k] as the sum of the likelihoods array by  summing starting with the smallest exponent.
+  //     Get W[k] as the sum of the likelihoods array by summing starting with the smallest exponent.
   //     For each target j
   //       SIMD-divide j-th item in the likelihoods array by W[k] so to get the probability Pr(j)
   //       If target j is not in a gap:

@@ -56,8 +56,12 @@ public:
     taCache ? _mm256_store_si256(genP, genV) : _mm256_stream_si256(genP, genV);
   }
 
-  template<size_t taItemSize> static size_t GetPaddedBytes(const size_t nItems) {
-    return (nItems * taItemSize + _cByteMask) & (~_cByteMask);
+  static size_t GetPaddedBytes(const size_t nUnpaddedBytes) {
+    return (nUnpaddedBytes + _cByteMask) & (~_cByteMask);
+  }
+
+  template<size_t taItemSize> static size_t PaddedBytesFromItems(const size_t nItems) {
+    return GetPaddedBytes(nItems * taItemSize);
   }
 
 };

@@ -20,7 +20,7 @@ private: // variables
 
 private: // methods
   static size_t GetPaddedByteCount(const size_t nItems) {
-    return SRSimd::GetPaddedBytes<sizeof(taItem)>(nItems);
+    return SRSimd::PaddedBytesFromItems<sizeof(taItem)>(nItems);
   }
 
 public: // methods

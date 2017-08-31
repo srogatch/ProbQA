@@ -1007,6 +1007,17 @@ void BenchmarkLnThreads() {
   }
 }
 
+//void TestNonconstMask() {
+//  __m256i a = _mm256_set_epi64x(1, 2, 3, 4);
+//  __m256i b = _mm256_set_epi64x(5, 6, 7, 8);
+//  __m256i sum = _mm256_set1_epi64x(0);
+//  for (int i = 0; i<16; i++) {
+//    __m256i c = _mm256_castpd_si256(_mm256_blend_pd(_mm256_castsi256_pd(a), _mm256_castsi256_pd(b), i));
+//    sum = _mm256_add_epi64(sum, c);
+//  }
+//  printf("%lld\n", sum.m256i_i64[0] + sum.m256i_i64[1] + sum.m256i_i64[2] + sum.m256i_i64[3]);
+//}
+
 int __cdecl main() {
   //std::atomic<double> test1;
   //bool test2 = test1.is_lock_free();

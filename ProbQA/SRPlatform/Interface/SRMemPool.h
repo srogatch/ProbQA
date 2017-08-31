@@ -4,15 +4,24 @@
 
 #pragma once
 
+#include "../SRPlatform/Interface/SRPlatform.h"
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRSimd.h"
 
 namespace SRPlat {
 
+class SRPLATFORM_API SRBaseMemPool {
+public:
+  virtual ~SRBaseMemPool() { }
+  virtual void FreeAllChunks() { }
+  virtual void* AllocMem(const size_t nBytes) { return _mm_malloc(SRSimd::GetPaddedBytes(nBytes), SRSimd::_cNBytes); }
+  virtual void ReleaseMem(void *p, const size_t) { _mm_free(p); }
+};
+
 // If the unit is 256-bit, then taLogUnitBits should be 8 because 256 == (1<<8) .
 // This class is thread-safe, except some methods explicitly specified as not thread-safe.
-template<uint32_t taLogNUnitBits, uint32_t taNGranules> class SRMemPool {
+template<uint32_t taLogNUnitBits, uint32_t taNGranules> class SRMemPool : public SRBaseMemPool {
   static_assert(taLogNUnitBits >= 3, "Must be integer number of bytes.");
 
 public: // constants
@@ -55,7 +64,7 @@ public:
     }
   }
 
-  ~SRMemPool() {
+  virtual ~SRMemPool() override final {
     //TODO: vectorize/parallelize
     for (size_t i = 0; i < taNGranules; i++) {
       FreeChunk(i);
@@ -65,7 +74,7 @@ public:
   }
 
   // This method is not thread-safe.
-  void FreeAllChunks() {
+  virtual void FreeAllChunks() override final {
     std::atomic_thread_fence(std::memory_order_acquire);
     for (size_t i = 0; i < taNGranules; i++) {
       FreeChunk(i);
@@ -79,7 +88,7 @@ public:
   SRMemPool(SRMemPool&&) = delete;
   SRMemPool& operator=(SRMemPool&&) = delete;
 
-  void* AllocMem(const size_t nBytes) {
+  virtual void* AllocMem(const size_t nBytes) override final {
     const size_t iSlot = (nBytes + _cNUnitBytes - 1) >> _cLogNUnitBytes;
     if (iSlot >= taNGranules) {
       return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
@@ -100,7 +109,7 @@ public:
     return expected;
   }
 
-  void ReleaseMem(void *p, const size_t nBytes) {
+  void ReleaseMem(void *p, const size_t nBytes) override final {
     const size_t iSlot = (nBytes + _cNUnitBytes - 1) >> _cLogNUnitBytes;
     if (iSlot >= taNGranules || iSlot <= 0) {
       _mm_free(p);
@@ -127,12 +136,12 @@ public:
 };
 
 // MPP - memory pool pointer
-template <typename taMemPool, typename taItem> class SRSmartMPP {
-  taMemPool *_pMp;
+template <typename taItem> class SRSmartMPP {
+  SRBaseMemPool *_pMp;
   taItem *_pItem;
   size_t _nBytes;
 public:
-  explicit SRSmartMPP(taMemPool &mp, const size_t nItems) : _pMp(&mp), _nBytes(nItems * sizeof(taItem)) {
+  explicit SRSmartMPP(SRBaseMemPool &mp, const size_t nItems) : _pMp(&mp), _nBytes(nItems * sizeof(taItem)) {
     _pItem = static_cast<taItem*>(_pMp->AllocMem(_nBytes));
     if (_pItem == nullptr) {
       throw SRException(SRMessageBuilder(__FUNCTION__ " Failed to allocate ")(nItems)(" items, ")(sizeof(taItem))

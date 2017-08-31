@@ -19,7 +19,7 @@ public:
   void Release(const taId at) {
     assert(!_isGap[at]);
     _isGap[SRCast::ToSizeT(at)] = true;
-    _gaps.push_back(at); 
+    _gaps.push_back(at);
   }
 
   bool HasGaps() const { return _gaps.size() >= 1; }

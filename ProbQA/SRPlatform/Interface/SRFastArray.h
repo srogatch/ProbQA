@@ -32,7 +32,7 @@ private: // variables
 private: // methods
   //TODO: consider unifying such methods with SRQueue etc.
   static size_t GetPaddedByteCount(const size_t nItems) {
-    return SRSimd::GetPaddedBytes<sizeof(taItem)>(nItems);
+    return SRSimd::PaddedBytesFromItems<sizeof(taItem)>(nItems);
   }
   // Optimized version for the case when the item size is a power of 2 no larger than SIMD size. If it's larger than
   //   SIMD size, it would require left shitf rather than right shift for computing the number of vectors.

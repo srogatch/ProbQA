@@ -23,7 +23,7 @@ template<> void CECreateQuizResume<DoubleNumber>::UpdateLikelihoods(BaseCpuEngin
   const size_t nVects = SRSimd::VectsFromComps<double>(dims._nTargets);
   const SRThreadPool::TThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
   const size_t sizeWithSubtasks = sizeof(CEUpdatePriorsSubtaskMul<DoubleNumber>) * nWorkers;
-  SRSmartMPP<CpuEngine<DoubleNumber>::TMemPool, uint8_t> commonBuf(engine.GetMemPool(),
+  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(),
     /* This assumes that the subtasks end with the buffer end. */ sizeWithSubtasks);
   CEUpdatePriorsTask<DoubleNumber> task(engine, quiz, _nAnswered, _pAQs, CalcVectsInCache());
 
