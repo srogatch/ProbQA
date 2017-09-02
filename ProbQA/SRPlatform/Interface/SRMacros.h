@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "../SRPlatform/Interface/SRDefaultLogger.h"
-
 // Disable "conditional expression is constant" warning in `do { } while(false);` loops
 #define WHILE_FALSE               \
   __pragma(warning(push))         \
@@ -22,15 +20,12 @@
 
 #define SR_FILE_LINE __FILE__ "(" SR_LINE_STRING "): "
 
-#define SR_LOG_WINFAIL(severityVar, loggerVar, lastErrVar) do { \
-  (loggerVar)->Log( \
-    ISRLogger::Severity::severityVar, \
-    SRPlat::SRString( \
-      std::string("Failed WinAPI call at " SR_FILE_LINE " GetLastError=") + std::to_string(lastErrVar) \
-    ) \
-  ); \
-} WHILE_FALSE
+#define ATTR_NOALIAS __declspec(noalias)
+#define ATTR_RESTRICT __declspec(restrict)
+#define PTR_RESTRICT __restrict
+#define ATTR_NORETURN __declspec(noreturn)
+#define SR_UNREACHABLE __assume(0)
 
-#define SR_LOG_WINFAIL_GLE(severityVar, loggerVar) SR_LOG_WINFAIL(severityVar, loggerVar, GetLastError())
-
-#define SR_DLOG_WINFAIL_GLE(severityVar) SR_LOG_WINFAIL_GLE(severityVar, SRDefaultLogger::Get())
+// Cast for *printf format
+#define CASTF_HU(var) static_cast<unsigned short>(var)
+#define CASTF_DU(var) static_cast<unsigned int>(var)

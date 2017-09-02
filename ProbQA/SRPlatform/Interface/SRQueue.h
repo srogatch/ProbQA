@@ -13,21 +13,24 @@ namespace SRPlat {
 //   above operations, but items must stay consistent after trivial operations executed by SRQueue.
 template<typename taItem> class SRPLATFORM_API SRQueue {
 private: // variables
-  taItem *_pItems;
+  taItem *PTR_RESTRICT _pItems;
   size_t _iFirst;
-  size_t _nItems;
-  uint8_t _logCapacity;
+  size_t _nItems : 56;
+  size_t _logCapacity : 8;
 
 private: // methods
   static size_t GetPaddedByteCount(const size_t nItems) {
     return SRSimd::PaddedBytesFromItems<sizeof(taItem)>(nItems);
   }
+  ATTR_RESTRICT static taItem* ThrowingAlloc(const size_t nItems) {
+    const size_t paddedBytes = GetPaddedByteCount(nItems);
+    return reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
+  }
 
 public: // methods
   explicit SRQueue(const uint8_t logInitialCapacity) {
-    const size_t paddedBytes = GetPaddedByteCount(size_t(1)<<logInitialCapacity);
     _logCapacity = logInitialCapacity;
-    _pItems = reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
+    _pItems = ThrowingAlloc(size_t(1) << logInitialCapacity);
     _iFirst = 0;
     _nItems = 0;
   }
@@ -36,8 +39,7 @@ public: // methods
     if(_nItems >= capacity) {
       assert(_nItems == capacity);
       capacity <<= 1;
-      const size_t paddedBytes = GetPaddedByteCount(capacity);
-      taItem *pNewItems = reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
+      taItem *PTR_RESTRICT pNewItems = ThrowingAlloc(capacity);
       // The number of array head items is equal to _iFirst
       const size_t nTailItems = _nItems - _iFirst;
       //TODO: parametrize the class with taCache and put it as taCacheStore in 2 copy calls below
@@ -61,8 +63,7 @@ public: // methods
     size_t capacity = size_t(1) << _logCapacity;
     if(_nItems + nSrc > capacity) {
       const size_t newCapacity = capacity << 1;
-      const size_t paddedBytes = GetPaddedByteCount(newCapacity);
-      taItem *pNewItems = reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
+      taItem *PTR_RESTRICT pNewItems = ThrowingAlloc(newCapacity);
       const size_t nTailItems = std::min(_nItems, capacity - _iFirst); // array tail (queue head)
       const size_t nHeadItems = _nItems - nTailItems; // array head (queue tail), if any
       //TODO: parametrize the class with taCache and put it as taCacheStore in 2 copy calls below

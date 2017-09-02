@@ -16,17 +16,20 @@ public: // constants
   static const size_t cSimdMask = SRSimd::_cNBits - 1;
 
 public:
-  static size_t GetAlignedSizeBytes(const size_t nBits) {
+  ATTR_NOALIAS static size_t GetAlignedSizeBytes(const size_t nBits) {
     return ((nBits + cSimdMask) & (~cSimdMask)) >> 3;
   }
 
-  template<bool taCache> static void FillZero(__m256i *pArray, const size_t nBits) {
+  template<bool taCache> ATTR_NOALIAS static void FillZero(__m256i *pArray, const size_t nBits) {
     const size_t nVects = SRSimd::VectsFromBits(nBits);
     SRUtils::FillZeroVects<taCache>(pArray, nVects);
   }
 };
 
 class SRBitArray {
+  __m256i *_pBits;
+  size_t _nBits : 56;
+  size_t _logCapacity : 8;
 public:
 
 };

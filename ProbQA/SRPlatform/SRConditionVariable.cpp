@@ -4,7 +4,7 @@
 
 #include "stdafx.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
-#include "../SRPlatform/Interface/SRMacros.h"
+#include "../SRPlatform/Interface/SRLogMacros.h"
 
 namespace SRPlat {
 

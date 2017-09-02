@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRPlatform.h"
+#include "../SRPlatform/Interface/SRMacros.h"
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRSimd.h"
@@ -15,8 +16,10 @@ class SRPLATFORM_API SRBaseMemPool {
 public:
   virtual ~SRBaseMemPool() { }
   virtual void FreeAllChunks() { }
-  virtual void* AllocMem(const size_t nBytes) { return _mm_malloc(SRSimd::GetPaddedBytes(nBytes), SRSimd::_cNBytes); }
-  virtual void ReleaseMem(void *p, const size_t) { _mm_free(p); }
+  ATTR_RESTRICT virtual void* AllocMem(const size_t nBytes) {
+    return _mm_malloc(SRSimd::GetPaddedBytes(nBytes), SRSimd::_cNBytes);
+  }
+  virtual void ReleaseMem(void *PTR_RESTRICT p, const size_t) { _mm_free(p); }
 };
 
 SRPLATFORM_API SRBaseMemPool& SRGetBaseMemPool();
@@ -90,7 +93,7 @@ public:
   SRMemPool(SRMemPool&&) = delete;
   SRMemPool& operator=(SRMemPool&&) = delete;
 
-  virtual void* AllocMem(const size_t nBytes) override final {
+  ATTR_RESTRICT virtual void* AllocMem(const size_t nBytes) override final {
     const size_t iSlot = (nBytes + _cNUnitBytes - 1) >> _cLogNUnitBytes;
     if (iSlot >= taNGranules) {
       return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
@@ -111,7 +114,7 @@ public:
     return expected;
   }
 
-  void ReleaseMem(void *p, const size_t nBytes) override final {
+  void ReleaseMem(void *PTR_RESTRICT p, const size_t nBytes) override final {
     const size_t iSlot = (nBytes + _cNUnitBytes - 1) >> _cLogNUnitBytes;
     if (iSlot >= taNGranules || iSlot <= 0) {
       _mm_free(p);
@@ -125,8 +128,8 @@ public:
       _mm_free(p);
       return;
     }
-    std::atomic<void*>& head = _memChunks[iSlot];
-    void *expected = head.load(std::memory_order_acquire);
+    std::atomic<void*>& PTR_RESTRICT head = _memChunks[iSlot];
+    void *PTR_RESTRICT expected = head.load(std::memory_order_acquire);
     do {
       *reinterpret_cast<void**>(p) = expected;
     } while (!head.compare_exchange_weak(expected, p, std::memory_order_release, std::memory_order_relaxed));

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRPlatform.h"
+#include "../SRPlatform/Interface/SRMacros.h"
 
 namespace SRPlat {
 
@@ -18,9 +19,9 @@ class SRPLATFORM_API SRString final {
   uint64_t _bOwned : 1;
 
 private: // methods
-  SRString(const char *const pData, const bool bOwned, const size_t length);
-  static char* DupData(const char* const pData, const size_t length);
-  void setSameData(const char* const pData);
+  SRString(const char *PTR_RESTRICT const pData, const bool bOwned, const size_t length);
+  ATTR_RESTRICT static char* DupData(const char *PTR_RESTRICT const pData, const size_t length);
+  void setSameData(const char *PTR_RESTRICT const pData);
 
 public: // methods
   SRString();
@@ -30,11 +31,11 @@ public: // methods
   SRString& operator=(SRString&& fellow);
   ~SRString();
 
-  explicit SRString(const std::string& source);
+  explicit SRString(const std::string& PTR_RESTRICT source);
 
-  static SRString MakeOwned(const char *const pData, size_t length = std::string::npos);
-  static SRString MakeClone(const char *const pData, size_t length = std::string::npos);
-  static SRString MakeUnowned(const char *const pData, size_t length = std::string::npos);
+  static SRString MakeOwned(const char *PTR_RESTRICT const pData, size_t length = std::string::npos);
+  static SRString MakeClone(const char *PTR_RESTRICT const pData, size_t length = std::string::npos);
+  static SRString MakeUnowned(const char *PTR_RESTRICT const pData, size_t length = std::string::npos);
 
   // Must be inline, in order to use std::string from the same module.
   std::string ToString() const {
@@ -43,7 +44,7 @@ public: // methods
 
   // Returns the length of the data. Stores the pointer in the output parameter. Note that data may not be
   //   null-terminated.
-  size_t GetData(const char* &outData) const;
+  size_t GetData(const char *PTR_RESTRICT &PTR_RESTRICT outData) const;
 };
 
 } // namespace SRPlat

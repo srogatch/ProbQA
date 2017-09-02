@@ -42,7 +42,7 @@ private: // methods
     static constexpr uint8_t logItemBytes = SRMath::StaticCeilLog2(sizeof(taItem));
     return SRMath::RShiftRoundUp(nItems, SRSimd::_cLogNBytes - logItemBytes);
   }
-  static taItem* ThrowingAllocBytes(const size_t paddedBytes) {
+  ATTR_RESTRICT static taItem* ThrowingAllocBytes(const size_t paddedBytes) {
     return reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
   }
   static taItem* ThrowingAlloc(const size_t nItems, size_t& outPaddedBytes) {

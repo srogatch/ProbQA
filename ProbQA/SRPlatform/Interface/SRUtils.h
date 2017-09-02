@@ -19,57 +19,65 @@ extern "C" {
 // pFirstCl and pLimCl must be cache-line-aligned pointers, so that the distance between them is a multiple of clSize .
 // clSize is the CPU cache line size passed here to simplify assembly code.
 // This function always flushes pFirstCl, then checks whether the address (plus cache line size) exceeds pLimCl .
-SRPLATFORM_API void __fastcall SRFlushCache(const void *pFirstCl, const void *pLimCl, const size_t clSize);
+SRPLATFORM_API ATTR_NOALIAS void __fastcall SRFlushCache(const void *PTR_RESTRICT pFirstCl,
+  const void *PTR_RESTRICT pLimCl, const size_t clSize);
 
 }
 
 class SRPLATFORM_API SRUtils {
 public: // Methods
-  static void ExitProgram(SRExitCode code);
+  ATTR_NORETURN static void ExitProgram(SRExitCode code);
+
   static SRString PrintUtcTimestamp();
   static SRString PrintUtcDate();
   template<bool taSubmillisecond> SRPLATFORM_API static SRString PrintUtcTime();
-  template<bool taCache> SRPLATFORM_API static void FillZeroVects(__m256i *p, const size_t nVects);
+
+  template<bool taCache> SRPLATFORM_API ATTR_NOALIAS static void FillZeroVects(__m256i *PTR_RESTRICT p,
+    const size_t nVects);
   
   // Copy nVects of 256-bit vectors.
-  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void Copy256(void *pStore,
-    const void *pLoad, size_t nVects);
+  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline static void Copy256(
+    void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, size_t nVects);
 
   // Both store and load pointers are unaligned
-  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void CopyUnalign(void *pStore,
-    const void *pLoad, const size_t nBytes);
+  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline static void CopyUnalign(
+    void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, const size_t nBytes);
   
   // Store Aligned, Load Unaligned
-  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void CopySaLu(void *pStore,
-    const void *pLoad, const size_t nBytes);
+  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline static void CopySaLu(
+    void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, const size_t nBytes);
 
   // Store Unaligned, Load Aligned
-  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline static void CopySuLa(void *pStore,
-    const void *pLoad, const size_t nBytes);
+  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline static void CopySuLa(
+    void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, const size_t nBytes);
 
   // Broadcast item to all components of 256-bit vector register.
-  template<typename taItem> inline static typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i>
-  __vectorcall Set1(const taItem item);
+  template<typename taItem> ATTR_NOALIAS inline static
+    typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i> __vectorcall Set1(const taItem item);
+
   //NOTE: it does nothing if p is perfectly aligned for SIMD.
-  template<size_t taGran> inline static void* __vectorcall FillPrologue(void *p, const __m256i vect);
+  template<size_t taGran> ATTR_NOALIAS inline static void* __vectorcall FillPrologue(void *PTR_RESTRICT p,
+    const __m256i vect);
   // pLim must point just behind the end of the region to fill.
   //NOTE: it does nothing if pLim is perfectly aligned for SIMD.
-  template<size_t taGran> inline static void* __vectorcall FillEpilogue(void *pLim, const __m256i vect);
+  template<size_t taGran> ATTR_NOALIAS inline static void* __vectorcall FillEpilogue(void *PTR_RESTRICT pLim,
+    const __m256i vect);
 
   // taFlushLeft and taFlushRight indicate whether the partial cache lines in the beginning and in the end of the array
   //   should be flushed too.
   //NOTE: a fence is needed after a (series of) call(s) to this function.
-  template<bool taFlushLeft, bool taFlushRight> inline static void FlushCache(const void *pStart, const size_t nBytes);
+  template<bool taFlushLeft, bool taFlushRight> ATTR_NOALIAS inline static void FlushCache(
+    const void *PTR_RESTRICT pStart, const size_t nBytes);
 
   // paddedBytes must be a multiple of SIMD size
-  static void* ThrowingSimdAlloc(const size_t paddedBytes);
+  ATTR_RESTRICT static void* ThrowingSimdAlloc(const size_t paddedBytes);
 };
 
-template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline 
-void SRUtils::Copy256(void *pStore, const void *pLoad, size_t nVects)
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline
+void SRUtils::Copy256(void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, size_t nVects)
 {
-  const __m256i *pSrc = reinterpret_cast<const __m256i*>(pLoad);
-  __m256i *pDest = reinterpret_cast<__m256i*>(pStore);
+  const __m256i *PTR_RESTRICT pSrc = reinterpret_cast<const __m256i*>(pLoad);
+  __m256i *PTR_RESTRICT pDest = reinterpret_cast<__m256i*>(pStore);
   for (; nVects > 0; nVects--, pSrc++, pDest++) {
     const __m256i loaded = taCacheLoad ? _mm256_load_si256(pSrc) : _mm256_stream_load_si256(pSrc);
     taCacheStore ? _mm256_store_si256(pDest, loaded) : _mm256_stream_si256(pDest, loaded);
@@ -80,28 +88,28 @@ void SRUtils::Copy256(void *pStore, const void *pLoad, size_t nVects)
 }
 
 // Both store and load pointers are unaligned
-template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline
-void SRUtils::CopyUnalign(void *pStore, const void *pLoad, const size_t nBytes) {
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline
+void SRUtils::CopyUnalign(void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, const size_t nBytes) {
   //TODO: implement with AVX2 (stream) store/load 32 bytes at once
   memcpy(pStore, pLoad, nBytes);
 }
 
 // Store Aligned, Load Unaligned
-template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline
-void SRUtils::CopySaLu(void *pStore, const void *pLoad, const size_t nBytes) {
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline
+void SRUtils::CopySaLu(void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, const size_t nBytes) {
   //TODO: implement with AVX2 (stream) store/load 32 bytes at once
   memcpy(pStore, pLoad, nBytes);
 }
 
 // Store Unaligned, Load Aligned
-template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API inline
-void SRUtils::CopySuLa(void *pStore, const void *pLoad, const size_t nBytes) {
+template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline
+void SRUtils::CopySuLa(void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, const size_t nBytes) {
   //TODO: implement with AVX2 (stream) store/load 32 bytes at once
   memcpy(pStore, pLoad, nBytes);
 }
 
-template<typename taItem> inline typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i> __vectorcall
-SRUtils::Set1(const taItem item)
+template<typename taItem> ATTR_NOALIAS inline typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0, __m256i>
+__vectorcall SRUtils::Set1(const taItem item)
 {
   switch (sizeof(item)) {
   case 1:
@@ -121,9 +129,13 @@ SRUtils::Set1(const taItem item)
   }
 }
 
-template<size_t taGran> inline void* __vectorcall SRUtils::FillPrologue(void *p, const __m256i vect) {
+template<size_t taGran> ATTR_NOALIAS inline void* __vectorcall SRUtils::FillPrologue(void *PTR_RESTRICT p,
+  const __m256i vect)
+{
   static_assert(sizeof(vect) % taGran == 0, "Wrong granularity: there must be integer number of granules in SIMD.");
   switch (taGran) {
+  default:
+    SR_UNREACHABLE;
   case 1:
     if (uintptr_t(p) & 1) {
       uint8_t* pSpec = reinterpret_cast<uint8_t*>(p);
@@ -165,9 +177,13 @@ template<size_t taGran> inline void* __vectorcall SRUtils::FillPrologue(void *p,
   return p;
 }
 
-template<size_t taGran> inline void* __vectorcall SRUtils::FillEpilogue(void *pLim, const __m256i vect) {
+template<size_t taGran> ATTR_NOALIAS inline void* __vectorcall SRUtils::FillEpilogue(void *PTR_RESTRICT pLim,
+  const __m256i vect)
+{
   static_assert(sizeof(vect) % taGran == 0, "Wrong granularity: there must be integer number of granules in SIMD.");
   switch (taGran) {
+  default:
+    SR_UNREACHABLE;
   case 1:
     if (uintptr_t(pLim) & 1) {
       uint8_t* pSpec = reinterpret_cast<uint8_t*>(pLim) - 1;
@@ -206,7 +222,9 @@ template<size_t taGran> inline void* __vectorcall SRUtils::FillEpilogue(void *pL
   return pLim;
 }
 
-template<bool taFlushLeft, bool taFlushRight> inline void SRUtils::FlushCache(const void *pStart, const size_t nBytes) {
+template<bool taFlushLeft, bool taFlushRight> ATTR_NOALIAS inline void SRUtils::FlushCache(
+  const void *PTR_RESTRICT pStart, const size_t nBytes)
+{
   uintptr_t addrStart = reinterpret_cast<uintptr_t>(pStart);
   uintptr_t addrLim = addrStart + nBytes;
   const uintptr_t clStart = addrStart & ~SRCpuInfo::_cacheLineMask;
@@ -244,9 +262,9 @@ template<bool taFlushLeft, bool taFlushRight> inline void SRUtils::FlushCache(co
   }
 }
 
-inline void* SRUtils::ThrowingSimdAlloc(const size_t paddedBytes) {
+ATTR_RESTRICT inline void* SRUtils::ThrowingSimdAlloc(const size_t paddedBytes) {
   assert(paddedBytes % SRSimd::_cNBytes == 0);
-  void *ans = _mm_malloc(paddedBytes, SRSimd::_cNBytes);
+  void *PTR_RESTRICT ans = _mm_malloc(paddedBytes, SRSimd::_cNBytes);
   if (ans == nullptr) {
     throw SRException(SRMessageBuilder(SR_FILE_LINE " failed to allocate ")(paddedBytes)(" bytes.").GetOwnedSRString());
   }

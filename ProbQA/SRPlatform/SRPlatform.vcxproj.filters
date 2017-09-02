@@ -165,6 +165,9 @@
     <ClInclude Include="Interface\SRMPAllocator.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRLogMacros.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

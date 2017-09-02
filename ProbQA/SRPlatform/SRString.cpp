@@ -7,13 +7,14 @@
 
 namespace SRPlat {
 
-char* SRString::DupData(const char* const pData, const size_t length) {
-  char* const pDup = new char[length];
+ATTR_RESTRICT char* SRString::DupData(const char *PTR_RESTRICT const pData, const size_t length) {
+  //TODO: shall here rather be aligned memory allocation?
+  char *PTR_RESTRICT const pDup = new char[length];
   memcpy(pDup, pData, length);
   return pDup;
 }
 
-void SRString::setSameData(const char* const pData) {
+void SRString::setSameData(const char *PTR_RESTRICT const pData) {
   if (_bOwned) {
     _pData = DupData(pData, _length);
   }
@@ -25,7 +26,7 @@ void SRString::setSameData(const char* const pData) {
 SRString::SRString() : _pData(nullptr), _bOwned(false), _length(0) {
 }
 
-SRString::SRString(const char *const pData, const bool bOwned, const size_t length)
+SRString::SRString(const char *PTR_RESTRICT const pData, const bool bOwned, const size_t length)
   : _pData(pData), _bOwned(bOwned ? 1 : 0) {
   if (length == std::string::npos) {
     _length = strlen(pData);
@@ -80,22 +81,22 @@ SRString::~SRString() {
 SRString::SRString(const std::string& source) : SRString(DupData(source.c_str(), source.size()), true, source.size()) {
 }
 
-SRString SRString::MakeOwned(const char *const pData, size_t length) {
+SRString SRString::MakeOwned(const char *PTR_RESTRICT const pData, size_t length) {
   return SRString(pData, true, length);
 }
 
-SRString SRString::MakeClone(const char *const pData, size_t length) {
+SRString SRString::MakeClone(const char *PTR_RESTRICT const pData, size_t length) {
   if (length == std::string::npos) {
     length = strlen(pData);
   }
   return SRString(DupData(pData, length), true, length);
 }
 
-SRString SRString::MakeUnowned(const char *const pData, size_t length) {
+SRString SRString::MakeUnowned(const char *PTR_RESTRICT const pData, size_t length) {
   return SRString(pData, false, length);
 }
 
-size_t SRString::GetData(const char* &outData) const {
+size_t SRString::GetData(const char *PTR_RESTRICT &PTR_RESTRICT outData) const {
   outData = _pData;
   return _length;
 }
