@@ -41,19 +41,21 @@ public:
   }
 
   // Computes pow(sqrt(2), p) very approximately: for odd p, the last multiplier is rather 1.5 than sqrt(2)
+  // Returns 1 for p==0 and p==1.
   ATTR_NOALIAS static uint64_t QuasiPowSqrt2(const uint8_t p) {
     uint64_t ans = (1ULL << (p >> 1));
     ans += ((-int64_t(p & 1)) & (ans >> 1));
     return ans;
   }
 
+  // Returns 0 for val==0. Returns 1 for val==1.
   ATTR_NOALIAS static uint8_t QuasiCeilLogSqrt2(const uint64_t val) {
     unsigned long index;
-    const uint8_t overallMask = (val <= 1) ? 0ui8 : 0xffui8;
-    _BitScanReverse64(&index, val); // no need to check the return value: it must be true for val>1
+    const uint8_t overallMask = _BitScanReverse64(&index, val) ? 0xffui8 : 0ui8;
     const uint8_t baseLog = (uint8_t(index) << 1);
-    const uint8_t halfCorr = (uint8_t(val >> (index - 1)) & 1ui8);
-    const uint8_t fracCorr = (val & ~(3ui64 << (index - 1))) ? 1ui8 : 0ui8;
+    const uint8_t im1 = uint8_t(index) - 1;
+    const uint8_t halfCorr = (uint8_t(val >> im1) & 1ui8);
+    const uint8_t fracCorr = (val & ((1ui64<<im1)-1)) ? 1ui8 : 0ui8;
     return overallMask & (baseLog + halfCorr + fracCorr);
   }
 
