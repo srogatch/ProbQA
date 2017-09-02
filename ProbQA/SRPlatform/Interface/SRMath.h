@@ -40,8 +40,6 @@ public:
     return overallMask & (uint8_t(index) + ((val & (val - 1)) ? 1ui8 : 0ui8));
   }
 
-  // Computes pow(sqrt(2), p) very approximately: for odd p, the last multiplier is rather 1.5 than sqrt(2)
-  // Returns 1 for p==0 and p==1.
   ATTR_NOALIAS static uint64_t QuasiPowSqrt2(const uint8_t p) {
     uint64_t ans = (1ULL << (p >> 1));
     ans += ((-int64_t(p & 1)) & (ans >> 1));
@@ -69,6 +67,36 @@ public:
     return (n & (n - 1)) == 0;
   }
 
+  // Computes pow(sqrt(2), p) very approximately: for odd p, the last multiplier is rather 1.5 than sqrt(2).
+  // Returns 1 for p==0 and p==1.
+  ATTR_NOALIAS static uint64_t DecompressCapacity(const uint8_t p) {
+    uint64_t ans = (1ULL << (p >> 1));
+    ans += ((-int64_t(p & 1)) & (ans >> 1));
+    return ans;
+  }
+
+  template<uint64_t taMin> ATTR_NOALIAS static uint8_t CompressCapacity(uint64_t val) {
+    static_assert(taMin >= 2, "It's important to prevent val<=1 from leaking to subsequent code.");
+    // Also it's important to avoid returning 0, because by incrementing this compressed capacity to 1, the client
+    //   code will not get a greater uncompressed capacity. So the options here are: (val<=2) ret 2; (val <= 3) ret 3;
+    //   (val<=4) ret 4; (val<=6) ret 5; (val<=8) ret 6;
+    if (val <= taMin) {
+      // Return precomputed compressed capacity for uncompressed capacity taMin.
+      constexpr unsigned long index = StaticFloorLog2(taMin);
+      constexpr uint8_t baseLog = (uint8_t(index) << 1);
+      constexpr uint8_t im1 = uint8_t(index) - 1;
+      constexpr uint8_t halfCorr = (uint8_t(taMin >> im1) & 1ui8);
+      constexpr uint8_t fracCorr = (taMin & ((1ui64 << im1) - 1)) ? 1ui8 : 0ui8;
+      return baseLog + halfCorr + fracCorr;
+    }
+    unsigned long index;
+    _BitScanReverse64(&index, val);
+    const uint8_t baseLog = (uint8_t(index) << 1);
+    const uint8_t im1 = uint8_t(index) - 1;
+    const uint8_t halfCorr = (uint8_t(val >> im1) & 1ui8);
+    const uint8_t fracCorr = (val & ((1ui64 << im1) - 1)) ? 1ui8 : 0ui8;
+    return baseLog + halfCorr + fracCorr;
+  }
 };
 
 } // namespace SRPlat

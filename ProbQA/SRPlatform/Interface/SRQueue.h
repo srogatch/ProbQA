@@ -14,7 +14,7 @@ namespace SRPlat {
 template<typename taItem> class SRPLATFORM_API SRQueue {
 private: // variables
   uint64_t _nItems : 56;
-  uint64_t _logCapacity : 8;
+  uint64_t _logCapacity : 8; // Don't compress/decompress capacity here because it's frequently used
   taItem *PTR_RESTRICT _pItems;
   size_t _iFirst;
 
