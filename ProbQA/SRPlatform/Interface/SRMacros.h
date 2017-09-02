@@ -22,8 +22,11 @@
 
 #define ATTR_NOALIAS __declspec(noalias)
 #define ATTR_RESTRICT __declspec(restrict)
-#define PTR_RESTRICT __restrict
 #define ATTR_NORETURN __declspec(noreturn)
+#define ATTR_NOINLINE __declspec(noinline)
+#define ATTR_NOVTABLE __declspec(novtable)
+
+#define PTR_RESTRICT __restrict
 #define SR_UNREACHABLE __assume(0)
 
 // Cast for *printf format

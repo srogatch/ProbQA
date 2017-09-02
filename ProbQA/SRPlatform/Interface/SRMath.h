@@ -5,13 +5,14 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRPlatform.h"
+#include "../SRPlatform/Interface/SRMacros.h"
 
 namespace SRPlat {
 
 extern "C" {
 
 // Although this just uses FPU instruction, it's slower than software approximation like std::log2().
-SRPLATFORM_API double __fastcall SRLog2MulD(const double toLog, const double toMul);
+SRPLATFORM_API ATTR_NOALIAS double __fastcall SRLog2MulD(const double toLog, const double toMul);
 
 }
 
@@ -32,13 +33,28 @@ public:
     return (num + (T(1) << nBits) - 1) >> nBits;
   }
 
-  static uint8_t CeilLog2(const uint64_t val) {
+  ATTR_NOALIAS static uint8_t CeilLog2(const uint64_t val) {
     unsigned long index;
-    if(!_BitScanReverse64(&index, val)) {
-      return 0;
-    }
+    const uint8_t overallMask = _BitScanReverse64(&index, val) ? 0xffui8 : 0ui8;
     //return index + ((val == (1ui64<<index)) ? 0 : 1);
-    return static_cast<uint8_t>(index + ((val&(val - 1)) ? 1 : 0));
+    return overallMask & (uint8_t(index) + ((val & (val - 1)) ? 1ui8 : 0ui8));
+  }
+
+  // Computes pow(sqrt(2), p) very approximately: for odd p, the last multiplier is rather 1.5 than sqrt(2)
+  ATTR_NOALIAS static uint64_t QuasiPowSqrt2(const uint8_t p) {
+    uint64_t ans = (1ULL << (p >> 1));
+    ans += ((-int64_t(p & 1)) & (ans >> 1));
+    return ans;
+  }
+
+  ATTR_NOALIAS static uint8_t QuasiCeilLogSqrt2(const uint64_t val) {
+    unsigned long index;
+    const uint8_t overallMask = (val <= 1) ? 0ui8 : 0xffui8;
+    _BitScanReverse64(&index, val); // no need to check the return value: it must be true for val>1
+    const uint8_t baseLog = (uint8_t(index) << 1);
+    const uint8_t halfCorr = (uint8_t(val >> (index - 1)) & 1ui8);
+    const uint8_t fracCorr = (val & ~(3ui64 << (index - 1))) ? 1ui8 : 0ui8;
+    return overallMask & (baseLog + halfCorr + fracCorr);
   }
 
   constexpr static uint8_t StaticFloorLog2(const size_t n) {
@@ -50,6 +66,7 @@ public:
   constexpr static bool StaticIsPowOf2(const size_t n) {
     return (n & (n - 1)) == 0;
   }
+
 };
 
 } // namespace SRPlat

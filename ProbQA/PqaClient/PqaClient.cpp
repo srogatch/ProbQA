@@ -1044,13 +1044,19 @@ int __cdecl main() {
   //BenchmarkLnThreads();
   //BenchmarkLog2VectThreads();
 
-  InitLog2Table();
-  BenchmarkLog2tblPlus();
+  //InitLog2Table();
+  //BenchmarkLog2tblPlus();
   //BenchmarkLog2tblPrec();
   //BenchmarkLog2tblVect();
   //BenchmarkLog2Vect();
   //BenchmarkLn();
   //BenchmarkLog2();
   //BenchmarkFpuLog2();
+
+  for(int i=0; i<32; i++) {
+    printf("%d -> %d\n", i , int(SRPlat::SRMath::QuasiCeilLogSqrt2(i)));
+  }
+  //volatile uint64_t tIn = 65537;
+  //volatile uint8_t tOut = SRPlat::SRMath::CeilLog2(tIn);
   return 0;
 }

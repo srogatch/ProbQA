@@ -28,8 +28,8 @@ public:
 
 class SRBitArray {
   __m256i *_pBits;
-  size_t _nBits : 56;
-  size_t _logCapacity : 8;
+  uint64_t _nBits : 56;
+  uint64_t _logCapacity : 8;
 public:
 
 };

@@ -13,10 +13,10 @@ namespace SRPlat {
 //   above operations, but items must stay consistent after trivial operations executed by SRQueue.
 template<typename taItem> class SRPLATFORM_API SRQueue {
 private: // variables
+  uint64_t _nItems : 56;
+  uint64_t _logCapacity : 8;
   taItem *PTR_RESTRICT _pItems;
   size_t _iFirst;
-  size_t _nItems : 56;
-  size_t _logCapacity : 8;
 
 private: // methods
   static size_t GetPaddedByteCount(const size_t nItems) {
