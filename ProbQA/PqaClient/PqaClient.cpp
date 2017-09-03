@@ -1060,8 +1060,8 @@ int __cdecl main() {
   //    printf("%d -> %d\n", i, quasiLog);
   //  }
   //}
-  for(int i=0; i<64; i++) {
-    printf("%d -> %d\n", i, int(SRPlat::SRMath::QuasiCeilLogSqrt2(i)));
+  for(int i=0; i<128; i++) {
+    printf("%d -> %d\n", i, int(SRPlat::SRMath::CompressCapacity<2>(i)));
   }
   //volatile uint64_t tIn = 65537;
   //volatile uint8_t tOut = SRPlat::SRMath::CeilLog2(tIn);

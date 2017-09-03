@@ -48,7 +48,7 @@ public: // methods
       // copy array head (queue tail)
       SRUtils::CopySuLa<true, false>(pNewItems + nTailItems, _pItems, sizeof(taItem) * _iFirst);
       // Ideally here we should just abandon the cache lines, without saving them to memory. But not bounds.
-      SRUtils::FlushCache<true, true>(_pItems, _nItems * sizeof(taItem));
+      SRUtils::FlushCache<false, false>(_pItems, _nItems * sizeof(taItem));
       _mm_free(_pItems);
       _pItems = pNewItems;
       // _nItems doesn't change yet
@@ -70,7 +70,7 @@ public: // methods
       SRUtils::CopySaLu<true, false>(pNewItems, _pItems + _iFirst, sizeof(taItem)*nTailItems);
       SRUtils::CopySuLa<true, false>(pNewItems + nTailItems, _pItems, sizeof(taItem)*nHeadItems);
       // Ideally here we should just abandon the cache lines, without saving them to memory. But not bounds.
-      SRUtils::FlushCache<true, true>(_pItems, capacity * sizeof(taItem));
+      SRUtils::FlushCache<false, false>(_pItems, capacity * sizeof(taItem));
       _mm_free(_pItems);
       _pItems = pNewItems;
       // _nItems doesn't change yet

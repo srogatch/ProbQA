@@ -20,6 +20,7 @@ public:
   static constexpr size_t _cNBytes = 1 << _cLogNBytes;
 
   static constexpr size_t _cByteMask = _cNBytes - 1;
+  static constexpr size_t _cBitMask = _cNBits - 1;
 
   static size_t VectsFromBytes(const size_t nBytes) {
     return SRMath::RShiftRoundUp(nBytes, _cLogNBytes);
