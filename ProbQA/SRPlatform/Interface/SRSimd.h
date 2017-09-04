@@ -21,7 +21,12 @@ public:
 
   static constexpr size_t _cByteMask = _cNBytes - 1;
   static constexpr size_t _cBitMask = _cNBits - 1;
+  
+private:
+  static const __m256i _cSet1MsbOffs;
+  static const __m256i _cSet1LsbOffs;
 
+public:
   static size_t VectsFromBytes(const size_t nBytes) {
     return SRMath::RShiftRoundUp(nBytes, _cLogNBytes);
   }
@@ -65,6 +70,19 @@ public:
     return GetPaddedBytes(nItems * taItemSize);
   }
 
+  ATTR_NOALIAS static __m256i __vectorcall SetMsb1(const uint16_t nMsb1) {
+    const __m256i ones = _mm256_set1_epi8(-1i8);
+    __m256i shift = _mm256_set1_epi32(nMsb1);
+    shift = _mm256_subs_epu16(_cSet1MsbOffs, shift);
+    return _mm256_sllv_epi32(ones, shift);
+  }
+
+  ATTR_NOALIAS static __m256i __vectorcall SetLsb1(const uint16_t nLsb1) {
+    const __m256i ones = _mm256_set1_epi8(-1i8);
+    __m256i shift = _mm256_set1_epi32(nLsb1);
+    shift = _mm256_subs_epu16(_cSet1LsbOffs, shift);
+    return _mm256_srlv_epi32(ones, shift);
+  }
 };
 
 template<typename T> struct SRSimd::CastImpl<T,T> {

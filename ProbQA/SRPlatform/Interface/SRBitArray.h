@@ -39,7 +39,7 @@ private:
   template<bool taHaveCap> void ToggleInternal(const uint64_t iFirst, const uint64_t iLim, const uint64_t capBits = 0) {
     size_t i64First = iFirst >> 6;
     size_t i64Lim = iLim >> 6;
-    const uint64_t firstMask = -(1ui64 << (iFirst & 63));
+    const uint64_t firstMask = -int64_t(1ui64 << (iFirst & 63));
     const uint64_t limMask = (1ui64 << (iLim & 63)) - 1;
     // Also provide an early exit for the frequent case of adding/toggling one bit
     if (i64First == i64Lim) {
@@ -70,6 +70,28 @@ private:
     }
     for(size_t i=i256Lim<<2; i<i64Lim; i++) {
       reinterpret_cast<int64_t*>(_pBits)[i] ^= -1i64;
+    }
+  }
+
+  template<typename taMaskVisit, typename taFullVisit> void VisitRange(const uint64_t iFirst, const uint64_t iLim,
+    const taMaskVisit& maskVisit, const taFullVisit& fullVisit)
+  {
+    assert(iFirst <= iLim);
+    size_t i256First = iFirst >> SRSimd::_cLogNBits;
+    size_t i256Lim = iLim >> SRSimd::_cLogNBits;
+    const __m256i firstMask = SRSimd::SetMsb1(iFirst & SRSimd::_cBitMask);
+    const __m256i limMask = SRSimd::SetLsb1(iLim & SRSimd::_cBitMask);
+    if(i256Lim <= i256First) {
+      maskVisit(_pBits[i256First], _mm256_and_si256(firstMask, limMask));
+      return;
+    }
+    maskVisit(_pBits[i256First], firstMask);
+    for(size_t i= i256First+1; i<i256Lim; i++) {
+      fullVisit(_pBits[i]);
+    }
+    // Prevent visiting out of bounds if iLim is right beyond the end of the array.
+    if(iLim & SRSimd::_cBitMask) {
+      maskVisit(_pBits[i256Lim], limMask);
     }
   }
 
@@ -135,6 +157,21 @@ public:
     (value == _defaultVal) ? AddInternal<false>(nBits) : AddInternal<true>(nBits);
   }
 
+  //// A group of methods for fast single-bit manipulations
+  void SetOne(const uint64_t iBit) {
+    reinterpret_cast<uint8_t*>(_pBits)[iBit >> 3] |= (1ui8 << (iBit & 7));
+  }
+  void ClearOne(const uint64_t iBit) {
+    reinterpret_cast<uint8_t*>(_pBits)[iBit >> 3] &= ~(1ui8 << (iBit & 7));
+  }
+  void ToggleOne(const uint64_t iBit) {
+    reinterpret_cast<uint8_t*>(_pBits)[iBit >> 3] ^= (1ui8 << (iBit & 7));
+  }
+
+  //// Multi-bit manipulations
+  //void SetRange(const uint64_t iFirst, const uint64_t iLim) {
+  //  
+  //}
 };
 
 } // namespace SRPlat

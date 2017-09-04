@@ -294,6 +294,7 @@
     <ClCompile Include="SRMultiException.cpp" />
     <ClCompile Include="SRPlatform.cpp" />
     <ClCompile Include="SRReaderWriterSync.cpp" />
+    <ClCompile Include="SRSimd.cpp" />
     <ClCompile Include="SRSpinSync.cpp" />
     <ClCompile Include="SRString.cpp" />
     <ClCompile Include="SRThreadPool.cpp" />
