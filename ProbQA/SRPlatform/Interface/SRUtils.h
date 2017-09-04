@@ -10,7 +10,7 @@
 #include "../SRPlatform/Interface/SRExitCode.h"
 #include "../SRPlatform/Interface/SRCpuInfo.h"
 #include "../SRPlatform/Interface/SRSimd.h"
-#include "SRMacros.h"
+#include "../SRPlatform/Interface/SRMacros.h"
 
 namespace SRPlat {
 
@@ -70,7 +70,7 @@ public: // Methods
     const void *PTR_RESTRICT pStart, const size_t nBytes);
 
   // paddedBytes must be a multiple of SIMD size
-  ATTR_RESTRICT static void* ThrowingSimdAlloc(const size_t paddedBytes);
+  ATTR_RESTRICT inline static void* ThrowingSimdAlloc(const size_t paddedBytes);
 };
 
 template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline

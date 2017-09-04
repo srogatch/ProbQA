@@ -1060,10 +1060,24 @@ int __cdecl main() {
   //    printf("%d -> %d\n", i, quasiLog);
   //  }
   //}
-  for(int i=0; i<128; i++) {
-    printf("%d -> %d\n", i, int(SRPlat::SRMath::CompressCapacity<2>(i)));
-  }
+  //for(int i=0; i<128; i++) {
+  //  printf("%d -> %d\n", i, int(SRPlat::SRMath::CompressCapacity<2>(i)));
+  //}
   //volatile uint64_t tIn = 65537;
   //volatile uint8_t tOut = SRPlat::SRMath::CeilLog2(tIn);
+  SRPlat::SRBitArray ba(1);
+  uint64_t nBits[2] = { 1, 0 };
+  for(int i=1; i<=10000; i++) {
+    ba.Add(i>>1, i & 1);
+    nBits[i & 1] += i >> 1;
+  }
+  uint64_t sum = 0;
+  for(uint64_t i=0; i<ba.Size()>>2; i++) {
+    sum += __popcnt16( ba.GetQuad(i));
+  }
+  for(uint64_t i=ba.Size()&(~3ui64); i<ba.Size(); i++) {
+    sum += ba.GetOne(i) ? 1 : 0;
+  }
+  printf("Total %llu, expected1 %llu, actual1 %llu\n", ba.Size(), nBits[1], sum);
   return 0;
 }

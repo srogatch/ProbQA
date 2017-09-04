@@ -36,52 +36,15 @@ private:
     return reinterpret_cast<__m256i*>(SRUtils::ThrowingSimdAlloc(nVects << SRSimd::_cLogNBytes));
   }
 
-  template<bool taHaveCap> void ToggleInternal(const uint64_t iFirst, const uint64_t iLim, const uint64_t capBits = 0) {
-    size_t i64First = iFirst >> 6;
-    size_t i64Lim = iLim >> 6;
-    const uint64_t firstMask = -int64_t(1ui64 << (iFirst & 63));
-    const uint64_t limMask = (1ui64 << (iLim & 63)) - 1;
-    // Also provide an early exit for the frequent case of adding/toggling one bit
-    if (i64First == i64Lim) {
-      reinterpret_cast<uint64_t*>(_pBits)[i64First] ^= (firstMask & limMask);
-      return;
-    }
-    reinterpret_cast<uint64_t*>(_pBits)[i64First] ^= firstMask;
-    i64First++;
-    assert(!taHaveCap || ((capBits > 0) && ((capBits & 255) == 0)));
-    // Prevent XORring out of bounds if iLim is right beyond the end of the array.
-    if((taHaveCap && iLim < capBits) || (!taHaveCap && limMask != 0)) {
-      reinterpret_cast<uint64_t*>(_pBits)[i64Lim] ^= limMask;
-    }
-    const size_t i256First = SRMath::RShiftRoundUp(i64First, 2);
-    const size_t i256Lim = i64Lim >> 2;
-    if(i256First >= i256Lim) {
-      for(size_t i=i64First; i<i64Lim; i++) {
-        reinterpret_cast<int64_t*>(_pBits)[i] ^= -1i64;
-      }
-      return;
-    }
-    for (size_t i = i64First, iEn = i256First << 2; i < iEn; i++) {
-      reinterpret_cast<int64_t*>(_pBits)[i] ^= -1i64;
-    }
-    const __m256i vectOnes = _mm256_set1_epi8(-1i8);
-    for(size_t i=i256First; i<i256Lim; i++) {
-      _mm256_store_si256(_pBits + i, _mm256_xor_si256(_mm256_load_si256(_pBits + i), vectOnes));
-    }
-    for(size_t i=i256Lim<<2; i<i64Lim; i++) {
-      reinterpret_cast<int64_t*>(_pBits)[i] ^= -1i64;
-    }
-  }
-
   template<typename taMaskVisit, typename taFullVisit> void VisitRange(const uint64_t iFirst, const uint64_t iLim,
     const taMaskVisit& maskVisit, const taFullVisit& fullVisit)
   {
     assert(iFirst <= iLim);
     size_t i256First = iFirst >> SRSimd::_cLogNBits;
     size_t i256Lim = iLim >> SRSimd::_cLogNBits;
-    const __m256i firstMask = SRSimd::SetMsb1(iFirst & SRSimd::_cBitMask);
-    const __m256i limMask = SRSimd::SetLsb1(iLim & SRSimd::_cBitMask);
+    const __m256i firstMask = SRSimd::SetMsb1(SRSimd::_cNBits - (iFirst & SRSimd::_cBitMask));
     if(i256Lim <= i256First) {
+      const __m256i limMask = SRSimd::SetLsb1(iLim & SRSimd::_cBitMask);
       maskVisit(_pBits[i256First], _mm256_and_si256(firstMask, limMask));
       return;
     }
@@ -91,6 +54,7 @@ private:
     }
     // Prevent visiting out of bounds if iLim is right beyond the end of the array.
     if(iLim & SRSimd::_cBitMask) {
+      const __m256i limMask = SRSimd::SetLsb1(iLim & SRSimd::_cBitMask);
       maskVisit(_pBits[i256Lim], limMask);
     }
   }
@@ -102,7 +66,7 @@ private:
     const uint64_t newNBits = oldNBits + nBits;
     if (newNBits <= capBits) {
       if(taOppVal) {
-        ToggleInternal<true>(oldNBits, newNBits, capBits);
+        AssignRange(!_defaultVal, oldNBits, newNBits);
       } // otherwise the bits must be already initialized to default value
       _nBits = newNBits;
       return;
@@ -123,16 +87,19 @@ private:
     _comprCap = newComprCap;
     _nBits = newNBits;
 
-    // Default-initialize the bits
-    const __m256i initVect = _mm256_set1_epi8(-int8_t(_defaultVal));
-    for (size_t i = oldCapVects; i<newCapVects; i++) {
-      _mm256_store_si256(_pBits + i, initVect);
-    }
-
     if(taOppVal) {
-      // Changing from "setDefault,toggle" to "setTarget" would complicate the implementation and could be slower for
-      //   small nBits values.
-      ToggleInternal<true>(oldNBits, newNBits, newCapVects << SRSimd::_cLogNBits);
+      const uint64_t newCapBits = uint64_t(newCapVects) << SRSimd::_cLogNBits;
+      //AssignRange(!_defaultVal, oldNBits, newNBits);
+      //AssignRange(_defaultVal, newNBits, newCapVects << SRSimd::_cLogNBits);
+      _defaultVal ?
+        (ClearRange(oldNBits, newNBits), SetRange(newNBits, newCapBits))
+        : (SetRange(oldNBits, newNBits), ClearRange(newNBits, newCapBits));
+    } else {
+      // Default-initialize the bits
+      const __m256i initVect = _mm256_set1_epi8(-int8_t(_defaultVal));
+      for (size_t i = oldCapVects; i<newCapVects; i++) {
+        _mm256_store_si256(_pBits + i, initVect);
+      }
     }
   }
 
@@ -169,9 +136,56 @@ public:
   }
 
   //// Multi-bit manipulations
-  //void SetRange(const uint64_t iFirst, const uint64_t iLim) {
-  //  
-  //}
+  void SetRange(const uint64_t iFirst, const uint64_t iLim) {
+    VisitRange(iFirst, iLim,
+      [](__m256i& val, const __m256i& mask) {
+        val = _mm256_or_si256(val, mask);
+      },
+      [](__m256i& val) {
+        val = _mm256_set1_epi8(-1i8);
+      }
+    );
+  }
+
+  void ClearRange(const uint64_t iFirst, const uint64_t iLim) {
+    VisitRange(iFirst, iLim,
+      [](__m256i& val, const __m256i& mask) {
+        val = _mm256_andnot_si256(mask, val);
+      },
+      [](__m256i& val) {
+        val = _mm256_setzero_si256();
+      }
+    );
+  }
+
+  void ToggleRange(const uint64_t iFirst, const uint64_t iLim) {
+    VisitRange(iFirst, iLim,
+      [](__m256i& val, const __m256i& mask) {
+        val = _mm256_xor_si256(mask, val);
+      },
+      [](__m256i& val) {
+        val = _mm256_xor_si256(val, _mm256_set1_epi8(-1i8));
+      }
+    );
+  }
+
+  void AssignRange(const bool value, const uint64_t iFirst, const uint64_t iLim) {
+    value ? SetRange(iFirst, iLim) : ClearRange(iFirst, iLim);
+  }
+
+  bool GetOne(const uint64_t pos) const {
+    return reinterpret_cast<const uint8_t*>(_pBits)[pos >> 3] & (1ui8 << (pos & 7));
+  }
+
+  uint8_t GetQuad(const uint64_t iQuad) {
+    const uint8_t packed = reinterpret_cast<const uint8_t*>(_pBits)[iQuad >> 1];
+    const uint8_t shift = (iQuad & 1) << 2;
+    return (packed>>shift) & 0x0f;
+  }
+
+  uint64_t Size() const {
+    return _nBits;
+  }
 };
 
 } // namespace SRPlat

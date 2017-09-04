@@ -8,7 +8,7 @@
 
 namespace SRPlat {
 
-class SRSimd {
+class SRPLATFORM_API SRSimd {
   template<typename taResult, typename taParam> struct CastImpl;
 
 public:
