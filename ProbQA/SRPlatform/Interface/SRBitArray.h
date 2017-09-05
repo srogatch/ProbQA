@@ -59,11 +59,11 @@ private:
     }
   }
 
-  template<bool taOppVal> void AddInternal(const uint64_t nBits) {
+  template<bool taOppVal> void AddInternal(const uint64_t nToAdd) {
     const uint64_t capBits = SRMath::DecompressCapacity<SRSimd::_cNBits>(_comprCap);
     assert((capBits & SRSimd::_cBitMask) == 0);
     const uint64_t oldNBits = _nBits;
-    const uint64_t newNBits = oldNBits + nBits;
+    const uint64_t newNBits = oldNBits + nToAdd;
     if (newNBits <= capBits) {
       if(taOppVal) {
         AssignRange(!_defaultVal, oldNBits, newNBits);
@@ -117,11 +117,46 @@ public:
     }
   }
 
-  void Add(const uint64_t nBits) {
-    AddInternal<false>(nBits);
+  //// Append tail bits
+  void Add(const uint64_t nToAdd) {
+    AddInternal<false>(nToAdd);
   }
-  void Add(const uint64_t nBits, const bool value) {
-    (value == _defaultVal) ? AddInternal<false>(nBits) : AddInternal<true>(nBits);
+  void Add(const uint64_t nToAdd, const bool value) {
+    (value == _defaultVal) ? AddInternal<false>(nToAdd) : AddInternal<true>(nToAdd);
+  }
+
+  // Remove tail bits
+  void Remove(const uint64_t nToRemove) {
+    assert(nBits <= _nBits);
+    const uint64_t newNBits = _nBits - nToRemove;
+    AssignRange(_defaultVal, newNBits, _nBits);
+    _nBits = newNBits;
+  }
+
+  void ShrinkTo(const uint64_t nBits) {
+    assert(nBits <= _nBits);
+    const uint8_t newComprCap = SRMath::CompressCapacity<_cMinVects>(
+      SRMath::RShiftRoundUp(nBits, SRSimd::_cLogNBits));
+    if(newComprCap >= _comprCap) {
+      assert(newComprCap == _comprCap);
+      AssignRange(_defaultVal, nBits, _nBits);
+      _nBits = nBits;
+      return;
+    }
+    const size_t newCapVects = SRMath::DecompressCapacity<1>(newComprCap);
+    __m256i *pNewBits = ThrowingAlloc(newCapVects);
+
+    const size_t nUsedVects = SRMath::RShiftRoundUp(nBits, SRSimd::_cLogNBits);
+    SRUtils::Copy256<true, false>(pNewBits, _pBits, nUsedVects);
+    AssignRange(_defaultVal, nBits, newCapVects << SRSimd::_cLogNBits);
+
+    const size_t oldCapVects = SRMath::DecompressCapacity<1>(_comprCap);
+    SRUtils::FlushCache<false, false>(_pBits, oldCapVects << SRSimd::_cLogNBytes);
+    _mm_free(_pBits);
+
+    _pBits = pNewBits;
+    _comprCap = newComprCap;
+    _nBits = nBits;
   }
 
   //// A group of methods for fast single-bit manipulations
@@ -173,8 +208,8 @@ public:
     value ? SetRange(iFirst, iLim) : ClearRange(iFirst, iLim);
   }
 
-  bool GetOne(const uint64_t pos) const {
-    return reinterpret_cast<const uint8_t*>(_pBits)[pos >> 3] & (1ui8 << (pos & 7));
+  bool GetOne(const uint64_t iBit) const {
+    return reinterpret_cast<const uint8_t*>(_pBits)[iBit >> 3] & (1ui8 << (iBit & 7));
   }
 
   uint8_t GetQuad(const uint64_t iQuad) {
@@ -183,9 +218,14 @@ public:
     return (packed>>shift) & 0x0f;
   }
 
+  template<typename taResult> const taResult& GetPacked(const uint64_t iPack) {
+    return *reinterpret_cast<const taResult*>(_pBits)[iPack];
+  }
+
   uint64_t Size() const {
     return _nBits;
   }
 };
 
 } // namespace SRPlat
+
