@@ -29,7 +29,7 @@ class SRBitArray {
   __m256i *_pBits;
   uint64_t _nBits : 56;
   uint64_t _comprCap : 7; // compressed capacity, in vectors
-  uint64_t _defaultVal : 1;
+  const uint64_t _defaultVal : 1;
 
 private:
   ATTR_RESTRICT static __m256i* ThrowingAlloc(const size_t nVects) {
@@ -103,13 +103,12 @@ private:
   }
 
 public:
-  explicit SRBitArray(const uint64_t nBits, const bool defaultVal = false) {
+  explicit SRBitArray(const uint64_t nBits, const bool defaultVal = false) : _defaultVal(defaultVal ? 1 : 0) {
     // Allocate at least two __m256i values, so that next reallocation results in integer (3) number of values.
     _comprCap = SRMath::CompressCapacity<_cMinVects>(SRMath::RShiftRoundUp(nBits, SRSimd::_cLogNBits));
     const size_t capVects = SRMath::DecompressCapacity<1>(_comprCap);
     _pBits = ThrowingAlloc(capVects);
     _nBits = nBits;
-    _defaultVal = defaultVal ? 1 : 0;
     const __m256i initVect = _mm256_set1_epi8(-int8_t(_defaultVal));
     for(size_t i=0; i<capVects; i++) {
       _mm256_store_si256(_pBits + i, initVect);

@@ -52,6 +52,7 @@
 #include "../SRPlatform/Interface/SRLock.h"
 #include "../SRPlatform/Interface/SRLogStream.h"
 #include "../SRPlatform/Interface/SRMath.h"
+#include "../SRPlatform/Interface/SRMaxSizeof.h"
 #include "../SRPlatform/Interface/SRMemPool.h"
 #include "../SRPlatform/Interface/SRMinimalTask.h"
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"

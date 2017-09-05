@@ -14,6 +14,8 @@
 #include "../PqaCore/CETrainTaskNumSpec.h"
 #include "../PqaCore/CEQuiz.h"
 #include "../PqaCore/CECreateQuizOperation.h"
+#include "../PqaCore/CENormPriorsTask.h"
+#include "../PqaCore/CENormPriorsSubtaskMax.h"
 
 using namespace SRPlat;
 
@@ -142,8 +144,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   const SRThreadPool::TThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   //// Do a single allocation for all needs. Allocate memory out of locks.
   // For proper alignment, the data must be laid out in the decreasing order of item alignments.
-  const size_t ttLastOffs = std::max(sizeof(CETrainSubtaskDistrib<taNumber>), sizeof(CETrainSubtaskAdd<taNumber>))
-    * nWorkers;
+  const size_t ttLastOffs = nWorkers * SRMaxSizeof<CETrainSubtaskDistrib<taNumber>, CETrainSubtaskAdd<taNumber>>::value;
   const size_t ttPrevOffs = ttLastOffs + sizeof(std::atomic<TPqaId>) * nWorkers;
   const size_t nTotalBytes = ttPrevOffs + sizeof(TPqaId) * SRCast::ToSizeT(nQuestions);
   SRSmartMPP<uint8_t> commonBuf(_memPool, nTotalBytes);
@@ -369,6 +370,10 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     }
     pQuiz = _quizzes[iQuiz];
   }
+
+  const SRThreadPool::TThreadCount nWorkers = _tpWorkers.GetWorkerCount();
+  const size_t subtasksOffs = 0;
+  const size_t bucketsOffs = nWorkers * SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>>::value;
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));
