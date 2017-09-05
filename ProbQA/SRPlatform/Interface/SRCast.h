@@ -12,6 +12,9 @@ public:
   template<typename T> static size_t ToSizeT(const T val) {
     return static_cast<size_t>(val);
   }
+  template<typename T> static uint64_t ToUint64(const T val) {
+    return static_cast<uint64_t>(val);
+  }
 };
 
 } // namespace SRPlat

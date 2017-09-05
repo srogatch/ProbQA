@@ -19,7 +19,7 @@ public: // constants
   static const TPqaId cMinAnswers = 2;
   static const TPqaId cMinQuestions = 1;
   static const TPqaId cMinTargets = 2;
-  static const size_t cMemPoolMaxSimds = 1 << 10;
+  static constexpr size_t cMemPoolMaxSimds = 1 << 10;
 
 public: // types
   typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, cMemPoolMaxSimds> TMemPool;

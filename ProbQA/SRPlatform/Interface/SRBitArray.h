@@ -59,11 +59,10 @@ private:
     }
   }
 
-  template<bool taOppVal> void AddInternal(const uint64_t nToAdd) {
+  template<bool taOppVal> void GrowInternal(const uint64_t newNBits) {
     const uint64_t capBits = SRMath::DecompressCapacity<SRSimd::_cNBits>(_comprCap);
     assert((capBits & SRSimd::_cBitMask) == 0);
     const uint64_t oldNBits = _nBits;
-    const uint64_t newNBits = oldNBits + nToAdd;
     if (newNBits <= capBits) {
       if(taOppVal) {
         AssignRange(!_defaultVal, oldNBits, newNBits);
@@ -119,18 +118,29 @@ public:
 
   //// Append tail bits
   void Add(const uint64_t nToAdd) {
-    AddInternal<false>(nToAdd);
+    GrowTo(_nBits + nToAdd);
   }
   void Add(const uint64_t nToAdd, const bool value) {
-    (value == _defaultVal) ? AddInternal<false>(nToAdd) : AddInternal<true>(nToAdd);
+    GrowTo(_nBits + nToAdd, value);
+  }
+
+  void GrowTo(const uint64_t targNBits) {
+    GrowInternal<false>(targNBits);
+  }
+  void GrowTo(const uint64_t targNBits, const bool value) {
+    (value == _defaultVal) ? GrowInternal<false>(targNBits) : GrowInternal<true>(targNBits);
   }
 
   // Remove tail bits
   void Remove(const uint64_t nToRemove) {
-    assert(nBits <= _nBits);
-    const uint64_t newNBits = _nBits - nToRemove;
-    AssignRange(_defaultVal, newNBits, _nBits);
-    _nBits = newNBits;
+    assert(nToRemove <= _nBits);
+    ReduceTo(_nBits - nToRemove);
+  }
+
+  void ReduceTo(const uint64_t targNBits) {
+    assert(targNBits <= _nBits);
+    AssignRange(_defaultVal, targNBits, _nBits);
+    _nBits = targNBits;
   }
 
   void ShrinkTo(const uint64_t nBits) {
@@ -212,14 +222,14 @@ public:
     return reinterpret_cast<const uint8_t*>(_pBits)[iBit >> 3] & (1ui8 << (iBit & 7));
   }
 
-  uint8_t GetQuad(const uint64_t iQuad) {
+  uint8_t GetQuad(const uint64_t iQuad) const {
     const uint8_t packed = reinterpret_cast<const uint8_t*>(_pBits)[iQuad >> 1];
     const uint8_t shift = (iQuad & 1) << 2;
     return (packed>>shift) & 0x0f;
   }
 
-  template<typename taResult> const taResult& GetPacked(const uint64_t iPack) {
-    return *reinterpret_cast<const taResult*>(_pBits)[iPack];
+  template<typename taResult> const taResult& GetPacked(const uint64_t iPack) const {
+    return reinterpret_cast<const taResult*>(_pBits)[iPack];
   }
 
   uint64_t Size() const {

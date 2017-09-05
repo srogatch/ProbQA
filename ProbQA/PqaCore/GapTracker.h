@@ -10,15 +10,18 @@ namespace ProbQA {
 //TODO: refactor to get a possibility to fetch 4 bits at once
 template <typename taId> class GapTracker {
   std::vector<taId> _gaps;
-  std::vector<bool> _isGap;
+  SRPlat::SRBitArray _isGap; // remove R after refactorring
 public:
-  explicit GapTracker() { }
+  explicit GapTracker() : _isGap(0, false) { }
 
-  bool IsGap(const taId at) const { return _isGap[SRCast::ToSizeT(at)]; }
+  bool IsGap(const taId at) const { return _isGap.GetOne(SRPlat::SRCast::ToUint64(at)); }
+
+  // Get |iQuad|th 4 adjacent bits denoting gaps.
+  uint8_t GetQuad(const taId iQuad) const { return _isGap.GetQuad(iQuad); }
 
   void Release(const taId at) {
-    assert(!_isGap[at]);
-    _isGap[SRCast::ToSizeT(at)] = true;
+    assert(!_isGap.GetOne(SRPlat::SRCast::ToUint64(at)));
+    _isGap.SetOne(SRPlat::SRCast::ToUint64(at));
     _gaps.push_back(at);
   }
 
@@ -27,27 +30,29 @@ public:
   // If there is no gap to acquire, returns length+1 meaning the client must increase his arrays.
   taId Acquire() {
     if (_gaps.size() <= 0) {
-      taId answer = _isGap.size();
-      _isGap.push_back(false);
+      taId answer = _isGap.Size();
+      _isGap.Add(1);
       return answer;
     }
     taId answer = _gaps.back();
     _gaps.pop_back();
-    _isGap[SRCast::ToSizeT(answer)] = false;
+    _isGap.ClearOne(SRPlat::SRCast::ToUint64(answer));
     return answer;
   }
 
   // Grow to the specified length setting the new items as not gaps.
   void GrowTo(const taId newLength) {
-    assert(newLength >= taId(_isGap.size()));
-    _isGap.resize(size_t(newLength), false);
+    assert(newLength >= taId(_isGap.Size()));
+    _isGap.GrowTo(SRPlat::SRCast::ToUint64(newLength));
   }
 
   // Client access to the gaps vector, e.g. to sort it and then make compaction.
   std::vector<taId>& Gaps() { return _gaps; }
 
   void Compact(const taId newLength) {
-    _isGap.assign(SRCast::ToSizeT(newLength), false);
+    assert(newLength <= taId(_isGap.Size()));
+    _isGap.ClearRange(0, SRPlat::SRCast::ToUint64(newLength));
+    _isGap.ReduceTo(newLength);
     _gaps.clear();
   }
 };
