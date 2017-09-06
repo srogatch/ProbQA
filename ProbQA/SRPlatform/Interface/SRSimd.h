@@ -22,6 +22,9 @@ public:
   static constexpr size_t _cByteMask = _cNBytes - 1;
   static constexpr size_t _cBitMask = _cNBits - 1;
   
+  //// SIMD constants follow. For improved cache usage they must be adjacent.
+  static const __m256i _cDoubleExpMask;
+  static const __m256i _cDoubleExp0;
 private:
   static const __m256i _cSet1MsbOffs;
   static const __m256i _cSet1LsbOffs;

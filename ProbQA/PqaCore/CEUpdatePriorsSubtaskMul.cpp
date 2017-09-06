@@ -17,14 +17,8 @@ template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSu
   : SRBaseSubtask(pTask), _iFirstVT(iFirstVT), _iLimVT(iLimVT)
 { }
 
-//TODO: move these constants to a common file, so to improve cache usage
-namespace {
-  const __m256i gDoubleExpMask = _mm256_set1_epi64x(0x7ffULL << 52);
-  const __m256i gDoubleExp0 = _mm256_set1_epi64x(1023ULL << 52);
-}
-
 template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::RunInternal(
-  const CEUpdatePriorsTask<DoubleNumber>& task)
+  const CEUpdatePriorsTask<DoubleNumber>& task) const
 {
   constexpr uint8_t logNumsPerVect = SRSimd::_cLogNBytes - SRMath::StaticCeilLog2(sizeof(DoubleNumber));
   auto& engine = static_cast<const CpuEngine<DoubleNumber>&>(task.GetBaseEngine());
@@ -54,11 +48,13 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
         const __m256d oldMants = SRSimd::Load<taCache>(pMants + j);
         const __m256d product = _mm256_mul_pd(oldMants, P_qa_given_t);
         //TODO: move separate summation of exponent to a common function (available to other subtasks etc.)?
-        const __m256d newMants = _mm256_or_pd(_mm256_castsi256_pd(gDoubleExp0),
-          _mm256_andnot_pd(_mm256_castsi256_pd(gDoubleExpMask), product));
+        const __m256d newMants = _mm256_or_pd(_mm256_castsi256_pd(SRSimd::_cDoubleExp0),
+          _mm256_andnot_pd(_mm256_castsi256_pd(SRSimd::_cDoubleExpMask), product));
         SRSimd::Store<taCache>(pMants + j, newMants);
 
-        const __m256i prodExps = _mm256_srli_epi64(_mm256_and_si256(gDoubleExpMask, _mm256_castpd_si256(product)), 52);
+        //TODO: AND can be removed here if numbers are non-negative or we can assume a large exponent for negatives
+        const __m256i prodExps = _mm256_srli_epi64(
+          _mm256_and_si256(SRSimd::_cDoubleExpMask, _mm256_castpd_si256(product)), 52);
         const __m256i oldExps = SRSimd::Load<taCache>(pExps+j);
         const __m256i newExps = _mm256_add_epi64(prodExps, oldExps);
         SRSimd::Store<taCache>(pExps + j, newExps);

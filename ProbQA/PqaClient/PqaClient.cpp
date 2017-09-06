@@ -508,7 +508,7 @@ void BenchmarkCacheLine() {
       sum += gpCacheLine[i];
     }
     printf("Contended cache line: %d threads give %.3lf Ops/sec, sum=%lld\n", (int)nThreads,
-      (nThreads * cnCacheEntryIncrements) / nSec, (long long)sum);
+      (int64_t(nThreads) * cnCacheEntryIncrements) / nSec, (long long)sum);
 
     thrs.clear();
   }
@@ -1018,6 +1018,100 @@ void BenchmarkLnThreads() {
 //  printf("%lld\n", sum.m256i_i64[0] + sum.m256i_i64[1] + sum.m256i_i64[2] + sum.m256i_i64[3]);
 //}
 
+void BitArrayTests() {
+  //for(int i=0; i<128; i++) {
+  //  volatile uint64_t quasiPow = SRPlat::SRMath::QuasiPowSqrt2(uint8_t(i));
+  //  volatile int quasiLog = SRPlat::SRMath::QuasiCeilLogSqrt2(quasiPow);
+  //  if(quasiLog != i) {
+  //    printf("%d -> %d\n", i, quasiLog);
+  //  }
+  //}
+  //for(int i=0; i<128; i++) {
+  //  printf("%d -> %d\n", i, int(SRPlat::SRMath::CompressCapacity<2>(i)));
+  //}
+  //volatile uint64_t tIn = 65537;
+  //volatile uint8_t tOut = SRPlat::SRMath::CeilLog2(tIn);
+  SRPlat::SRBitArray ba(1);
+  uint64_t nBits[2] = { 1, 0 };
+  for (int i = 1; i <= 10000; i++) {
+    ba.Add(i >> 1, i & 1);
+    nBits[i & 1] += i >> 1;
+  }
+  uint64_t sum = 0;
+  for (uint64_t i = 0; i<ba.Size() >> 2; i++) {
+    sum += __popcnt16(ba.GetQuad(i));
+  }
+  for (uint64_t i = ba.Size()&(~3ui64); i<ba.Size(); i++) {
+    sum += ba.GetOne(i) ? 1 : 0;
+  }
+  printf("Total %llu, expected1 %llu, actual1 %llu\n", ba.Size(), nBits[1], sum);
+}
+
+const uint16_t cnDoubleExps = 2048;
+const size_t cnToBucket = 10 * 1000 * 1000;
+double *gpBuckets = nullptr;
+
+class FastRandomAdapter : public SRPlat::SRFastRandom {
+public:
+  static constexpr uint64_t min() { return 0; }
+  static constexpr uint64_t max() { return std::numeric_limits<uint64_t>::max(); }
+  uint64_t operator()() { return Generate<uint64_t>(); }
+};
+
+void AsyncBucketing() {
+  //std::random_device rd;
+  //SRPlat::SRFastRandom fr;
+  //std::seed_seq seq{ rd(), rd(), rd(), rd() };
+  //std::mt19937_64 rng(seq);
+  FastRandomAdapter fra;
+  std::normal_distribution<double> distr(0, 1e50);
+  for(size_t i=0; i<cnToBucket; i++) {
+    const double val = distr(fra);
+    const uint64_t ve = ((*reinterpret_cast<const uint64_t*>(&val)) >> 52) & 0x7ff;
+    for(;;) {
+      const double expected = *static_cast<volatile double*>(gpBuckets + ve);
+      const double target = expected + val;
+      if(*reinterpret_cast<const int64_t*>(&expected) == _InterlockedCompareExchange64(
+        reinterpret_cast<int64_t*>(gpBuckets + ve),
+        *reinterpret_cast<const int64_t*>(&target),
+        *reinterpret_cast<const int64_t*>(&expected)))
+      {
+        break;
+      }
+    }
+  }
+}
+
+
+void BenchmarkBucketing() {
+  const uint32_t maxThreads = std::thread::hardware_concurrency();
+  gpBuckets = reinterpret_cast<double*>(_mm_malloc(cnDoubleExps * sizeof(double), gCacheLineBytes));
+  std::vector<std::thread> thrs;
+  thrs.reserve(maxThreads + 1);
+
+  for (uint32_t nThreads = 1; nThreads <= maxThreads; nThreads++) {
+    std::memset(gpBuckets, 0, cnDoubleExps * sizeof(double));
+    auto start = std::chrono::high_resolution_clock::now();
+    for (uint32_t i = 0; i < nThreads; i++) {
+      thrs.emplace_back(AsyncBucketing);
+    }
+    for (uint32_t i = 0; i < nThreads; i++) {
+      thrs[i].join();
+    }
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+    double sum = 0;
+    for (uint32_t i = 0; i < cnDoubleExps; i++) {
+      sum += gpBuckets[i];
+    }
+    printf("Bucketing double`s: %d threads give %.3lf Ops/sec, sum=%.16e\n", (int)nThreads,
+      (nThreads * cnToBucket) / nSec, (double)sum);
+
+    thrs.clear();
+  }
+  _mm_free(gpBuckets);
+}
+
 int __cdecl main() {
   //std::atomic<double> test1;
   //bool test2 = test1.is_lock_free();
@@ -1053,31 +1147,7 @@ int __cdecl main() {
   //BenchmarkLog2();
   //BenchmarkFpuLog2();
 
-  //for(int i=0; i<128; i++) {
-  //  volatile uint64_t quasiPow = SRPlat::SRMath::QuasiPowSqrt2(uint8_t(i));
-  //  volatile int quasiLog = SRPlat::SRMath::QuasiCeilLogSqrt2(quasiPow);
-  //  if(quasiLog != i) {
-  //    printf("%d -> %d\n", i, quasiLog);
-  //  }
-  //}
-  //for(int i=0; i<128; i++) {
-  //  printf("%d -> %d\n", i, int(SRPlat::SRMath::CompressCapacity<2>(i)));
-  //}
-  //volatile uint64_t tIn = 65537;
-  //volatile uint8_t tOut = SRPlat::SRMath::CeilLog2(tIn);
-  SRPlat::SRBitArray ba(1);
-  uint64_t nBits[2] = { 1, 0 };
-  for(int i=1; i<=10000; i++) {
-    ba.Add(i>>1, i & 1);
-    nBits[i & 1] += i >> 1;
-  }
-  uint64_t sum = 0;
-  for(uint64_t i=0; i<ba.Size()>>2; i++) {
-    sum += __popcnt16( ba.GetQuad(i));
-  }
-  for(uint64_t i=ba.Size()&(~3ui64); i<ba.Size(); i++) {
-    sum += ba.GetOne(i) ? 1 : 0;
-  }
-  printf("Total %llu, expected1 %llu, actual1 %llu\n", ba.Size(), nBits[1], sum);
+  BenchmarkBucketing();
+
   return 0;
 }

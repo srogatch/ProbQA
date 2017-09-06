@@ -16,6 +16,7 @@
 #include "../PqaCore/CECreateQuizOperation.h"
 #include "../PqaCore/CENormPriorsTask.h"
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
+#include "../PqaCore/BucketSummator.h"
 
 using namespace SRPlat;
 
@@ -374,6 +375,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   const SRThreadPool::TThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   const size_t subtasksOffs = 0;
   const size_t bucketsOffs = nWorkers * SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>>::value;
+  //const size_t nWithBuckets = bucketsOffs + 
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));

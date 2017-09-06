@@ -193,6 +193,7 @@
     <ClInclude Include="BaseCpuEngine.fwd.h" />
     <ClInclude Include="BaseCpuEngine.decl.h" />
     <ClInclude Include="BaseCpuEngine.h" />
+    <ClInclude Include="BucketSummator.h" />
     <ClInclude Include="CEBaseTask.decl.h" />
     <ClInclude Include="CEBaseTask.fwd.h" />
     <ClInclude Include="CEBaseTask.h" />

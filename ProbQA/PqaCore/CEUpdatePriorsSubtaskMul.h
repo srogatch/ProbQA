@@ -14,7 +14,7 @@ template<typename taNumber> class CEUpdatePriorsSubtaskMul : public SRPlat::SRBa
   const TPqaId _iLimVT; // limit vector of targets
 
 private: // methods
-  template<bool taCache> void RunInternal(const CEUpdatePriorsTask<taNumber>& task);
+  template<bool taCache> void RunInternal(const CEUpdatePriorsTask<taNumber>& task) const;
 
 public: // methods
   CEUpdatePriorsSubtaskMul(CEUpdatePriorsTask<taNumber> *pTask, const TPqaId iFirstVT, const TPqaId iLimVT);
