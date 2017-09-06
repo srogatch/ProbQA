@@ -5,7 +5,6 @@
 #pragma once
 
 #include "../PqaCore/CEQuiz.decl.h"
-#include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/CpuEngine.h"
 
 namespace ProbQA {

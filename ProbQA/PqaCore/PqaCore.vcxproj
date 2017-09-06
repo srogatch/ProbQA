@@ -224,7 +224,6 @@
     <ClInclude Include="CpuEngine.decl.h" />
     <ClInclude Include="CpuEngine.fwd.h" />
     <ClInclude Include="CpuEngine.h" />
-    <ClInclude Include="DoubleNumber.h" />
     <ClInclude Include="GapTracker.h" />
     <ClInclude Include="Interface\IPqaEngine.h" />
     <ClInclude Include="Interface\IPqaEngineFactory.h" />
@@ -236,7 +235,6 @@
     <ClInclude Include="MaintenanceSwitch.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="PqaException.h" />
-    <ClInclude Include="PqaNumber.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="CETrainTaskNumSpec.h" />

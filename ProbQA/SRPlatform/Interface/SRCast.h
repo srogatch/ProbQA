@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "../SRPlatform/Interface/SRAmount.h"
+
 namespace SRPlat {
 
 class SRCast {
@@ -15,6 +17,7 @@ public:
   template<typename T> static uint64_t ToUint64(const T val) {
     return static_cast<uint64_t>(val);
   }
+  static double ToDouble(const SRAmount amount) { return amount; }
 };
 
 } // namespace SRPlat

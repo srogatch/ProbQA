@@ -6,7 +6,6 @@
 #include "../PqaCore/CEUpdatePriorsSubtaskMul.h"
 #include "../PqaCore/CEUpdatePriorsTask.h"
 #include "../PqaCore/CEQuiz.h"
-#include "../PqaCore/DoubleNumber.h"
 
 using namespace SRPlat;
 
@@ -17,15 +16,15 @@ template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSu
   : SRBaseSubtask(pTask), _iFirstVT(iFirstVT), _iLimVT(iLimVT)
 { }
 
-template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::RunInternal(
-  const CEUpdatePriorsTask<DoubleNumber>& task) const
+template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::RunInternal(
+  const CEUpdatePriorsTask<SRDoubleNumber>& task) const
 {
-  constexpr uint8_t logNumsPerVect = SRSimd::_cLogNBytes - SRMath::StaticCeilLog2(sizeof(DoubleNumber));
-  auto& engine = static_cast<const CpuEngine<DoubleNumber>&>(task.GetBaseEngine());
-  const CEQuiz<DoubleNumber> &quiz = *task._pQuiz;
+  constexpr uint8_t logNumsPerVect = SRSimd::_cLogNBytes - SRMath::StaticCeilLog2(sizeof(SRDoubleNumber));
+  auto& engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
+  const CEQuiz<SRDoubleNumber> &quiz = *task._pQuiz;
 
   __m256d *pMants = reinterpret_cast<__m256d*>(quiz.GetTlhMants());
-  static_assert(std::is_same<int64_t, CEQuiz<DoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
+  static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
     " 64-bit integer.");
   __m256i *pExps = reinterpret_cast<__m256i*>(quiz.GetTlhExps());
 
@@ -84,12 +83,12 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<DoubleNumber>::R
   }
 }
 
-template<> void CEUpdatePriorsSubtaskMul<DoubleNumber>::Run() {
-  auto& task = static_cast<const CEUpdatePriorsTask<DoubleNumber>&>(*GetTask());
+template<> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::Run() {
+  auto& task = static_cast<const CEUpdatePriorsTask<SRDoubleNumber>&>(*GetTask());
   // This should be a tail call
   (task._nVectsInCache < 2) ? RunInternal<false>(task) : RunInternal<true>(task);
 }
 
-template class CEUpdatePriorsSubtaskMul<DoubleNumber>;
+template class CEUpdatePriorsSubtaskMul<SRDoubleNumber>;
 
 } // namespace ProbQA

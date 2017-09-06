@@ -4,14 +4,12 @@
 
 #pragma once
 
-#include "../PqaCore/DoubleNumber.h"
-
 namespace ProbQA {
 
 // Number-specific data for CETrainTask
 template <typename taNumber> class CETrainTaskNumSpec;
 
-template<> class CETrainTaskNumSpec<DoubleNumber> {
+template<> class CETrainTaskNumSpec<SRPlat::SRDoubleNumber> {
 public: // variables
   __m256d _fullAddend; // non-colliding (4 at once)
   __m256d _collAddend; // colliding (3 at once)

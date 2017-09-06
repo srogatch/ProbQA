@@ -45,6 +45,7 @@
 #include "../SRPlatform/Interface/SRCpuInfo.h"
 #include "../SRPlatform/Interface/SRCriticalSection.h"
 #include "../SRPlatform/Interface/SRDefaultLogger.h"
+#include "../SRPlatform/Interface/SRDoubleNumber.h"
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRFastArray.h"
 #include "../SRPlatform/Interface/SRFinally.h"

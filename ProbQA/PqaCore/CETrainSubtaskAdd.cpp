@@ -5,16 +5,15 @@
 #include "stdafx.h"
 #include "../PqaCore/CETrainSubtaskAdd.h"
 #include "../PqaCore/CETrainTask.h"
-#include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/CpuEngine.h"
 
 using namespace SRPlat;
 
 namespace ProbQA {
 
-template<> void CETrainSubtaskAdd<DoubleNumber>::Run() {
-  auto& cTask = static_cast<const CETrainTask<DoubleNumber>&>(*GetTask()); // enable optimizations with const
-  auto& engine = static_cast<CpuEngine<DoubleNumber>&>(cTask.GetBaseEngine());
+template<> void CETrainSubtaskAdd<SRDoubleNumber>::Run() {
+  auto& cTask = static_cast<const CETrainTask<SRDoubleNumber>&>(*GetTask()); // enable optimizations with const
+  auto& engine = static_cast<CpuEngine<SRDoubleNumber>&>(cTask.GetBaseEngine());
   TPqaId iLast = cTask._last[_iWorker];
   if (iLast == cInvalidPqaId) {
     return;
@@ -65,6 +64,6 @@ template<> void CETrainSubtaskAdd<DoubleNumber>::Run() {
   } while (iLast != cInvalidPqaId);
 }
 
-template class CETrainSubtaskAdd<DoubleNumber>;
+template class CETrainSubtaskAdd<SRDoubleNumber>;
 
 } // namespace ProbQA

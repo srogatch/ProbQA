@@ -7,7 +7,6 @@
 #include "../PqaCore/CpuEngine.fwd.h"
 #include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/CECreateQuizOperation.fwd.h"
-#include "../PqaCore/PqaNumber.h"
 #include "../PqaCore/BaseCpuEngine.h"
 
 namespace ProbQA {
@@ -16,7 +15,7 @@ namespace ProbQA {
 template<typename taNumber> class CETrainTaskNumSpec;
 
 template<typename taNumber> class CpuEngine : public BaseCpuEngine {
-  static_assert(std::is_base_of<PqaNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
+  static_assert(std::is_base_of<SRPlat::SRRealNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
 
 private: // variables
   //// N questions, K answers, M targets

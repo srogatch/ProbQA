@@ -6,7 +6,6 @@
 #include "PqaEngineBaseFactory.h"
 #include "../PqaCore/Interface/PqaErrorParams.h"
 #include "../PqaCore/CpuEngine.h"
-#include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/ErrorHelper.h"
 
 using namespace SRPlat;
@@ -18,7 +17,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
     std::unique_ptr<IPqaEngine> pEngine;
     switch (engDef._prec._type) {
     case TPqaPrecisionType::Double:
-      pEngine.reset(new CpuEngine<DoubleNumber>(engDef));
+      pEngine.reset(new CpuEngine<SRDoubleNumber>(engDef));
       break;
     default:
       //TODO: implement

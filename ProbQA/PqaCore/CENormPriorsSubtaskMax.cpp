@@ -5,7 +5,6 @@
 #include "stdafx.h"
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
 #include "../PqaCore/CENormPriorsTask.h"
-#include "../PqaCore/DoubleNumber.h"
 
 using namespace SRPlat;
 
@@ -15,6 +14,6 @@ template<typename taNumber> CENormPriorsSubtaskMax<taNumber>::CENormPriorsSubtas
   const TPqaId iFirstVT, const TPqaId iLimVT) : SRBaseSubtask(pTask), _iFirstVT(iFirstVT), _iLimVT(iLimVT)
 { }
 
-template class CENormPriorsSubtaskMax<DoubleNumber>;
+template class CENormPriorsSubtaskMax<SRPlat::SRDoubleNumber>;
 
 } // namespace ProbQA

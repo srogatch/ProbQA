@@ -216,11 +216,14 @@
     <ClInclude Include="Interface\ISRLogCustomizable.h" />
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
     <ClInclude Include="Interface\SRAlignedDeleter.h" />
+    <ClInclude Include="Interface\SRAmount.h" />
     <ClInclude Include="Interface\SRBitArray.h" />
+    <ClInclude Include="Interface\SRBucketSummator.h" />
     <ClInclude Include="Interface\SRCast.h" />
     <ClInclude Include="Interface\SRConditionVariable.h" />
     <ClInclude Include="Interface\SRCpuInfo.h" />
     <ClInclude Include="Interface\SRCriticalSection.h" />
+    <ClInclude Include="Interface\SRDoubleNumber.h" />
     <ClInclude Include="Interface\SRException.h" />
     <ClInclude Include="Interface\SRExitCode.h" />
     <ClInclude Include="Interface\SRFastArray.h" />
@@ -240,6 +243,7 @@
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRMinimalTask.h" />
     <ClInclude Include="Interface\SRMPAllocator.h" />
+    <ClInclude Include="Interface\SRRealNumber.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRFastRandom.h" />
     <ClInclude Include="Interface\SRQueue.h" />

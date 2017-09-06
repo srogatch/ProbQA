@@ -4,7 +4,6 @@
 
 #include "stdafx.h"
 #include "../PqaCore/CpuEngine.h"
-#include "../PqaCore/DoubleNumber.h"
 #include "../PqaCore/PqaException.h"
 #include "../PqaCore/CETrainTask.h"
 #include "../PqaCore/ErrorHelper.h"
@@ -16,7 +15,6 @@
 #include "../PqaCore/CECreateQuizOperation.h"
 #include "../PqaCore/CENormPriorsTask.h"
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
-#include "../PqaCore/BucketSummator.h"
 
 using namespace SRPlat;
 
@@ -120,10 +118,10 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   return PqaError();
 }
 
-template<> void CpuEngine<DoubleNumber>::InitTrainTaskNumSpec(CETrainTaskNumSpec<DoubleNumber>& numSpec,
+template<> void CpuEngine<SRDoubleNumber>::InitTrainTaskNumSpec(CETrainTaskNumSpec<SRDoubleNumber>& numSpec,
   const TPqaAmount amount) 
 {
-  const double dAmount = to_double(amount);
+  const double dAmount = SRCast::ToDouble(amount);
   numSpec._collAddend = numSpec._fullAddend = _mm256_set1_pd(dAmount);
   // Colliding addend: amount is added twice to _mD[iQuestion][iTarget] .
   numSpec._collAddend.m256d_f64[1] += dAmount;
@@ -473,6 +471,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseCompactionResul
 }
 
 //// Instantiations
-template class CpuEngine<DoubleNumber>;
+template class CpuEngine<SRDoubleNumber>;
 
 } // namespace ProbQA

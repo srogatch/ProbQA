@@ -12,8 +12,7 @@ namespace ProbQA {
 typedef int64_t TPqaId;
 const TPqaId cInvalidPqaId = -1;
 
-typedef double TPqaAmount;
-inline double to_double(TPqaAmount amount) { return amount; }
+typedef SRPlat::SRAmount TPqaAmount;
 
 enum TPqaPrecisionType : uint64_t {
   None = 0,
