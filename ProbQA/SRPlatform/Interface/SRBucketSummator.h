@@ -130,28 +130,6 @@ template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(co
   default:
     __assume(0);
   }
-
-  //const __m128i indices = Get4Indices(iWorker, np._comps);
-  //uint8_t lastComp;
-  //if (nComps >= 2) {
-  //  lastComp = 2;
-  //  const __m128d old = _mm_set_pd(_pBuckets[indices.m128i_u32[1]].GetValue(),
-  //    _pBuckets[indices.m128i_u32[0]].GetValue());
-  //  const __m128d sums = _mm_add_pd(old, _mm256_castpd256_pd128(np._comps));
-  //  _pBuckets[indices.m128i_u32[1]].SetValue(sums.m128d_f64[1]);
-  //  _pBuckets[indices.m128i_u32[0]].SetValue(sums.m128d_f64[0]);
-  //}
-  //else {
-  //  lastComp = 0;
-  //}
-  //if (lastComp < nComps) {
-
-  //}
-  //// At expense of adding values separately (rather than a SIMD add), here we save extra loads from memory of buckets
-  ////   not used.
-  //for (uint8_t i = 0; i < nComps; i++) {
-  //  _pBuckets[indices.m128i_u32[i]].ModValue() += np._comps.m256d_f64[i];
-  //}
 }
 
 } // namespace SRPlat
