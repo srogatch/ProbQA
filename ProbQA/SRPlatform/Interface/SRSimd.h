@@ -14,6 +14,30 @@ class SRPLATFORM_API SRSimd {
 
 public:
   typedef __m256i TIntSimd;
+  union Packed64 {
+    double _f64;
+    float _f32[2];
+    uint64_t _u64;
+    int64_t _i64;
+    uint32_t _u32[2];
+    int32_t _i32[2];
+    uint16_t _u16[4];
+    int16_t _i16[4];
+    uint8_t _u8[8];
+    int8_t _i8[8];
+
+    Packed64() { }
+
+    Packed64(const __m128i& vect, const uint8_t at) : _u64(vect.m128i_u64[at]) { }
+    Packed64(const __m128& vect, const uint8_t at) : Packed64(_mm_castps_si128(vect), at) { }
+    Packed64(const __m128d& vect, const uint8_t at) : Packed64(_mm_castpd_si128(vect), at) { }
+    //template<uint8_t taAt> explicit Packed64(const __m128i& vect, const uint8_t taAt)
+    //  : _i64(_mm_extract_epi64(vect, taAt)) { }
+    constexpr explicit Packed64(const uint64_t value) : _u64(value) { }
+    constexpr static Packed64 Set1U32(const uint32_t value) {
+      return Packed64((uint64_t(value) << 32) | value);
+    }
+  };
 
   static constexpr uint8_t _cLogNBits = 8; //AVX2, 256 bits, log2(256)=8
   static constexpr uint8_t _cLogNBytes = _cLogNBits - 3;
@@ -110,6 +134,18 @@ public:
       return exps;
     }
     return _mm_sub_epi32(exps, _cDoubleExp0Down32);
+  }
+
+  template<bool taNorm0> ATTR_NOALIAS static Packed64 __vectorcall ExtractExponents32(const __m128d nums) {
+    const __m128i shuffled = _mm_shuffle_epi32(_mm_castpd_si128(nums), _MM_SHUFFLE(0, 0, 3, 1));
+    const Packed64 high32(shuffled, 0);
+    constexpr Packed64 expMask = Packed64::Set1U32(SRNumTraits<double>::_cExponentMaskDown);
+    const Packed64 exps((high32._u64 >> (SRNumTraits<double>::_cExponentOffs - 32)) & expMask._u64);
+    if (!taNorm0) {
+      return exps;
+    }
+    constexpr Packed64 normalizer = Packed64::Set1U32(SRNumTraits<double>::_cExponent0Down);
+    return Packed64(exps._u64 - normalizer._u64);
   }
 
   ATTR_NOALIAS static __m256d __vectorcall MakeExponent0(const __m256d nums) {

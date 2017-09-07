@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "../SRPlatform/Interface/SRCast.h"
+
 namespace SRPlat {
 
 template<typename taNumber> struct SRNumTraits;
@@ -19,6 +21,14 @@ template<> struct SRNumTraits<double> {
   static constexpr uint64_t _cExponent0Up = uint64_t(_cExponent0Down) << _cExponentOffs;
   static constexpr uint16_t _cExponentMaskDown = 0x7ff;
   static constexpr uint64_t _cExponentMaskUp = uint64_t(_cExponentMaskDown) << _cExponentOffs;
+
+  template<bool taNorm0> static int16_t ExtractExponent(const double value) {
+    const int16_t exponent = _cExponentMaskDown & (SRCast::CastF64_U64(value) >> _cExponentOffs);
+    if (!taNorm0) {
+      return exponent;
+    }
+    return exponent - _cExponent0Down;
+  }
 };
 
 } // namespace SRPlat

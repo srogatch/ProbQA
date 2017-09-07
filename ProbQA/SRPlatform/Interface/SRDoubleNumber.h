@@ -16,6 +16,7 @@ public:
   explicit SRDoubleNumber(SRAmount init) : _value(SRCast::ToDouble(init)) { }
 
   double GetValue() const { return _value; }
+  double& ModValue() { return _value; }
   void SetValue(const double value) { _value = value; }
 
   SRDoubleNumber& Mul(const SRDoubleNumber& fellow) { 

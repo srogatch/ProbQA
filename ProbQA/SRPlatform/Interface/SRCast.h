@@ -18,6 +18,11 @@ public:
     return static_cast<uint64_t>(val);
   }
   static double ToDouble(const SRAmount amount) { return amount; }
+
+  static uint64_t CastF64_U64(const double value) {
+    // _castf64_u64() doesn't seem present in MSVC++
+    return *reinterpret_cast<const uint64_t*>(&value);
+  }
 };
 
 } // namespace SRPlat
