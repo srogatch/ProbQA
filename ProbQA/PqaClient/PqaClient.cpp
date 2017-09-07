@@ -1147,7 +1147,15 @@ int __cdecl main() {
   //BenchmarkLog2();
   //BenchmarkFpuLog2();
 
-  BenchmarkBucketing();
+  //BenchmarkBucketing();
+
+  __m256i sum = _mm256_setzero_si256();
+  for (int64_t i = 0; i < 1000; i++) {
+    sum = _mm256_add_epi64(sum, _mm256_set1_epi64x(1023));
+  }
+  for (int8_t i = 0; i <= 3; i++) {
+    printf(" %lld", sum.m256i_i64[i]);
+  }
 
   return 0;
 }

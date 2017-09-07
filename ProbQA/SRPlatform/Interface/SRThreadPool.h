@@ -12,6 +12,7 @@
 namespace SRPlat {
 
 class SRBaseSubtask;
+class SRBaseTask;
 
 class SRPLATFORM_API SRThreadPool : public ISRLogCustomizable {
   struct RareData; // cache-insensitive piece of thread pool data

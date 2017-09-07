@@ -11,7 +11,7 @@ template<typename... Ts> struct SRMaxSizeof {
 };
 
 template<typename T, typename... Ts> struct SRMaxSizeof<T, Ts...> {
-  static constexpr size_t value = std::max(sizeof(T), typename SRMaxSizeof<Ts...>::value);
+  static constexpr size_t value = std::max(sizeof(T), SRMaxSizeof<Ts...>::value);
 };
 
 } // namespace SRPlat

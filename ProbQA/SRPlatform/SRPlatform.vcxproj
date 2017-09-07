@@ -243,6 +243,7 @@
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRMinimalTask.h" />
     <ClInclude Include="Interface\SRMPAllocator.h" />
+    <ClInclude Include="Interface\SRNumTraits.h" />
     <ClInclude Include="Interface\SRRealNumber.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRFastRandom.h" />

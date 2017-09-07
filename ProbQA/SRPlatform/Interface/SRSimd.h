@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRMath.h"
+#include "../SRPlatform/Interface/SRNumTraits.h"
 
 namespace SRPlat {
 
@@ -23,8 +24,11 @@ public:
   static constexpr size_t _cBitMask = _cNBits - 1;
   
   //// SIMD constants follow. For improved cache usage they must be adjacent.
-  static const __m256i _cDoubleExpMask;
-  static const __m256i _cDoubleExp0;
+  static const __m256i _cDoubleExpMaskUp;
+  static const __m256i _cDoubleExp0Up;
+  static const __m256i _cDoubleExp0Down;
+  static const __m128i _cDoubleExpMaskDown32;
+  static const __m128i _cDoubleExp0Down32;
 private:
   static const __m256i _cSet1MsbOffs;
   static const __m256i _cSet1LsbOffs;
@@ -85,6 +89,33 @@ public:
     __m256i shift = _mm256_set1_epi32(nLsb1);
     shift = _mm256_subs_epu16(_cSet1LsbOffs, shift);
     return _mm256_srlv_epi32(ones, shift);
+  }
+
+  template<bool taNorm0> ATTR_NOALIAS static __m256i __vectorcall ExtractExponents64(const __m256d nums) {
+    const __m256i exps = _mm256_srli_epi64(_mm256_and_si256(_cDoubleExpMaskUp, _mm256_castpd_si256(nums)),
+      SRNumTraits<double>::_cExponentOffs);
+    if (!taNorm0) {
+      return exps;
+    }
+    return _mm256_sub_epi64(exps, _cDoubleExp0Down);
+  }
+
+  template<bool taNorm0> ATTR_NOALIAS static __m128i __vectorcall ExtractExponents32(const __m256d nums) {
+    const __m128 hiLane = _mm_castpd_ps(_mm256_extractf128_pd(nums, 1));
+    const __m128 loLane = _mm_castpd_ps(_mm256_castpd256_pd128(nums));
+    const __m128i high32 = _mm_castps_si128(_mm_shuffle_ps(loLane, hiLane, _MM_SHUFFLE(3, 1, 3, 1)));
+    const __m128i exps = _mm_and_si128(_cDoubleExpMaskDown32,
+      _mm_srli_epi32(high32, SRNumTraits<double>::_cExponentOffs - 32));
+    if (!taNorm0) {
+      return exps;
+    }
+    return _mm_sub_epi32(exps, _cDoubleExp0Down32);
+  }
+
+  ATTR_NOALIAS static __m256d __vectorcall MakeExponent0(const __m256d nums) {
+    const __m256d e0nums = _mm256_or_pd(_mm256_castsi256_pd(_cDoubleExp0Up),
+      _mm256_andnot_pd(_mm256_castsi256_pd(_cDoubleExpMaskUp), nums));
+    return e0nums;
   }
 };
 

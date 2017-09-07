@@ -13,10 +13,12 @@ protected:
   SRRealNumber() { }
 
 public:
-  SRRealNumber(SRAmount init);
+  explicit SRRealNumber(SRAmount init);
   SRRealNumber& Mul(const SRRealNumber& fellow);
   SRRealNumber& Add(const SRRealNumber& fellow);
   SRRealNumber& operator+=(const SRRealNumber amount);
 };
+
+template <typename taNumber> struct SRNumPack;
 
 } // namespace SRPlat

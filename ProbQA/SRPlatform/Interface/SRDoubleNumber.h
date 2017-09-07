@@ -39,4 +39,10 @@ public:
 
 static_assert(sizeof(SRDoubleNumber) == sizeof(double), "To allow AVX2 and avoid unaligned access penalties.");
 
+template<> struct SRNumPack<SRDoubleNumber> {
+  typedef uint8_t TCompsCount;
+  static constexpr TCompsCount _cnComps = 4;
+  __m256d _comps;
+};
+
 } // namespace SRPlat

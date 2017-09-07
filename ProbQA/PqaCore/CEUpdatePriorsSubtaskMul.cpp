@@ -47,13 +47,13 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
         const __m256d oldMants = SRSimd::Load<taCache>(pMants + j);
         const __m256d product = _mm256_mul_pd(oldMants, P_qa_given_t);
         //TODO: move separate summation of exponent to a common function (available to other subtasks etc.)?
-        const __m256d newMants = _mm256_or_pd(_mm256_castsi256_pd(SRSimd::_cDoubleExp0),
-          _mm256_andnot_pd(_mm256_castsi256_pd(SRSimd::_cDoubleExpMask), product));
+        const __m256d newMants = SRSimd::MakeExponent0(product);
         SRSimd::Store<taCache>(pMants + j, newMants);
 
-        //TODO: AND can be removed here if numbers are non-negative or we can assume a large exponent for negatives
-        const __m256i prodExps = _mm256_srli_epi64(
-          _mm256_and_si256(SRSimd::_cDoubleExpMask, _mm256_castpd_si256(product)), 52);
+        //TODO: AND can be removed here if numbers are non-negative or we can assume a large exponent for negatives,
+        // or use an arithmetic shift to assign such numbers a very small exponent. Unfortunately, there seems no
+        // arithmetic shift for 64-bit components in AVX2 like _mm256_srai_epi64.
+        const __m256i prodExps = SRSimd::ExtractExponents64<false>(product);
         const __m256i oldExps = SRSimd::Load<taCache>(pExps+j);
         const __m256i newExps = _mm256_add_epi64(prodExps, oldExps);
         SRSimd::Store<taCache>(pExps + j, newExps);
