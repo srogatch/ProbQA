@@ -29,7 +29,7 @@ protected: // variables
   SRPlat::SRThreadPool _tpWorkers; // thread-safe itself
 
   EngineDimensions _dims; // Guarded by _rws in maintenance mode. Read-only in regular mode.
-  const SRPlat::SRThreadPool::TThreadCount _nMemOpThreads;
+  const SRPlat::SRThreadCount _nMemOpThreads;
   uint64_t _nQuestionsAsked = 0; // Guarded by _rws
 
   //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
@@ -48,8 +48,8 @@ protected: // variables
   std::atomic<SRPlat::ISRLogger*> _pLogger;
 
 protected: // methods
-  static SRPlat::SRThreadPool::TThreadCount CalcMemOpThreads();
-  static SRPlat::SRThreadPool::TThreadCount CalcCompThreads();
+  static SRPlat::SRThreadCount CalcMemOpThreads();
+  static SRPlat::SRThreadCount CalcCompThreads();
 
   explicit BaseCpuEngine(const EngineDefinition& engDef);
 

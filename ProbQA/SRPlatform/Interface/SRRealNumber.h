@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "../SRPlatform/Interface/SRAmount.h"
+#include "../SRPlatform/Interface/SRBasicTypes.h"
 
 namespace SRPlat {
 

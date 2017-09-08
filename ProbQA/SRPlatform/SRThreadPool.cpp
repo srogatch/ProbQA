@@ -31,7 +31,7 @@ struct SRThreadPool::RareData {
 
 #define TPLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetLogger())
 
-SRThreadPool::SRThreadPool(const TThreadCount nThreads) : _qu(SRMath::CeilLog2(nThreads)), _nWorkers(nThreads),
+SRThreadPool::SRThreadPool(const SRThreadCount nThreads) : _qu(SRMath::CeilLog2(nThreads)), _nWorkers(nThreads),
   _shutdownRequested(0)
 {
   _pRd = reinterpret_cast<RareData*>(malloc(sizeof(RareData) + sizeof(std::thread) * _nWorkers));

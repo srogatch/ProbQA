@@ -216,7 +216,7 @@
     <ClInclude Include="Interface\ISRLogCustomizable.h" />
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
     <ClInclude Include="Interface\SRAlignedDeleter.h" />
-    <ClInclude Include="Interface\SRAmount.h" />
+    <ClInclude Include="Interface\SRBasicTypes.h" />
     <ClInclude Include="Interface\SRBitArray.h" />
     <ClInclude Include="Interface\SRBucketSummator.h" />
     <ClInclude Include="Interface\SRCast.h" />
@@ -244,6 +244,7 @@
     <ClInclude Include="Interface\SRMinimalTask.h" />
     <ClInclude Include="Interface\SRMPAllocator.h" />
     <ClInclude Include="Interface\SRNumTraits.h" />
+    <ClInclude Include="Interface\SRPacked64.h" />
     <ClInclude Include="Interface\SRRealNumber.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRFastRandom.h" />

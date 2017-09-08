@@ -12,61 +12,61 @@ namespace SRPlat {
 
 template<typename taNumber> class SRPLATFORM_API SRBucketSummator {
   taNumber *_pBuckets;
-  const SRThreadPool::TThreadCount _nWorkers;
+  const SRThreadCount _nWorkers;
 
 private: // methods
   static inline constexpr uint32_t GetBucketCount();
-  inline taNumber& ModBucket(const SRThreadPool::TThreadCount iWorker, const uint32_t iBucket);
-  inline static __m128i Get4Indices(const SRThreadPool::TThreadCount iWorker, const __m256d nums);
-  inline static SRSimd::Packed64 Get2Indices(const SRThreadPool::TThreadCount iWorker, const __m128d nums);
+  inline taNumber& ModBucket(const SRThreadCount iWorker, const uint32_t iBucket);
+  inline static __m128i __vectorcall Get4Indices(const SRThreadCount iWorker, const __m256d nums);
+  inline static SRPacked64 __vectorcall Get2Indices(const SRThreadCount iWorker, const __m128d nums);
 
 public: // methods
-  static inline size_t GetMemoryRequirementBytes(const SRThreadPool::TThreadCount nWorkers);
-  explicit inline SRBucketSummator(const SRThreadPool::TThreadCount nWorkers, void* pMem);
+  static inline size_t GetMemoryRequirementBytes(const SRThreadCount nWorkers);
+  explicit inline SRBucketSummator(const SRThreadCount nWorkers, void* pMem);
 
   // Let each worker zero its buckets, so that they lay into L1/L2 cache of this worker.
-  void inline ZeroBuckets(const  SRThreadPool::TThreadCount iWorker);
+  void inline ZeroBuckets(const  SRThreadCount iWorker);
 
   //// Passing |np| by value is only efficient so long as it fits and AVX register. There can be a separate function
   ////   without __vectorcall to take it by const reference.
-  void __vectorcall CalcAdd(const SRThreadPool::TThreadCount iWorker, const SRNumPack<taNumber> np);
-  void __vectorcall CalcAdd(const SRThreadPool::TThreadCount iWorker, const SRNumPack<taNumber> np,
+  void __vectorcall CalcAdd(const SRThreadCount iWorker, const SRNumPack<taNumber> np);
+  void __vectorcall CalcAdd(const SRThreadCount iWorker, const SRNumPack<taNumber> np,
     const typename SRNumPack<taNumber>::TCompsCount nComps);
 };
 
 template<typename taNumber> inline size_t SRBucketSummator<taNumber>::GetMemoryRequirementBytes(
-  const SRThreadPool::TThreadCount nWorkers)
+  const SRThreadCount nWorkers)
 {
   return sizeof(taNumber) * GetBucketCount() * size_t(nWorkers);
 }
 
 template<typename taNumber> inline SRBucketSummator<taNumber>::SRBucketSummator(
-  const SRThreadPool::TThreadCount nWorkers, void* pMem)
+  const SRThreadCount nWorkers, void* pMem)
   : _nWorkers(nWorkers), _pBuckets(reinterpret_cast<taNumber*>(pMem))
 {
   ZeroBuckets();
 }
 
 template<typename taNumber> inline taNumber& SRBucketSummator<taNumber>::ModBucket(
-  const SRThreadPool::TThreadCount iWorker, const uint32_t iBucket)
+  const SRThreadCount iWorker, const uint32_t iBucket)
 {
   return _pBuckets[uint32_t(iWorker) * GetBucketCount() + iBucket];
 }
 
-template<typename taNumber> inline __m128i SRBucketSummator<taNumber>::Get4Indices(
-  const SRThreadPool::TThreadCount iWorker, const __m256d nums)
+template<typename taNumber> inline __m128i __vectorcall SRBucketSummator<taNumber>::Get4Indices(
+  const SRThreadCount iWorker, const __m256d nums)
 {
   const __m128i exps = SRSimd::ExtractExponents32<false>(nums);
   const __m128i indices = _mm_add_epi32(exps, _mm_set1_epi32(iWorker * GetBucketCount()));
   return indices;
 }
 
-template<typename taNumber> inline SRSimd::Packed64 SRBucketSummator<taNumber>::Get2Indices(
-  const SRThreadPool::TThreadCount iWorker, const __m128d nums)
+template<typename taNumber> inline SRPacked64 __vectorcall SRBucketSummator<taNumber>::Get2Indices(
+  const SRThreadCount iWorker, const __m128d nums)
 {
-  const SRSimd::Packed64 exps = SRSimd::ExtractExponents32<false>(nums);
-  constexpr uint64_t packedBCs = (uint64_t(GetBucketCount()) << 32) + GetBucketCount();
-  const SRSimd::Packed64 indices(packedBCs * iWorker + exps._u64);
+  const SRPacked64 exps = SRSimd::ExtractExponents32<false>(nums);
+  constexpr SRPacked64 bucketCounts = SRPacked64::Set1U32(GetBucketCount());
+  const SRPacked64 indices(bucketCounts._u64 * iWorker + exps._u64);
   return indices;
 }
 
@@ -75,12 +75,12 @@ template<> inline constexpr uint32_t SRBucketSummator<SRDoubleNumber>::GetBucket
   return uint32_t(1) << 11; // 11 bits of exponent
 }
 
-template<> inline void SRBucketSummator<SRDoubleNumber>::ZeroBuckets(const  SRThreadPool::TThreadCount iWorker) {
+template<> inline void SRBucketSummator<SRDoubleNumber>::ZeroBuckets(const  SRThreadCount iWorker) {
   SRUtils::FillZeroVects<true>(reinterpret_cast<__m256i*>(_pBuckets + iWorker * GetBucketCount()),
     GetBucketCount() >> 2);
 }
 
-template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(const SRThreadPool::TThreadCount iWorker,
+template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(const SRThreadCount iWorker,
   const SRNumPack<SRDoubleNumber> np)
 {
   const __m128i indices = Get4Indices(iWorker, np._comps);
@@ -99,7 +99,7 @@ template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(co
   _pBuckets[indices.m128i_u32[0]].SetValue(sums.m256d_f64[0]);
 }
 
-template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(const SRThreadPool::TThreadCount iWorker,
+template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(const SRThreadCount iWorker,
   const SRNumPack<SRDoubleNumber> np, const typename SRNumPack<SRDoubleNumber>::TCompsCount nComps)
 {
   assert(nComps <= 4);
@@ -120,7 +120,7 @@ template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(co
   }
   // Fall through
   case 2: {
-    SRSimd::Packed64 indices = Get2Indices(iWorker, _mm256_castpd256_pd128(np._comps));
+    SRPacked64 indices = Get2Indices(iWorker, _mm256_castpd256_pd128(np._comps));
     const __m128d old = _mm_set_pd(_pBuckets[indices._u32[1]].GetValue(), _pBuckets[indices._u32[0]].GetValue());
     const __m128d sums = _mm_add_pd(old, _mm256_castpd256_pd128(np._comps));
     _pBuckets[indices._u32[1]].SetValue(sums.m128d_f64[1]);

@@ -13,8 +13,8 @@ template<typename taSubtask, typename taCallback> inline PqaError BaseCpuEngine:
   CETask &task, const size_t nItems, void *pSubtaskMem, const taCallback &subtaskPlNew)
 {
   taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
-  const SRPlat::SRThreadPool::TThreadCount nWorkers = task.GetWorkerCount();
-  SRPlat::SRThreadPool::TThreadCount nSubtasks = 0;
+  const SRPlat::SRThreadCount nWorkers = task.GetWorkerCount();
+  SRPlat::SRThreadCount nSubtasks = 0;
   size_t nextStart = 0;
   const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
   bool bWorkersFinished = false;
@@ -52,8 +52,8 @@ template<typename taSubtask, typename taCallback> void BaseCpuEngine::SplitAndRu
   const size_t nItems, void *pSubtaskMem, const taCallback &subtaskPlNew)
 {
   taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
-  const SRPlat::SRThreadPool::TThreadCount nWorkers = _tpWorkers.GetWorkerCount();
-  SRPlat::SRThreadPool::TThreadCount nSubtasks = 0;
+  const SRPlat::SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
+  SRPlat::SRThreadCount nSubtasks = 0;
   size_t nextStart = 0;
   const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
   bool bWorkersFinished = false;
@@ -88,15 +88,15 @@ template<typename taSubtask, typename taCallback> void BaseCpuEngine::SplitAndRu
 template<typename taSubtask> inline
 PqaError BaseCpuEngine::RunWorkerOnlySubtasks(typename taSubtask::TTask &task, void *pSubtaskMem) {
   taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(pSubtaskMem);
-  const SRThreadPool::TThreadCount nWorkers = task.GetWorkerCount();
-  SRThreadPool::TThreadCount nSubtasks = 0;
+  const SRThreadCount nWorkers = task.GetWorkerCount();
+  SRThreadCount nSubtasks = 0;
   bool bWorkersFinished = false;
 
   auto&& subtasksFinally = SRMakeFinally([&] {
     if (!bWorkersFinished) {
       task.WaitComplete();
     }
-    for (SRThreadPool::TThreadCount i = 0; i < nSubtasks; i++) {
+    for (SRThreadCount i = 0; i < nSubtasks; i++) {
       pSubtasks[i].~taSubtask();
     }
   }); (void)subtasksFinally;

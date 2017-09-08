@@ -15,4 +15,5 @@ const __m256i SRSimd::_cDoubleExp0Down = _mm256_set1_epi64x(SRNumTraits<double>:
 
 const __m128i SRSimd::_cDoubleExpMaskDown32 = _mm_set1_epi32(SRNumTraits<double>::_cExponentMaskDown);
 const __m128i SRSimd::_cDoubleExp0Down32 = _mm_set1_epi32(SRNumTraits<double>::_cExponent0Down);
+
 } // namespace SRPlat

@@ -9,11 +9,11 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-SRThreadPool::TThreadCount BaseCpuEngine::CalcCompThreads() {
+SRThreadCount BaseCpuEngine::CalcCompThreads() {
   return std::thread::hardware_concurrency();
 }
 
-SRThreadPool::TThreadCount BaseCpuEngine::CalcMemOpThreads() {
+SRThreadCount BaseCpuEngine::CalcMemOpThreads() {
   // This is a trivial heuristic based on the observation that on Ryzen 1800X with 2 DDR4 modules in a single memory
   //   channel, the maximum copy speed is achieved for 5 threads.
   return std::max(1ui32, std::min(CalcCompThreads(), 5ui32));

@@ -13,10 +13,10 @@ public: // types
   typedef CETrainTask<taNumber> TTask;
 
 private: // variables
-  SRPlat::SRThreadPool::TThreadCount _iWorker;
+  SRPlat::SRThreadCount _iWorker;
 
 public: // methods
-  CETrainSubtaskAdd(TTask *pTask, const SRPlat::SRThreadPool::TThreadCount iWorker)
+  CETrainSubtaskAdd(TTask *pTask, const SRPlat::SRThreadCount iWorker)
     : SRBaseSubtask(pTask), _iWorker(iWorker) { }
   virtual void Run() override final;
 };

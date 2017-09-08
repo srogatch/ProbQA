@@ -8,6 +8,7 @@
 #include "../SRPlatform/Interface/SRConditionVariable.h"
 #include "../SRPlatform/Interface/ISRLogCustomizable.h"
 #include "../SRPlatform/Interface/SRQueue.h"
+#include "../SRPlatform/Interface/SRBasicTypes.h"
 
 namespace SRPlat {
 
@@ -20,14 +21,13 @@ class SRPLATFORM_API SRThreadPool : public ISRLogCustomizable {
 public: // types
   // Returns |true| if worker thread should continue, or |false| if it should exit.
   typedef bool (*FCriticalCallback)(void *, SRException&&);
-  typedef uint32_t TThreadCount;
 
 private: // variables
   SRQueue<SRBaseSubtask*> _qu;
   SRCriticalSection _cs;
   SRConditionVariable _haveWork;
   // It has to be const to allow accessing without locks by the clients.
-  const TThreadCount _nWorkers;
+  const SRThreadCount _nWorkers;
   uint8_t _shutdownRequested : 1;
   RareData *_pRd;
 
@@ -37,7 +37,7 @@ private: // methods
   bool RunCriticalCallback(SRException &&ex);
 
 public:
-  explicit SRThreadPool(const TThreadCount nThreads = std::thread::hardware_concurrency());
+  explicit SRThreadPool(const SRThreadCount nThreads = std::thread::hardware_concurrency());
   virtual ~SRThreadPool() override final;
 
   virtual ISRLogger* GetLogger() const override final;
@@ -46,7 +46,7 @@ public:
   // If f==nullptr , the function sets the default callback with |this| as data.
   void SetCriticalCallback(FCriticalCallback f, void *pData = nullptr);
 
-  TThreadCount GetWorkerCount() const { return _nWorkers; }
+  SRThreadCount GetWorkerCount() const { return _nWorkers; }
 
   void Enqueue(SRBaseSubtask *pSt);
   // The subtasks can belong to different tasks.

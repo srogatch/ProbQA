@@ -180,10 +180,13 @@
     <ClInclude Include="Interface\SRRealNumber.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\SRAmount.h">
+    <ClInclude Include="Interface\SRNumTraits.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\SRNumTraits.h">
+    <ClInclude Include="Interface\SRPacked64.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRBasicTypes.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
   </ItemGroup>

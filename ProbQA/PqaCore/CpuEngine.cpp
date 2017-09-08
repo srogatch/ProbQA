@@ -140,7 +140,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   }
 
   PqaError resErr;
-  const SRThreadPool::TThreadCount nWorkers = _tpWorkers.GetWorkerCount();
+  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   //// Do a single allocation for all needs. Allocate memory out of locks.
   // For proper alignment, the data must be laid out in the decreasing order of item alignments.
   const size_t ttLastOffs = nWorkers * SRMaxSizeof<CETrainSubtaskDistrib<taNumber>, CETrainSubtaskAdd<taNumber>>::value;
@@ -370,7 +370,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     pQuiz = _quizzes[iQuiz];
   }
 
-  const SRThreadPool::TThreadCount nWorkers = _tpWorkers.GetWorkerCount();
+  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   const size_t subtasksOffs = 0;
   const size_t bucketsOffs = nWorkers * SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>>::value;
   //const size_t nWithBuckets = bucketsOffs + 

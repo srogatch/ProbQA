@@ -18,13 +18,13 @@ public: // types
 private: // variables
   AggregateErrorParams _aep; // guarded by _sync
   TSync _sync;
-  const SRPlat::SRThreadPool::TThreadCount _nWorkers;
+  const SRPlat::SRThreadCount _nWorkers;
 
 public: // variables
-  explicit CETask(BaseCpuEngine &bce, const SRPlat::SRThreadPool::TThreadCount nWorkers);
+  explicit CETask(BaseCpuEngine &bce, const SRPlat::SRThreadCount nWorkers);
   // This method returns the worker count allocated for the current task. The thread pool may have a different worker
   //   count.
-  SRPlat::SRThreadPool::TThreadCount GetWorkerCount() const;
+  SRPlat::SRThreadCount GetWorkerCount() const;
   void AddError(PqaError&& pe);
   //NOTE: it's not thread-safe.
   PqaError TakeAggregateError(SRPlat::SRString &&message = SRPlat::SRString());
