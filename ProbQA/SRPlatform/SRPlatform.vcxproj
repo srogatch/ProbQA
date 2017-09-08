@@ -245,6 +245,7 @@
     <ClInclude Include="Interface\SRMPAllocator.h" />
     <ClInclude Include="Interface\SRNumTraits.h" />
     <ClInclude Include="Interface\SRPacked64.h" />
+    <ClInclude Include="Interface\SRPoolRunner.h" />
     <ClInclude Include="Interface\SRRealNumber.h" />
     <ClInclude Include="Interface\SRPlatform.h" />
     <ClInclude Include="Interface\SRFastRandom.h" />
@@ -252,6 +253,7 @@
     <ClInclude Include="Interface\SRReaderWriterSync.h" />
     <ClInclude Include="Interface\SRSimd.h" />
     <ClInclude Include="Interface\SRSpinSync.h" />
+    <ClInclude Include="Interface\SRStandardSubtask.h" />
     <ClInclude Include="Interface\SRString.h" />
     <ClInclude Include="Interface\SRSmartHandle.h" />
     <ClInclude Include="Interface\SRBaseSubtask.h" />

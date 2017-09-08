@@ -189,6 +189,12 @@
     <ClInclude Include="Interface\SRBasicTypes.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRStandardSubtask.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRPoolRunner.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -54,10 +54,28 @@ public:
   // The subtasks must belong to the same task passed as a parameter.
   void __vectorcall Enqueue(std::initializer_list<SRBaseSubtask*> subtasks, SRBaseTask &task);
 
+  // Subtasks must be adjacent in memory to one another, like: taSubtask sts[16];
+  // Subtasks must belong to the same task.
+  template<typename taSubtask> inline void EnqueueAdjacent(taSubtask *pFirst, const size_t nSubtasks, SRBaseTask &task);
+
   // Request shutdown. This emthod doesn't wait for all threads to exit: only destructor does.
   void RequestShutdown();
 
   SRCriticalSection& GetCS() { return _cs; }
 };
+
+template<typename taSubtask> inline void EnqueueAdjacent(taSubtask *pFirst, const size_t nSubtasks, SRBaseTask &task) {
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    if (_shutdownRequested) {
+      throw SRException(SRString::MakeUnowned("An attempt to push multiple subtasks to a shut(ting) down thread pool."));
+    }
+    for (size_t i = 0; i < nSubtasks; i++) {
+      _qu.Push(pFirst + i);
+    }
+    task._nToDo += static_cast<SRBaseTask::TNSubtasks>(subtasks.size());
+  }
+  _haveWork.WakeAll();
+}
 
 } // namespace SRPlat

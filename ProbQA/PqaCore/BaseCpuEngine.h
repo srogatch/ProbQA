@@ -19,7 +19,7 @@ template<typename taSubtask, typename taCallback> inline PqaError BaseCpuEngine:
   const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
   bool bWorkersFinished = false;
 
-  auto&& subtasksFinally = SRMakeFinally([&] {
+  auto&& subtasksFinally = SRPlat::SRMakeFinally([&] {
     if (!bWorkersFinished) {
       task.WaitComplete();
     }
@@ -45,7 +45,7 @@ template<typename taSubtask, typename taCallback> inline PqaError BaseCpuEngine:
   bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
   task.WaitComplete();
 
-  return task.TakeAggregateError(SRString::MakeUnowned("Failed " __FUNCTION__));
+  return task.TakeAggregateError(SRString::MakeUnowned("Failed " SR_FILE_LINE));
 }
 
 template<typename taSubtask, typename taCallback> void BaseCpuEngine::SplitAndRunSubtasksSlim(CEBaseTask &task,
@@ -58,7 +58,7 @@ template<typename taSubtask, typename taCallback> void BaseCpuEngine::SplitAndRu
   const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
   bool bWorkersFinished = false;
 
-  auto&& subtasksFinally = SRMakeFinally([&] {
+  auto&& subtasksFinally = SRPlat::SRMakeFinally([&] {
     if (!bWorkersFinished) {
       task.WaitComplete();
     }
@@ -92,7 +92,7 @@ PqaError BaseCpuEngine::RunWorkerOnlySubtasks(typename taSubtask::TTask &task, v
   SRThreadCount nSubtasks = 0;
   bool bWorkersFinished = false;
 
-  auto&& subtasksFinally = SRMakeFinally([&] {
+  auto&& subtasksFinally = SRPlat::SRMakeFinally([&] {
     if (!bWorkersFinished) {
       task.WaitComplete();
     }
@@ -110,7 +110,7 @@ PqaError BaseCpuEngine::RunWorkerOnlySubtasks(typename taSubtask::TTask &task, v
   bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
   task.WaitComplete();
 
-  return task.TakeAggregateError(SRString::MakeUnowned("Failed " __FUNCTION__));
+  return task.TakeAggregateError(SRString::MakeUnowned("Failed " SR_FILE_LINE));
 }
 
 } // namespace ProbQA
