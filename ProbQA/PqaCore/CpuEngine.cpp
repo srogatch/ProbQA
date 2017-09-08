@@ -187,18 +187,23 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
         "Target index is not in KB (but rather at a gap)."));
     }
 
+    SRPoolRunner pr(_tpWorkers, commonBuf.Get());
+
     //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
-    resErr = SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(trainTask, nQuestions, commonBuf.Get(),
-      [&](CETrainSubtaskDistrib<taNumber> *pCurSt, const size_t curStart, const size_t nextStart)
-    {
-      new (pCurSt) CETrainSubtaskDistrib<taNumber>(&trainTask, pAQs + curStart, pAQs + nextStart);
-    });
+    pr.SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(trainTask, nQuestions, trainTask.GetWorkerCount(),
+      [&](void *pStMem, SRThreadCount iWorker, int64_t iFirst, int64_t iLimit) {
+        new (pStMem) CETrainSubtaskDistrib<taNumber>(&trainTask, pAQs + iFirst, pAQs + iLimit);
+        (void)iWorker;
+      }
+    );
+    resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed " SR_FILE_LINE));
     if (!resErr.IsOk()) {
       return resErr;
     }
 
-    // Update the KB with the given training data.
-    resErr = RunWorkerOnlySubtasks<CETrainSubtaskAdd<taNumber>>(trainTask, commonBuf.Get());
+    //// Update the KB with the given training data.
+    pr.RunPerWorkerSubtasks<CETrainSubtaskAdd<taNumber>>(trainTask, trainTask.GetWorkerCount());
+    resErr = trainTask.TakeAggregateError(SRString::MakeUnowned("Failed " SR_FILE_LINE));
     if (!resErr.IsOk()) {
       return resErr;
     }

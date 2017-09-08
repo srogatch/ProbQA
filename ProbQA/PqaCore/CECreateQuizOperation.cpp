@@ -21,20 +21,15 @@ template<> void CECreateQuizResume<SRDoubleNumber>::UpdateLikelihoods(BaseCpuEng
   const EngineDimensions& dims = engine.GetDims();
   const size_t nVects = SRSimd::VectsFromComps<double>(dims._nTargets);
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
-  const size_t sizeWithSubtasks = sizeof(CEUpdatePriorsSubtaskMul<SRDoubleNumber>) * nWorkers;
-  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(),
-    /* This assumes that the subtasks end with the buffer end. */ sizeWithSubtasks);
+  constexpr size_t subtasksOffs = 0;
+  const size_t totalBytes = subtasksOffs + nWorkers * SRMaxSizeof<CEUpdatePriorsSubtaskMul<SRDoubleNumber>>::value;
+  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), totalBytes);
   CEUpdatePriorsTask<SRDoubleNumber> task(engine, quiz, _nAnswered, _pAQs, CalcVectsInCache());
+  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + subtasksOffs);
 
   {
     SRRWLock<false> rwl(engine.GetRws());
-
-    engine.SplitAndRunSubtasksSlim<CEUpdatePriorsSubtaskMul<SRDoubleNumber>>(task, nVects,
-      /* This assumes that the subtasks are at the beginning of the buffer. */ commonBuf.Get(),
-      [&](CEUpdatePriorsSubtaskMul<SRDoubleNumber> *pCurSt, const size_t curStart, const size_t nextStart)
-    {
-      new (pCurSt) CEUpdatePriorsSubtaskMul<SRDoubleNumber>(&task, curStart, nextStart);
-    });
+    pr.SplitAndRunSubtasks<CEUpdatePriorsSubtaskMul<SRDoubleNumber>>(task, nVects);
   }
 }
 

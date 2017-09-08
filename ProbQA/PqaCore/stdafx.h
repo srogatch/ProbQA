@@ -57,6 +57,7 @@
 #include "../SRPlatform/Interface/SRMaxSizeof.h"
 #include "../SRPlatform/Interface/SRMemPool.h"
 #include "../SRPlatform/Interface/SRMinimalTask.h"
+#include "../SRPlatform/Interface/SRPoolRunner.h"
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"
 #include "../SRPlatform/Interface/SRSimd.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"

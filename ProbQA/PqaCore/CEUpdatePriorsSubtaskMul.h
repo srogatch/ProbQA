@@ -9,15 +9,15 @@
 
 namespace ProbQA {
 
-template<typename taNumber> class CEUpdatePriorsSubtaskMul : public SRPlat::SRBaseSubtask {
-  const TPqaId _iFirstVT; // first vector of targets
-  const TPqaId _iLimVT; // limit vector of targets
+template<typename taNumber> class CEUpdatePriorsSubtaskMul : public SRPlat::SRStandardSubtask {
+public: // types
+  typedef CEUpdatePriorsTask<taNumber> TTask;
 
 private: // methods
   template<bool taCache> void RunInternal(const CEUpdatePriorsTask<taNumber>& task) const;
 
 public: // methods
-  CEUpdatePriorsSubtaskMul(CEUpdatePriorsTask<taNumber> *pTask, const TPqaId iFirstVT, const TPqaId iLimVT);
+  explicit CEUpdatePriorsSubtaskMul(CEUpdatePriorsTask<taNumber> *pTask);
   virtual void Run() override final;
 };
 

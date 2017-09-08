@@ -174,7 +174,7 @@ void __vectorcall SRThreadPool::Enqueue(std::initializer_list<SRBaseSubtask*> su
       throw SRException(SRString::MakeUnowned("An attempt to push multiple subtasks to a shut(ting) down thread pool."));
     }
     _qu.Push(subtasks.begin(), subtasks.size());
-    task._nToDo += static_cast<SRBaseTask::TNSubtasks>(subtasks.size());
+    task._nToDo += static_cast<SRSubtaskCount>(subtasks.size());
   }
   _haveWork.WakeAll();
 }

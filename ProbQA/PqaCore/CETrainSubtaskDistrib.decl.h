@@ -10,6 +10,10 @@
 namespace ProbQA {
 
 template<typename taNumber> class CETrainSubtaskDistrib : public SRPlat::SRBaseSubtask {
+public: // types
+  typedef CETrainTask<taNumber> TTask;
+
+private: // variables
   const AnsweredQuestion *_pFirst;
   const AnsweredQuestion *_pLim;
 

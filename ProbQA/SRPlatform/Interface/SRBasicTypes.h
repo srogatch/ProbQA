@@ -8,5 +8,6 @@ namespace SRPlat {
 
 typedef double SRAmount;
 typedef uint32_t SRThreadCount;
+typedef int32_t SRSubtaskCount;
 
 } // namespace SRPlat

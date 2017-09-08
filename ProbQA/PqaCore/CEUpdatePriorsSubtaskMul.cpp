@@ -12,8 +12,7 @@ using namespace SRPlat;
 namespace ProbQA {
 
 template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSubtaskMul(
-  CEUpdatePriorsTask<taNumber> *pTask, const TPqaId iFirstVT, const TPqaId iLimVT)
-  : SRBaseSubtask(pTask), _iFirstVT(iFirstVT), _iLimVT(iLimVT)
+  CEUpdatePriorsTask<taNumber> *pTask) : SRStandardSubtask(pTask)
 { }
 
 template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::RunInternal(
@@ -28,11 +27,11 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
     " 64-bit integer.");
   __m256i *pExps = reinterpret_cast<__m256i*>(quiz.GetTlhExps());
 
-  assert(_iLimVT > _iFirstVT);
-  const size_t nVectsInBlock = (taCache ? (task._nVectsInCache >> 1) : (_iLimVT - _iFirstVT));
-  size_t iBlockStart = _iFirstVT;
+  assert(_iLimit > _iFirst);
+  const size_t nVectsInBlock = (taCache ? (task._nVectsInCache >> 1) : (_iLimit - _iFirst));
+  size_t iBlockStart = _iFirst;
   for(;;) {
-    const size_t iBlockLim = std::min(SRCast::ToSizeT(_iLimVT), iBlockStart + nVectsInBlock);
+    const size_t iBlockLim = std::min(SRCast::ToSizeT(_iLimit), iBlockStart + nVectsInBlock);
     for (size_t i = 0; i < SRCast::ToSizeT(task._nAnswered); i++) {
       const AnsweredQuestion& aq = task._pAQs[i];
       const __m256d *pAdjMuls = reinterpret_cast<const __m256d*>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));
@@ -62,7 +61,7 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
     if (taCache) {
       const size_t nBytes = (iBlockLim - iBlockStart) << SRSimd::_cLogNBytes;
       // The bounds may be used in the next block or by another thread.
-      if (iBlockStart > SRCast::ToSizeT(_iFirstVT)) {
+      if (iBlockStart > SRCast::ToSizeT(_iFirst)) {
         // Can flush left because it's for the current thread only and has been processed.
         SRUtils::FlushCache<true, false>(pMants + iBlockStart, nBytes);
         SRUtils::FlushCache<true, false>(pExps + iBlockStart, nBytes);
@@ -73,7 +72,7 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
       }
       _mm_sfence();
     }
-    if (iBlockLim >= SRCast::ToSizeT(_iLimVT)) {
+    if (iBlockLim >= SRCast::ToSizeT(_iLimit)) {
       break;
     }
     iBlockStart = iBlockLim;

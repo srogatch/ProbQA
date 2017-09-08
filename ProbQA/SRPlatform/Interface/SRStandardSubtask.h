@@ -12,6 +12,7 @@ namespace SRPlat {
 // Derived classes must be constructible from single parameter: the pointer to a task. SRPoolRunner constructs them this
 //   way.
 class SRPLATFORM_API SRStandardSubtask : public SRBaseSubtask {
+protected:
   int64_t _iFirst;
   int64_t _iLimit;
   SRThreadCount _iWorker;
