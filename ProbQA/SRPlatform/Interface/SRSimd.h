@@ -130,6 +130,12 @@ public:
       _mm256_andnot_pd(_mm256_castsi256_pd(_cDoubleExpMaskUp), nums));
     return e0nums;
   }
+
+  ATTR_NOALIAS static __m256d __vectorcall HorizAddStraight(const __m256d a, const __m256d b) {
+    const __m256d crossed = _mm256_hadd_pd(a, b);
+    const __m256d straight = _mm256_permute4x64_pd(crossed, _MM_SHUFFLE(3, 1, 2, 0));
+    return straight;
+  }
 };
 
 template<typename T> struct SRSimd::CastImpl<T,T> {

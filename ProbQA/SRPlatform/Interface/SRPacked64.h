@@ -4,9 +4,11 @@
 
 #pragma once
 
+#include "../SRPlatform/Interface/SRPlatform.h"
+
 namespace SRPlat {
 
-union SRPacked64 {
+union SRPLATFORM_API SRPacked64 {
   double _f64;
   float _f32[2];
   uint64_t _u64;

@@ -14,9 +14,15 @@ public:
   template<typename T> static size_t ToSizeT(const T val) {
     return static_cast<size_t>(val);
   }
+
   template<typename T> static uint64_t ToUint64(const T val) {
     return static_cast<uint64_t>(val);
   }
+
+  template<typename T> static int32_t ToInt32(const T val) {
+    return static_cast<int32_t>(val);
+  }
+
   static double ToDouble(const SRAmount amount) { return amount; }
 
   static uint64_t CastF64_U64(const double value) {

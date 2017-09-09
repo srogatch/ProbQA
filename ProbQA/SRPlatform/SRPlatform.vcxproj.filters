@@ -195,6 +195,12 @@
     <ClInclude Include="Interface\SRPoolRunner.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="BucketerTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BucketerSubtaskSum.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -258,6 +264,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SRSimd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BucketerSubtaskSum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SRDoubleNumber.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

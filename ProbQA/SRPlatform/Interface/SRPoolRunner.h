@@ -110,4 +110,3 @@ template<typename taSubtask, typename taCallback> inline void SRPoolRunner::RunP
 }
 
 } // namespace SRPlat
-

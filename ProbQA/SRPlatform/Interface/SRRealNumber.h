@@ -4,11 +4,12 @@
 
 #pragma once
 
+#include "../SRPlatform/Interface/SRPlatform.h"
 #include "../SRPlatform/Interface/SRBasicTypes.h"
 
 namespace SRPlat {
 
-class SRRealNumber {
+class SRPLATFORM_API SRRealNumber {
 protected:
   SRRealNumber() { }
 

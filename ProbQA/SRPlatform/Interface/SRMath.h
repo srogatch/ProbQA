@@ -28,6 +28,12 @@ public:
     return num - (num%factor);
   }
 
+  // For positives only
+  template<typename T> static T PosDivideRoundUp(const T num, const T divisor) {
+    assert(num >= 0);
+    return (num + divisor - 1) / divisor;
+  }
+
   // Seems to work for negatives to: it rounds negatives towards zero, i.e. up
   template<typename T> static T RShiftRoundUp(const T num, uint8_t nBits) {
     return (num + (T(1) << nBits) - 1) >> nBits;

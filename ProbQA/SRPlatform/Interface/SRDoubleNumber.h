@@ -6,11 +6,18 @@
 
 #include "../SRPlatform/Interface/SRRealNumber.h"
 #include "../SRPlatform/Interface/SRCast.h"
+#include "../SRPlatform/Interface/SRPacked64.h"
 
 namespace SRPlat {
 
-class SRDoubleNumber : public SRRealNumber {
+class SRPLATFORM_API SRDoubleNumber : public SRRealNumber {
+public: // constants
+  static const __m128i _cSizeBytes128_32;
+  static const SRPacked64 _cSizeBytes64_32;
+
+private: // variables
   double _value;
+
 public:
   explicit SRDoubleNumber() { }
   explicit SRDoubleNumber(SRAmount init) : _value(SRCast::ToDouble(init)) { }
@@ -41,9 +48,10 @@ public:
 static_assert(sizeof(SRDoubleNumber) == sizeof(double), "To allow AVX2 and avoid unaligned access penalties.");
 
 template<> struct SRNumPack<SRDoubleNumber> {
-  typedef uint8_t TCompsCount;
-  static constexpr TCompsCount _cnComps = 4;
+  static constexpr SRVectCompCount _cnComps = 4;
   __m256d _comps;
 };
+
+static_assert(sizeof(SRNumPack<SRDoubleNumber>) == sizeof(__m256d), "To enable reinterpret_cast");
 
 } // namespace SRPlat

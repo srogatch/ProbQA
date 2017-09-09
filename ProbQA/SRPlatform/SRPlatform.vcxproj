@@ -206,6 +206,8 @@
     </MASM>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BucketerSubtaskSum.h" />
+    <ClInclude Include="BucketerTask.h" />
     <ClInclude Include="DbgLogger.h" />
     <ClInclude Include="FileLogger.h" />
     <ClInclude Include="Interface\Exceptions\SRDefaultLoggerExceptions.h" />
@@ -266,6 +268,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BucketerSubtaskSum.cpp" />
     <ClCompile Include="DbgLogger.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
@@ -286,6 +289,7 @@
     <ClCompile Include="SRConditionVariable.cpp" />
     <ClCompile Include="SRCriticalSection.cpp" />
     <ClCompile Include="SRDefaultLogger.cpp" />
+    <ClCompile Include="SRDoubleNumber.cpp" />
     <ClCompile Include="SRException.cpp" />
     <ClCompile Include="SRGenericException.cpp" />
     <ClCompile Include="SRLoggerFactory.cpp" />
