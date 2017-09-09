@@ -10,22 +10,28 @@
 
 namespace SRPlat {
 
-void BucketerSubtaskSum<SRDoubleNumber>::Run() {
+template<> SRNumPack<SRDoubleNumber> BucketerSubtaskSum<SRDoubleNumber>::SumColumn(const size_t iVect) {
+  __m256d sum = _pBs->GetVect(0, SRCast::ToInt32(iVect))._comps;
+  for (SRThreadCount i = 1; i < _pBs->_nWorkers; i++) {
+    sum = _mm256_add_pd(sum, _pBs->GetVect(i, SRCast::ToInt32(iVect))._comps);
+  }
+  return sum;
+}
+
+template<> void BucketerSubtaskSum<SRDoubleNumber>::Run() {
   auto const& task = static_cast<const BucketerTask<SRDoubleNumber>&>(*GetTask());
-  const SRBucketSummator<SRDoubleNumber> &bs = task.GetBS();
+  _pBs = &task.GetBS();
 
   const bool isAtPartial = (_iLimit == task._iPartial + 1);
+  __m256d total = _mm256_setzero_pd();
   for (size_t i = _iFirst, iEn = (isAtPartial ? task._iPartial : _iLimit); i < iEn; i++) {
-    for (size_t j = 0; j < bs._nWorkers; j++) {
-      //const
-    }
+    total = SRSimd::HorizAddStraight(total, SumColumn(i)._comps);
   }
   if (isAtPartial) {
     const __m256d mask = _mm256_castsi256_pd(SRSimd::SetLsb1(task._nValid * SRNumTraits<double>::_cnTotalBits));
-
+    total = SRSimd::HorizAddStraight(total, _mm256_and_pd(mask, SumColumn(task._iPartial)._comps));
   }
-  //TODO: handle the remainder of items after division by vector size
-  //TODO: implement
+  _pBs->_pWorkerSums[_iWorker]._comps = total;
 }
 
 

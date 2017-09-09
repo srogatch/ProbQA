@@ -50,6 +50,9 @@ static_assert(sizeof(SRDoubleNumber) == sizeof(double), "To allow AVX2 and avoid
 template<> struct SRNumPack<SRDoubleNumber> {
   static constexpr SRVectCompCount _cnComps = 4;
   __m256d _comps;
+
+  SRNumPack() { }
+  SRNumPack(const __m256d value) : _comps(value) { }
 };
 
 static_assert(sizeof(SRNumPack<SRDoubleNumber>) == sizeof(__m256d), "To enable reinterpret_cast");
