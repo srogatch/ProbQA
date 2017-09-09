@@ -45,7 +45,7 @@ template class SRPLATFORM_API std::queue<SRPlat::SRBaseSubtask*>;
 
 #if IS_CPU_X86_32
 inline int _rdrand64_step(unsigned __int64* val) {
-  uint32_t *p = reinterpret_cast<uint32_t*>(val);
+  uint32_t *p = SRCast::Ptr<uint32_t>(val);
   return _rdrand32_step(p) & _rdrand32_step(p+1);
 }
 #endif /* IS_CPU_X86_32 */

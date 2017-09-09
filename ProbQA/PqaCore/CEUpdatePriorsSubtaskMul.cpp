@@ -22,10 +22,10 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
   auto& engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &quiz = *task._pQuiz;
 
-  __m256d *pMants = reinterpret_cast<__m256d*>(quiz.GetTlhMants());
+  __m256d *pMants = SRCast::Ptr<__m256d>(quiz.GetTlhMants());
   static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
     " 64-bit integer.");
-  __m256i *pExps = reinterpret_cast<__m256i*>(quiz.GetTlhExps());
+  __m256i *pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
 
   assert(_iLimit > _iFirst);
   const size_t nVectsInBlock = (taCache ? (task._nVectsInCache >> 1) : (_iLimit - _iFirst));
@@ -34,8 +34,8 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
     const size_t iBlockLim = std::min(SRCast::ToSizeT(_iLimit), iBlockStart + nVectsInBlock);
     for (size_t i = 0; i < SRCast::ToSizeT(task._nAnswered); i++) {
       const AnsweredQuestion& aq = task._pAQs[i];
-      const __m256d *pAdjMuls = reinterpret_cast<const __m256d*>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));
-      const __m256d *pAdjDivs = reinterpret_cast<const __m256d*>(&engine.GetD(aq._iQuestion, 0));
+      const __m256d *pAdjMuls = SRCast::CPtr<__m256d>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));
+      const __m256d *pAdjDivs = SRCast::CPtr<__m256d>(&engine.GetD(aq._iQuestion, 0));
       for (size_t j = iBlockStart; j < iBlockLim; j++) {
         const __m256d adjMuls = SRSimd::Load<false>(pAdjMuls + j);
         const __m256d adjDivs = SRSimd::Load<false>(pAdjDivs + j);

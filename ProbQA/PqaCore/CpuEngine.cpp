@@ -151,8 +151,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   CETrainTask<taNumber> trainTask(*this, nWorkers, iTarget, pAQs);
   //TODO: these are slow because threads share a cache line. It's not clear yet how to workaround this: the data is not
   //  per-source thread, but rather per target thread (after distribution).
-  trainTask._prev = reinterpret_cast<TPqaId*>(commonBuf.Get() + ttPrevOffs);
-  trainTask._last = reinterpret_cast<std::atomic<TPqaId>*>(commonBuf.Get() + ttLastOffs);
+  trainTask._prev = SRCast::Ptr<TPqaId>(commonBuf.Get() + ttPrevOffs);
+  trainTask._last = SRCast::Ptr<std::atomic<TPqaId>>(commonBuf.Get() + ttLastOffs);
   InitTrainTaskNumSpec(trainTask._numSpec, amount);
   //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
@@ -260,7 +260,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
       auto&& lstZeroExps = SRMakeLambdaSubtask(&tNoSrw, [](const SRBaseSubtask &subtask) {
         auto& task = static_cast<const NoSrwTask&>(*subtask.GetTask());
         auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
-        SRUtils::FillZeroVects<false>(reinterpret_cast<__m256i*>(task._pQuiz->GetTlhExps()),
+        SRUtils::FillZeroVects<false>(SRCast::Ptr<__m256i>(task._pQuiz->GetTlhExps()),
           SRSimd::VectsFromBytes(engine._dims._nTargets * sizeof(CEQuiz<taNumber>::TExponent)));
       });
       auto&& lstSetQAsked = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
@@ -285,7 +285,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
                 dims._nAnswers - 1), SRString::MakeUnowned(SR_FILE_LINE "Answer index is not in KB range.")));
               return;
             }
-            *(reinterpret_cast<uint8_t*>(pQAsked) + (iQuestion >> 3)) |= 1ui8 << (iQuestion & 7);
+            *(SRCast::Ptr<uint8_t>(pQAsked) + (iQuestion >> 3)) |= (1ui8 << (iQuestion & 7));
           }
         }
       });
@@ -378,7 +378,10 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   const size_t subtasksOffs = 0;
   const size_t bucketsOffs = nWorkers * SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>>::value;
-  //const size_t nWithBuckets = bucketsOffs + 
+  const size_t nWithBuckets = bucketsOffs + SRBucketSummator<taNumber>::GetMemoryRequirementBytes(nWorkers);
+  SRSmartMPP<uint8_t> commonBuf(_memPool, nWithBuckets);
+
+  SRBucketSummator<taNumber> buckSum(nWorkers, commonBuf.Get() + bucketsOffs);
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));

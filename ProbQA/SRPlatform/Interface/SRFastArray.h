@@ -43,7 +43,7 @@ private: // methods
     return SRMath::RShiftRoundUp(nItems, SRSimd::_cLogNBytes - logItemBytes);
   }
   ATTR_RESTRICT static taItem* ThrowingAllocBytes(const size_t paddedBytes) {
-    return reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
+    return SRCast::Ptr<taItem>(SRUtils::ThrowingSimdAlloc(paddedBytes));
   }
   static taItem* ThrowingAlloc(const size_t nItems, size_t& outPaddedBytes) {
     outPaddedBytes = GetPaddedByteCount(nItems);
@@ -121,9 +121,9 @@ public: // methods
       return;
     }
 
-    __m256i *p = reinterpret_cast<__m256i *>(SRUtils::FillPrologue<sizeof(item)>(_pItems + iStart, vect));
-    assert(reinterpret_cast<void*>(p) == reinterpret_cast<void*>(_pItems + iVStart));
-    __m256i *pLim = reinterpret_cast<__m256i*>(SRUtils::FillEpilogue<sizeof(item)>(_pItems + iLim, vect));
+    __m256i *p = SRCast::Ptr<__m256i>(SRUtils::FillPrologue<sizeof(item)>(_pItems + iStart, vect));
+    assert(SRCast::Ptr<void>(p) == SRCast::Ptr<void>(_pItems + iVStart));
+    __m256i *pLim = SRCast::Ptr<__m256i>(SRUtils::FillEpilogue<sizeof(item)>(_pItems + iLim, vect));
     assert(pLim >= p && (((char*)pLim - (char*)p) & SRSimd::_cByteMask)== 0);
 
     size_t nVects = pLim - p;
@@ -140,8 +140,8 @@ public: // methods
   Fill(size_t iStart, size_t iLim, const taItem item) {
     assert(iStart <= iLim);
     size_t nVects = iLim - iStart;
-    __m256i *p = reinterpret_cast<__m256i *>(_pItems + iStart);
-    const __m256i& vect = *reinterpret_cast<const __m256i*>(&item);
+    __m256i *p = SRCast::Ptr<__m256i *>(_pItems + iStart);
+    const __m256i& vect = *SRCast::CPtr<__m256i>(&item);
     for (; nVects > 0; nVects--, p++) {
       taCache ? _mm256_store_si256(p, vect) : _mm256_stream_si256(p, vect);
     }
@@ -153,7 +153,7 @@ public: // methods
   template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0> __vectorcall
   FillAll(const taItem item) {
     size_t nVects = GetNVects(_count);
-    __m256i *p = reinterpret_cast<__m256i *>(_pItems);
+    __m256i *p = SRCast::Ptr<__m256i>(_pItems);
     const __m256i vect = SRUtils::Set1(item);
     for (; nVects > 0; nVects--, p++) {
       taCache ? _mm256_store_si256(p, vect) : _mm256_stream_si256(p, vect);

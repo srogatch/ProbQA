@@ -50,7 +50,7 @@ public:
 template<typename taSubtask, typename taCallback> inline void SRPoolRunner::SplitAndRunSubtasks(
   typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit)
 {
-  taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(_pSubtasksMem);
+  taSubtask *const pSubtasks = SRCast::Ptr<taSubtask>(_pSubtasksMem);
   SRThreadCount nSubtasks = 0;
   bool bWorkersFinished = false;
 
@@ -84,7 +84,7 @@ template<typename taSubtask, typename taCallback> inline void SRPoolRunner::Spli
 template<typename taSubtask, typename taCallback> inline void SRPoolRunner::RunPerWorkerSubtasks(
   typename taSubtask::TTask& task, const SRThreadCount nWorkers, const taCallback &subtaskInit)
 {
-  taSubtask *const pSubtasks = reinterpret_cast<taSubtask*>(_pSubtasksMem);
+  taSubtask *const pSubtasks = SRCast::Ptr<taSubtask>(_pSubtasksMem);
   SRThreadCount nSubtasks = 0;
   bool bWorkersFinished = false;
 

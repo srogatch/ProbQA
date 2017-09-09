@@ -1112,6 +1112,38 @@ void BenchmarkBucketing() {
   _mm_free(gpBuckets);
 }
 
+template<int taError> class MyException : public std::exception {
+  using std::exception::exception;
+  virtual const char* what() const throw() override {
+    printf("It's %d\n", taError);
+    return std::exception::what();
+  }
+};
+
+template<int maxErr> void selectThrow(int myErr) {
+  if (myErr == maxErr) {
+    throw MyException<maxErr>();
+  }
+  return selectThrow<maxErr - 1>(myErr);
+}
+
+template<> void selectThrow<0>(int) {
+}
+
+template<typename... taOthers> void throwVariadic(int) {
+}
+
+template<int taCur, int... taOthers> void throwVariadic(int errCode) {
+  if (taCur == errCode) {
+    throw MyException<taCur>();
+  }
+  return throwVariadic<taOthers...>(errCode);
+}
+
+void checkError(int errCode) {
+  throwVariadic<1, 3, 7, 15, 25>(errCode);
+}
+
 int __cdecl main() {
   //std::atomic<double> test1;
   //bool test2 = test1.is_lock_free();
@@ -1157,5 +1189,10 @@ int __cdecl main() {
     printf(" %lld", sum.m256i_i64[i]);
   }
 
+  //int a = rand();
+  //checkError(a);
+  //if (a != 0) {
+  //  selectThrow <100>(a);
+  //}
   return 0;
 }

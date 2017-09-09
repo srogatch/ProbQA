@@ -35,7 +35,7 @@ template<> SRPLATFORM_API SRString SRUtils::PrintUtcTime<true>() {
   SYSTEMTIME st;
   char buffer[32];
   if (FileTimeToSystemTime(&ft, &st)) {
-    const uint16_t subMiS = static_cast<uint16_t>( (*reinterpret_cast<const uint64_t*>(&ft)) % 10000 );
+    const uint16_t subMiS = static_cast<uint16_t>( (SRCast::Bitwise<uint64_t>(ft)) % 10000 );
     snprintf(buffer, sizeof(buffer), "%.2hu:%.2hu:%.2hu.%.3hu.%3hu.%hu", CASTF_HU(st.wHour), CASTF_HU(st.wMinute),
       CASTF_HU(st.wSecond), CASTF_HU(st.wMilliseconds), CASTF_HU(subMiS / 10), CASTF_HU(subMiS%10));
   }

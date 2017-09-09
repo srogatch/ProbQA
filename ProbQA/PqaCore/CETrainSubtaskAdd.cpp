@@ -30,7 +30,7 @@ template<> void CETrainSubtaskAdd<SRDoubleNumber>::Run() {
       __m128d sum = _mm_set_pd(
         engine.GetD(aqFirst._iQuestion, cTask._iTarget).GetValue(),
         engine.GetA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).GetValue());
-      sum = _mm_add_pd(sum, *reinterpret_cast<const __m128d*>(&fullAddend));
+      sum = _mm_add_pd(sum, _mm256_castpd256_pd128(fullAddend));
       engine.ModA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).SetValue(sum.m128d_f64[0]);
       engine.ModD(aqFirst._iQuestion, cTask._iTarget).SetValue(sum.m128d_f64[1]);
       return;

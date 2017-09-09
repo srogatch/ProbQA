@@ -18,7 +18,7 @@ private: // variables
   const SRBucketSummator<taNumber> *_pBs;
 
 private: // methods
-  SRNumPack<taNumber> SumColumn(const size_t iVect);
+  SRNumPack<taNumber> __vectorcall SumColumn(const size_t iVect);
 
 public: // methods
   virtual void Run() override final;

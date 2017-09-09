@@ -24,7 +24,7 @@ private: // methods
   }
   ATTR_RESTRICT static taItem* ThrowingAlloc(const size_t nItems) {
     const size_t paddedBytes = GetPaddedByteCount(nItems);
-    return reinterpret_cast<taItem*>(SRUtils::ThrowingSimdAlloc(paddedBytes));
+    return SRCast::Ptr<taItem>(SRUtils::ThrowingSimdAlloc(paddedBytes));
   }
 
 public: // methods

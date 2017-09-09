@@ -55,7 +55,7 @@ public:
   template<bool taCache, typename taVect> static std::enable_if_t<sizeof(taVect)==sizeof(__m256i), taVect> __vectorcall
   Load(const taVect *const p)
   {
-    const __m256i *const genP = reinterpret_cast<const __m256i*>(p);
+    const __m256i *const genP = SRCast::CPtr<__m256i>(p);
     //TODO: verify that taCache based branchings are compile-time
     const __m256i ans = (taCache ? _mm256_load_si256(genP) : _mm256_stream_load_si256(genP));
     return Cast<taVect>(ans);
@@ -64,7 +64,7 @@ public:
   template<bool taCache, typename taVect> static std::enable_if_t<sizeof(taVect)==sizeof(__m256i)> __vectorcall
   Store(taVect *p, const taVect v)
   {
-    __m256i *genP = reinterpret_cast<__m256i*>(p);
+    __m256i *genP = SRCast::Ptr<__m256i>(p);
     //TODO: verify that this casting turns into no-op in assembly, so that the value just stays in the register
     const __m256i genV = Cast<__m256i>(v);
     taCache ? _mm256_store_si256(genP, genV) : _mm256_stream_si256(genP, genV);

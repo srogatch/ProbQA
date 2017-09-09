@@ -33,7 +33,7 @@ class SRBitArray {
 
 private:
   ATTR_RESTRICT static __m256i* ThrowingAlloc(const size_t nVects) {
-    return reinterpret_cast<__m256i*>(SRUtils::ThrowingSimdAlloc(nVects << SRSimd::_cLogNBytes));
+    return SRCast::Ptr<__m256i>(SRUtils::ThrowingSimdAlloc(nVects << SRSimd::_cLogNBytes));
   }
 
   template<typename taMaskVisit, typename taFullVisit> void VisitRange(const uint64_t iFirst, const uint64_t iLim,
@@ -170,13 +170,13 @@ public:
 
   //// A group of methods for fast single-bit manipulations
   void SetOne(const uint64_t iBit) {
-    reinterpret_cast<uint8_t*>(_pBits)[iBit >> 3] |= (1ui8 << (iBit & 7));
+    SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] |= (1ui8 << (iBit & 7));
   }
   void ClearOne(const uint64_t iBit) {
-    reinterpret_cast<uint8_t*>(_pBits)[iBit >> 3] &= ~(1ui8 << (iBit & 7));
+    SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] &= ~(1ui8 << (iBit & 7));
   }
   void ToggleOne(const uint64_t iBit) {
-    reinterpret_cast<uint8_t*>(_pBits)[iBit >> 3] ^= (1ui8 << (iBit & 7));
+    SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] ^= (1ui8 << (iBit & 7));
   }
 
   //// Multi-bit manipulations
@@ -218,17 +218,17 @@ public:
   }
 
   bool GetOne(const uint64_t iBit) const {
-    return reinterpret_cast<const uint8_t*>(_pBits)[iBit >> 3] & (1ui8 << (iBit & 7));
+    return SRCast::CPtr<uint8_t>(_pBits)[iBit >> 3] & (1ui8 << (iBit & 7));
   }
 
   uint8_t GetQuad(const uint64_t iQuad) const {
-    const uint8_t packed = reinterpret_cast<const uint8_t*>(_pBits)[iQuad >> 1];
+    const uint8_t packed = SRCast::CPtr<uint8_t>(_pBits)[iQuad >> 1];
     const uint8_t shift = (iQuad & 1) << 2;
     return (packed>>shift) & 0x0f;
   }
 
   template<typename taResult> const taResult& GetPacked(const uint64_t iPack) const {
-    return reinterpret_cast<const taResult*>(_pBits)[iPack];
+    return SRCast::CPtr<taResult>(_pBits)[iPack];
   }
 
   uint64_t Size() const {

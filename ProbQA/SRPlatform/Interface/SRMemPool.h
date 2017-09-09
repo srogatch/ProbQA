@@ -44,7 +44,7 @@ private: // methods
   void FreeChunk(const size_t iSlot) {
     void *p = _memChunks[iSlot].load(std::memory_order_relaxed);
     while (p != nullptr) {
-      void *next = *reinterpret_cast<void**>(p);
+      void *next = *SRCast::CPtr<void*>(p); // note void* template argument here - that's to receive void**
       _mm_free(p);
       p = next;
     }
@@ -109,7 +109,7 @@ public:
         _totalUnits.fetch_add(iSlot, std::memory_order_relaxed);
         return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
       }
-      next = *reinterpret_cast<void**>(expected);
+      next = *SRCast::CPtr<void*>(expected); // note void* template argument here - that's to receive void**
     } while (!head.compare_exchange_weak(expected, next, std::memory_order_acq_rel, std::memory_order_acquire));
     return expected;
   }
@@ -131,7 +131,7 @@ public:
     std::atomic<void*>& PTR_RESTRICT head = _memChunks[iSlot];
     void *PTR_RESTRICT expected = head.load(std::memory_order_acquire);
     do {
-      *reinterpret_cast<void**>(p) = expected;
+      *SRCast::Ptr<void*>(p) = expected;
     } while (!head.compare_exchange_weak(expected, p, std::memory_order_release, std::memory_order_relaxed));
   }
 

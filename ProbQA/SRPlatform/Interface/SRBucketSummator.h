@@ -12,7 +12,7 @@ namespace SRPlat {
 
 template<typename taNumber> class BucketerSubtaskSum;
 
-template<typename taNumber> class SRPLATFORM_API SRBucketSummator {
+template<typename taNumber> class SRBucketSummator {
   friend class BucketerSubtaskSum<taNumber>;
 
   taNumber *_pBuckets;
@@ -55,7 +55,7 @@ template<typename taNumber> inline constexpr int32_t SRBucketSummator<taNumber>:
 template<typename taNumber> inline taNumber* SRBucketSummator<taNumber>::GetWorkerRow(
   const SRThreadCount iWorker) const
 {
-  return reinterpret_cast<taNumber*>(reinterpret_cast<uint8_t*>(_pBuckets) + iWorker * WorkerRowLengthBytes());
+  return SRCast::Ptr<taNumber>(SRCast::Ptr<uint8_t>(_pBuckets) + iWorker * WorkerRowLengthBytes());
 }
 
 template<typename taNumber> inline size_t SRBucketSummator<taNumber>::GetMemoryRequirementBytes(
@@ -70,7 +70,7 @@ template<typename taNumber> inline SRBucketSummator<taNumber>::SRBucketSummator(
   const SRThreadCount nWorkers, void* pMem) : _nWorkers(nWorkers)
 {
   _pBuckets = static_cast<taNumber*>(pMem);
-  _pWorkerSums = static_cast<SRNumPack<taNumber>*>(GetWorkerRow(nWorkers));
+  _pWorkerSums = SRCast::Ptr<SRNumPack<taNumber>>(GetWorkerRow(nWorkers));
 }
 
 template<typename taNumber> inline taNumber& SRBucketSummator<taNumber>::ModBucket(
@@ -80,7 +80,7 @@ template<typename taNumber> inline taNumber& SRBucketSummator<taNumber>::ModBuck
 }
 
 template<typename taNumber> inline taNumber& SRBucketSummator<taNumber>::ModOffs(const size_t byteOffs) {
-  return *reinterpret_cast<taNumber*>(reinterpret_cast<uint8_t*>(_pBuckets) + byteOffs);
+  return *SRCast::Ptr<taNumber>(SRCast::Ptr<uint8_t>(_pBuckets) + byteOffs);
 }
 
 template<typename taNumber> inline __m128i __vectorcall SRBucketSummator<taNumber>::Get4Offsets(
@@ -113,7 +113,7 @@ template<typename taNumber> taNumber SRBucketSummator<taNumber>::ComputeSum(SRPo
 template<typename taNumber> inline const SRNumPack<taNumber>& SRBucketSummator<taNumber>::GetVect(
   const SRThreadCount iWorker, const uint32_t iVect) const
 {
-  return reinterpret_cast<SRNumPack<taNumber>*>(GetWorkerRow(iWorker))[iVect];
+  return SRCast::Ptr<SRNumPack<taNumber>>(GetWorkerRow(iWorker))[iVect];
 }
 
 /////////////////////////////////// SRBucketSummator<SRDoubleNumber> implementation ////////////////////////////////////
@@ -122,7 +122,7 @@ template<> inline constexpr uint32_t SRBucketSummator<SRDoubleNumber>::BucketCou
 }
 
 template<> inline void SRBucketSummator<SRDoubleNumber>::ZeroBuckets(const  SRThreadCount iWorker) {
-  SRUtils::FillZeroVects<true>(reinterpret_cast<__m256i*>(GetWorkerRow(iWorker)),
+  SRUtils::FillZeroVects<true>(SRCast::Ptr<__m256i>(GetWorkerRow(iWorker)),
     WorkerRowLengthBytes() >> SRSimd::_cLogNBytes);
 }
 
@@ -183,7 +183,7 @@ template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(co
 }
 
 template<> inline SRDoubleNumber __vectorcall SRBucketSummator<SRDoubleNumber>::SumWorkerSums() {
-  const __m256d *PTR_RESTRICT pWSes = reinterpret_cast<const __m256d*>(_pWorkerSums);
+  const __m256d *PTR_RESTRICT pWSes = SRCast::CPtr<__m256d>(_pWorkerSums);
   __m256d sum = pWSes[0];
   assert(_nWorkers >= 1);
   if (_nWorkers == 1) {

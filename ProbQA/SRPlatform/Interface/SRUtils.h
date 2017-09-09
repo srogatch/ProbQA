@@ -76,8 +76,8 @@ public: // Methods
 template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline
 void SRUtils::Copy256(void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, size_t nVects)
 {
-  const __m256i *PTR_RESTRICT pSrc = reinterpret_cast<const __m256i*>(pLoad);
-  __m256i *PTR_RESTRICT pDest = reinterpret_cast<__m256i*>(pStore);
+  const __m256i *PTR_RESTRICT pSrc = SRCast::CPtr<__m256i>(pLoad);
+  __m256i *PTR_RESTRICT pDest = SRCast::Ptr<__m256i>(pStore);
   for (; nVects > 0; nVects--, pSrc++, pDest++) {
     const __m256i loaded = taCacheLoad ? _mm256_load_si256(pSrc) : _mm256_stream_load_si256(pSrc);
     taCacheStore ? _mm256_store_si256(pDest, loaded) : _mm256_stream_si256(pDest, loaded);
@@ -113,17 +113,17 @@ __vectorcall SRUtils::Set1(const taItem item)
 {
   switch (sizeof(item)) {
   case 1:
-    return _mm256_set1_epi8(*reinterpret_cast<const int8_t*>(&item));
+    return _mm256_set1_epi8(SRCast::Bitwise<int8_t>(item));
   case 2:
-    return _mm256_set1_epi16(*reinterpret_cast<const int16_t*>(&item));
+    return _mm256_set1_epi16(SRCast::Bitwise<int16_t>(item));
   case 4:
-    return _mm256_set1_epi32(*reinterpret_cast<const int32_t*>(&item));
+    return _mm256_set1_epi32(SRCast::Bitwise<int32_t>(item));
   case 8:
-    return _mm256_set1_epi64x(*reinterpret_cast<const int64_t*>(&item));
+    return _mm256_set1_epi64x(SRCast::Bitwise<int64_t>(item));
   case 16:
-    return _mm256_broadcastsi128_si256(*reinterpret_cast<const __m128i*>(&item));
+    return _mm256_broadcastsi128_si256(SRCast::Bitwise<__m128i>(item));
   case 32:
-    return *reinterpret_cast<const __m256i*>(&item);
+    return SRCast::Bitwise<__m256i>(item);
   default:
     throw SRException(SRMessageBuilder("Unreachable ")(sizeof(taItem)).GetOwnedSRString());
   }
@@ -138,14 +138,14 @@ template<size_t taGran> ATTR_NOALIAS inline void* __vectorcall SRUtils::FillProl
     SR_UNREACHABLE;
   case 1:
     if (uintptr_t(p) & 1) {
-      uint8_t* pSpec = reinterpret_cast<uint8_t*>(p);
+      uint8_t* pSpec = SRCast::Ptr<uint8_t>(p);
       *pSpec = vect.m256i_u8[0];
       p = pSpec + 1;
     }
     // fall through
   case 2:
     if (uintptr_t(p) & 2) {
-      uint16_t* pSpec = reinterpret_cast<uint16_t*>(p);
+      uint16_t* pSpec = SRCast::Ptr<uint16_t>(p);
       //TODO: check if it's faster than _mm_storeu_si16(pSpec, _mm256_castsi256_si128(vect))
       *pSpec = vect.m256i_u16[0];
       p = pSpec + 1;
@@ -153,7 +153,7 @@ template<size_t taGran> ATTR_NOALIAS inline void* __vectorcall SRUtils::FillProl
     // fall through
   case 4:
     if (uintptr_t(p) & 4) {
-      uint32_t* pSpec = reinterpret_cast<uint32_t*>(p);
+      uint32_t* pSpec = SRCast::Ptr<uint32_t>(p);
       //TODO: check if it's faster than _mm_storeu_si32()
       *pSpec = vect.m256i_u32[0];
       p = pSpec + 1;
@@ -161,7 +161,7 @@ template<size_t taGran> ATTR_NOALIAS inline void* __vectorcall SRUtils::FillProl
     // fall through
   case 8:
     if (uintptr_t(p) & 8) {
-      uint64_t* pSpec = reinterpret_cast<uint64_t*>(p);
+      uint64_t* pSpec = SRCast::Ptr<uint64_t>(p);
       //TODO: check if it's faster than _mm_storeu_si64() or _mm_storel_pi/_mm_storel_pd
       *pSpec = vect.m256i_u64[0];
       p = pSpec + 1;
@@ -169,7 +169,7 @@ template<size_t taGran> ATTR_NOALIAS inline void* __vectorcall SRUtils::FillProl
     // fall through
   case 16:
     if (uintptr_t(p) & 16) {
-      __m128i* pSpec = reinterpret_cast<__m128i*>(p);
+      __m128i* pSpec = SRCast::Ptr<__m128i>(p);
       _mm_store_si128(pSpec, _mm256_castsi256_si128(vect));
       p = pSpec + 1;
     }
@@ -186,35 +186,35 @@ template<size_t taGran> ATTR_NOALIAS inline void* __vectorcall SRUtils::FillEpil
     SR_UNREACHABLE;
   case 1:
     if (uintptr_t(pLim) & 1) {
-      uint8_t* pSpec = reinterpret_cast<uint8_t*>(pLim) - 1;
+      uint8_t* pSpec = SRCast::Ptr<uint8_t>(pLim) - 1;
       *pSpec = vect.m256i_u8[0];
       pLim = pSpec;
     }
     //fall through
   case 2:
     if (uintptr_t(pLim) & 2) {
-      uint16_t* pSpec = reinterpret_cast<uint16_t*>(pLim) - 1;
+      uint16_t* pSpec = SRCast::Ptr<uint16_t>(pLim) - 1;
       *pSpec = vect.m256i_u16[0];
       pLim = pSpec;
     }
     //fall through
   case 4:
     if (uintptr_t(pLim) & 4) {
-      uint32_t* pSpec = reinterpret_cast<uint32_t*>(pLim) - 1;
+      uint32_t* pSpec = SRCast::Ptr<uint32_t>(pLim) - 1;
       *pSpec = vect.m256i_u32[0];
       pLim = pSpec;
     }
     //fall through
   case 8:
     if (uintptr_t(pLim) & 8) {
-      uint64_t* pSpec = reinterpret_cast<uint64_t*>(pLim) - 1;
+      uint64_t* pSpec = SRCast::Ptr<uint64_t>(pLim) - 1;
       *pSpec = vect.m256i_u64[0];
       pLim = pSpec;
     }
     //fall through
   case 16:
     if (uintptr_t(pLim) & 16) {
-      __m128i* pSpec = reinterpret_cast<__m128i*>(pLim) - 1;
+      __m128i* pSpec = SRCast::Ptr<__m128i>(pLim) - 1;
       _mm_store_si128(pSpec, _mm256_castsi256_si128(vect));
       pLim = pSpec;
     }

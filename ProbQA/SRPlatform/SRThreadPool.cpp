@@ -34,7 +34,7 @@ struct SRThreadPool::RareData {
 SRThreadPool::SRThreadPool(const SRThreadCount nThreads) : _qu(SRMath::CeilLog2(nThreads)), _nWorkers(nThreads),
   _shutdownRequested(0)
 {
-  _pRd = reinterpret_cast<RareData*>(malloc(sizeof(RareData) + sizeof(std::thread) * _nWorkers));
+  _pRd = SRCast::Ptr<RareData>(malloc(sizeof(RareData) + sizeof(std::thread) * _nWorkers));
   _pRd->_pLogger = SRDefaultLogger::Get();
   SetCriticalCallback(nullptr);
   for (size_t i = 0; i < _nWorkers; i++) {
