@@ -16,7 +16,7 @@ template<typename taNumber> class SRBucketSummator {
   friend class BucketerSubtaskSum<taNumber>;
 
   taNumber *_pBuckets;
-  SRNumPack<taNumber> *_pWorkerSums;
+  taNumber *_pWorkerSums;
   const SRThreadCount _nWorkers;
 
 private: // methods
@@ -61,7 +61,7 @@ template<typename taNumber> inline taNumber* SRBucketSummator<taNumber>::GetWork
 template<typename taNumber> inline size_t SRBucketSummator<taNumber>::GetMemoryRequirementBytes(
   const SRThreadCount nWorkers)
 {
-  const size_t ans = nWorkers * (sizeof(SRNumPack<taNumber>) + WorkerRowLengthBytes());
+  const size_t ans = size_t(nWorkers) * WorkerRowLengthBytes() + SRSimd::GetPaddedBytes(nWorkers * sizeof(taNumber));
   assert(ans < std::numeric_limits<int32_t>::max());
   return ans;
 }
@@ -70,7 +70,7 @@ template<typename taNumber> inline SRBucketSummator<taNumber>::SRBucketSummator(
   const SRThreadCount nWorkers, void* pMem) : _nWorkers(nWorkers)
 {
   _pBuckets = static_cast<taNumber*>(pMem);
-  _pWorkerSums = SRCast::Ptr<SRNumPack<taNumber>>(GetWorkerRow(nWorkers));
+  _pWorkerSums = SRCast::Ptr<taNumber>(GetWorkerRow(nWorkers));
 }
 
 template<typename taNumber> inline taNumber& SRBucketSummator<taNumber>::ModBucket(
@@ -183,22 +183,7 @@ template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(co
 }
 
 template<> inline SRDoubleNumber __vectorcall SRBucketSummator<SRDoubleNumber>::SumWorkerSums() {
-  const __m256d *PTR_RESTRICT pWSes = SRCast::CPtr<__m256d>(_pWorkerSums);
-  __m256d sum = pWSes[0];
-  assert(_nWorkers >= 1);
-  if (_nWorkers == 1) {
-    sum = _mm256_permute4x64_pd(sum, _MM_SHUFFLE(3, 1, 2, 0));
-  } else {
-    __assume(_nWorkers >= 2);
-    for (SRThreadCount i = 1; i + 1 < _nWorkers; i++) {
-      sum = SRSimd::HorizAddStraight(sum, pWSes[i]);
-    }
-    sum = _mm256_hadd_pd(sum, pWSes[_nWorkers - 1]);
-  }
-  // By this time, |sum| must contain a crossed sum: positions 0, 2, 1, 3
-
-  const __m128d laneSums = _mm_hadd_pd(_mm256_extractf128_pd(sum, 1), _mm256_castpd256_pd128(sum));
-  return SRDoubleNumber(laneSums.m128d_f64[0] + laneSums.m128d_f64[1]);
+  return SRDoubleNumber(SRSimd::StableSum<false>(SRCast::CPtr<double>(_pWorkerSums), _nWorkers));
 }
 
 } // namespace SRPlat

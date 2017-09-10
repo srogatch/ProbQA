@@ -157,6 +157,15 @@ public:
     return straight;
   }
 
+  ATTR_NOALIAS static double __vectorcall FullHorizSum(const __m256d a) {
+    const __m256d b = _mm256_permute4x64_pd(a, _MM_SHUFFLE(3, 1, 2, 0));
+    const __m128d laneSums = _mm_hadd_pd(_mm256_extractf128_pd(b, 1), _mm256_castpd256_pd128(b));
+    return laneSums.m128d_f64[0] + laneSums.m128d_f64[1];
+  }
+
+  template<bool taCache> ATTR_NOALIAS inline static double StableSum(const double *PTR_RESTRICT p,
+    const size_t nDoubles);
+
   ATTR_NOALIAS static __m256i __vectorcall MaxI64(const __m256i a, const __m256i b, const __m256i maskA) {
     const __m256i isAGreater = _mm256_cmpgt_epi64(a, b);
     const __m256i maxes = _mm256_blendv_epi8(b, a, _mm256_or_si256(isAGreater, maskA));
@@ -176,16 +185,17 @@ public:
     return BroadcastBytesToComps64(_cStbqTable[bitQuad]);
   }
 
-  template<bool taCache> ATTR_NOALIAS inline static double StableSum(double *p, const size_t nDoubles);
 };
 
-template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(double *p, const size_t nDoubles) {
+FLOAT_PRECISE_BEGIN
+template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(const double *PTR_RESTRICT p,
+  const size_t nDoubles)
+{
   const size_t nVects = nDoubles >> 2;
   const size_t iTail = nVects << 2;
-  const SRVectCompCount nTail = nDoubles - iTail;
+  const SRVectCompCount nTail = static_cast<SRVectCompCount>(nDoubles - iTail);
   double tailSum;
 
-  FLOAT_PRECISE_BEGIN;
   switch (nTail) {
   case 0:
     tailSum = 0;
@@ -202,7 +212,6 @@ template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(double *p, c
   default:
     SR_UNREACHABLE;
   }
-  FLOAT_PRECISE_END;
 
   const __m256d *vp = SRCast::CPtr<__m256d>(p);
   __m256d sum;
@@ -223,10 +232,9 @@ template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(double *p, c
 
   const __m128d laneSums = _mm_hadd_pd(_mm256_extractf128_pd(sum, 1), _mm256_castpd256_pd128(sum));
 
-  FLOAT_PRECISE_BEGIN;
   return laneSums.m128d_f64[0] + laneSums.m128d_f64[1] + tailSum;
-  FLOAT_PRECISE_END;
 }
+FLOAT_PRECISE_END
 
 template<typename T> struct SRSimd::CastImpl<T,T> {
   static T DoIt(const T par) { return par; }
