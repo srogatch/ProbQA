@@ -391,8 +391,10 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   {
     CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz);
+    const int64_t nTargetVects = SRNumHelper::Vectorize<taNumber>(_dims._nTargets, normPriorsTask._iPartial,
+      normPriorsTask._nValid);
+    pr.SplitAndRunSubtasks<CENormPriorsSubtaskMax<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
 
-    //pr.
   }
   
 

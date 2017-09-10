@@ -9,12 +9,13 @@
 
 namespace ProbQA {
 
-template<typename taNumber> class CENormPriorsSubtaskMax : public SRPlat::SRBaseSubtask {
-  const TPqaId _iFirstVT; // first vector of targets
-  const TPqaId _iLimVT; // limit vector of targets
+template<typename taNumber> class CENormPriorsSubtaskMax : public SRPlat::SRStandardSubtask {
+public: // types
+  typedef CENormPriorsTask<taNumber> TTask;
 
-public:
-  CENormPriorsSubtaskMax(CENormPriorsTask<taNumber> *pTask, const TPqaId iFirstVT, const TPqaId iLimVT);
+public: // methods
+  explicit CENormPriorsSubtaskMax(CENormPriorsTask<taNumber> *pTask);
+  virtual void Run() override final;
 };
 
 } // namespace ProbQA

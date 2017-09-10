@@ -1144,6 +1144,95 @@ void checkError(int errCode) {
   throwVariadic<1, 3, 7, 15, 25>(errCode);
 }
 
+void testSet1() {
+  __m256i sum = _mm256_setzero_si256();
+  for (int64_t i = 0; i < 1000; i++) {
+    sum = _mm256_add_epi64(sum, _mm256_set1_epi64x(1023));
+  }
+  for (int8_t i = 0; i <= 3; i++) {
+    printf(" %lld", sum.m256i_i64[i]);
+  }
+}
+
+void testErrCodesToExceptions() {
+  int a = rand();
+  checkError(a);
+  if (a != 0) {
+    selectThrow <100>(a);
+  }
+}
+
+////// Set To Bit Quad benchmarks
+__m256i __vectorcall StbqSet(const uint8_t bitQuad) {
+  return _mm256_set_epi64x(-int64_t(bitQuad >> 3), -int64_t((bitQuad >> 2) & 1), -int64_t((bitQuad >> 1) & 1),
+    -int64_t(bitQuad & 1));
+}
+
+__m256i __vectorcall StbqPdep(const uint8_t bitQuad) {
+  __m128i source = _mm_cvtsi32_si128(_pdep_u32(bitQuad, 0b10000000100000001000000010000000));
+  return _mm256_cvtepi8_epi64(source);
+}
+
+uint32_t gStbqTable[16];
+
+void InitStbqTable() {
+  for (int8_t i = 0; i < 16; i++) {
+    int8_t comps[4];
+    comps[0] = -(i & 1);
+    comps[1] = -((i >> 1) & 1);
+    comps[2] = -((i >> 2) & 1);
+    comps[3] = -(i >> 3);
+    uint32_t val = *reinterpret_cast<uint32_t*>(comps);
+    gStbqTable[i] = val;
+  }
+}
+
+__m256i __vectorcall StbqTbl(const uint8_t bitQuad) {
+  __m128i source = _mm_cvtsi32_si128(gStbqTable[bitQuad]);
+  return _mm256_cvtepi8_epi64(source);
+}
+
+const int64_t cnStbqs = 1000 * 1000i64 * 1000;
+
+void BenchmarkStbqSet() {
+  __m256i sums = _mm256_setzero_si256();
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnStbqs; i++) {
+    const __m256i res = StbqSet(i & 0xf);
+    sums = _mm256_add_epi64(sums, res);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  int64_t sum = sums.m256i_i64[0] + sums.m256i_i64[1] + sums.m256i_i64[2] + sums.m256i_i64[3];
+  printf("STBQ via set: %.3lf Ops/sec calculated %" PRId64 "\n", cnStbqs / nSec, sum);
+}
+
+void BenchmarkStbqPdep() {
+  __m256i sums = _mm256_setzero_si256();
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnStbqs; i++) {
+    const __m256i res = StbqPdep(i & 0xf);
+    sums = _mm256_add_epi64(sums, res);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  int64_t sum = sums.m256i_i64[0] + sums.m256i_i64[1] + sums.m256i_i64[2] + sums.m256i_i64[3];
+  printf("STBQ via PDEP: %.3lf Ops/sec calculated %" PRId64 "\n", cnStbqs / nSec, sum);
+}
+
+void BenchmarkStbqTbl() {
+  __m256i sums = _mm256_setzero_si256();
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t i = 1; i <= cnStbqs; i++) {
+    const __m256i res = StbqTbl(i & 0xf);
+    sums = _mm256_add_epi64(sums, res);
+  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  int64_t sum = sums.m256i_i64[0] + sums.m256i_i64[1] + sums.m256i_i64[2] + sums.m256i_i64[3];
+  printf("STBQ via table: %.3lf Ops/sec calculated %" PRId64 "\n", cnStbqs / nSec, sum);
+}
+
 int __cdecl main() {
   //std::atomic<double> test1;
   //bool test2 = test1.is_lock_free();
@@ -1181,18 +1270,10 @@ int __cdecl main() {
 
   //BenchmarkBucketing();
 
-  __m256i sum = _mm256_setzero_si256();
-  for (int64_t i = 0; i < 1000; i++) {
-    sum = _mm256_add_epi64(sum, _mm256_set1_epi64x(1023));
-  }
-  for (int8_t i = 0; i <= 3; i++) {
-    printf(" %lld", sum.m256i_i64[i]);
-  }
+  InitStbqTable();
+  BenchmarkStbqTbl();
+  BenchmarkStbqSet();
+  //BenchmarkStbqPdep();
 
-  //int a = rand();
-  //checkError(a);
-  //if (a != 0) {
-  //  selectThrow <100>(a);
-  //}
   return 0;
 }

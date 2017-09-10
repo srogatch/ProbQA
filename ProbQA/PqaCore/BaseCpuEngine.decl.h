@@ -61,6 +61,7 @@ public: // Internal interface methods
 
   const EngineDimensions& GetDims() const { return _dims; }
   const GapTracker<TPqaId>& GetQuestionGaps() const { return _questionGaps; }
+  const GapTracker<TPqaId>& GetTargetGaps() const { return _targetGaps; }
 };
 
 } // namespace ProbQA

@@ -136,6 +136,17 @@ public:
     const __m256d straight = _mm256_permute4x64_pd(crossed, _MM_SHUFFLE(3, 1, 2, 0));
     return straight;
   }
+
+  ATTR_NOALIAS static __m256i __vectorcall MaxI64(const __m256i a, const __m256i b, const __m256i maskA) {
+    const __m256i isAGreater = _mm256_cmpgt_epi64(a, b);
+    const __m256i maxes = _mm256_blendv_epi8(b, a, _mm256_or_si256(isAGreater, maskA));
+    return maxes;
+  }
+
+  ATTR_NOALIAS static __m256i __vectorcall SetToBitQuad(const uint8_t bitQuad) {
+    return _mm256_set_epi64x(-int64_t(bitQuad >> 3), -int64_t((bitQuad >> 2) & 1), -int64_t((bitQuad >> 1) & 1),
+      -int64_t(bitQuad & 1));
+  }
 };
 
 template<typename T> struct SRSimd::CastImpl<T,T> {
