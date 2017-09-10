@@ -10,7 +10,9 @@
 
 namespace SRPlat {
 
-template<typename taNumber> class BucketerSubtaskSum : public SRStandardSubtask {
+template<typename taNumber> class SRBucketSummator;
+
+template<typename taNumber> class SRPLATFORM_API BucketerSubtaskSum : public SRStandardSubtask {
 public: // types
   typedef BucketerTask<taNumber> TTask;
 
@@ -21,6 +23,7 @@ private: // methods
   SRNumPack<taNumber> __vectorcall SumColumn(const size_t iVect);
 
 public: // methods
+  explicit BucketerSubtaskSum(BucketerTask<taNumber> *pTask) : SRStandardSubtask(pTask) { }
   virtual void Run() override final;
 };
 

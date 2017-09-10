@@ -6,6 +6,7 @@
 
 #include "../SRPlatform/Interface/SRPlatform.h"
 #include "../SRPlatform/Interface/SRMacros.h"
+#include "../SRPlatform/Interface/SRBasicTypes.h"
 
 namespace SRPlat {
 
@@ -65,13 +66,13 @@ public:
     return overallMask & (baseLog + halfCorr + fracCorr);
   }
 
-  constexpr static uint8_t StaticFloorLog2(const size_t n) {
-    return n  <= 1 ? 0ui8 : (StaticFloorLog2(n >> 1) + 1ui8);
+  template<typename T> constexpr static uint8_t StaticFloorLog2(const T n) {
+    return (n  <= 1) ? 0ui8 : (StaticFloorLog2(n >> 1) + 1ui8);
   }
-  constexpr static uint8_t StaticCeilLog2(const size_t n) {
-    return n <= 1 ? 0ui8 : (StaticFloorLog2(n-1) + 1ui8);
+  template<typename T> constexpr static uint8_t StaticCeilLog2(const T n) {
+    return (n <= 1) ? 0ui8 : (StaticFloorLog2(n-1) + 1ui8);
   }
-  constexpr static bool StaticIsPowOf2(const size_t n) {
+  template<typename T> constexpr static bool StaticIsPowOf2(const T n) {
     return (n & (n - 1)) == 0;
   }
 

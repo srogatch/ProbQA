@@ -14,6 +14,8 @@ namespace ProbQA {
 template<typename taNumber> class CENormPriorsTask : public CEBaseTask {
 public:
   const CEQuiz<taNumber> *const _pQuiz;
+  int64_t _iPartial;
+  SRPlat::SRVectCompCount _nValid;
 
 public:
   explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz);

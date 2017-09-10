@@ -245,6 +245,7 @@
     <ClInclude Include="Interface\SRMessageBuilder.h" />
     <ClInclude Include="Interface\SRMinimalTask.h" />
     <ClInclude Include="Interface\SRMPAllocator.h" />
+    <ClInclude Include="Interface\SRNumHelper.h" />
     <ClInclude Include="Interface\SRNumTraits.h" />
     <ClInclude Include="Interface\SRPacked64.h" />
     <ClInclude Include="Interface\SRPoolRunner.h" />

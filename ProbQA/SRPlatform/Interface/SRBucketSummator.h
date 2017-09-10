@@ -6,11 +6,11 @@
 
 #include "../SRPlatform/Interface/SRDoubleNumber.h"
 #include "../SRPlatform/Interface/SRPoolRunner.h"
+#include "../SRPlatform/Interface/SRNumHelper.h"
 #include "../SRPlatform/BucketerTask.h"
+#include "../SRPlatform/BucketerSubtaskSum.h"
 
 namespace SRPlat {
-
-template<typename taNumber> class BucketerSubtaskSum;
 
 template<typename taNumber> class SRBucketSummator {
   friend class BucketerSubtaskSum<taNumber>;
@@ -102,10 +102,10 @@ template<typename taNumber> inline SRPacked64 __vectorcall SRBucketSummator<taNu
 }
 
 template<typename taNumber> taNumber SRBucketSummator<taNumber>::ComputeSum(SRPoolRunner &pr) {
-  const size_t nVects = SRMath::PosDivideRoundUp(GetBucketCount(), SRNumPack<taNumber>::_cnComps);
-  const int64_t nInvalid = nVects * SRNumPack<taNumber>::_cnComps - GetBucketCount();
-  const int64_t iPartial = ((nInvalid == 0) ? -2 : (nVects - 1));
-  BucketerTask task(*this, iPartial, SRNumPack<taNumber>::_cnComps - nInvalid);
+  int64_t iPartial;
+  SRVectCompCount nValid;
+  const size_t nVects = SRNumHelper::Vectorize<taNumber>(BucketCount(), iPartial, nValid);
+  BucketerTask<taNumber> task(pr.GetThreadPool(), *this, iPartial, nValid);
   pr.SplitAndRunSubtasks<BucketerSubtaskSum<taNumber>>(task, nVects, _nWorkers);
   return SumWorkerSums();
 }

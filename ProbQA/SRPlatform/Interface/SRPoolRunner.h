@@ -16,6 +16,8 @@ class SRPoolRunner {
 public:
   explicit SRPoolRunner(SRThreadPool& tp, void *pSubtasksMem) : _pTp(&tp), _pSubtasksMem(pSubtasksMem) { }
 
+  SRThreadPool& GetThreadPool() const { return *_pTp; }
+
   template<typename taSubtask, typename taCallback> inline void SplitAndRunSubtasks(typename taSubtask::TTask& task,
     const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit);
 

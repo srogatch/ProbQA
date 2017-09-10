@@ -18,8 +18,9 @@ public: // variables
   const SRVectCompCount _nValid; // number of valid components in the partial vector
 
 public:
-  explicit BucketerTask(SRBucketSummator<taNumber> &bs, const int64_t iPartial, const int64_t nValid) : _pBs(&bs),
-    _iPartial(iPartial), _nValid(nValid) { }
+  explicit BucketerTask(SRThreadPool &tp, SRBucketSummator<taNumber> &bs, const int64_t iPartial,
+    const SRVectCompCount nValid) : SRMinimalTask(tp), _pBs(&bs), _iPartial(iPartial), _nValid(nValid)
+  { }
 
   SRBucketSummator<taNumber>& GetBS() const { return *_pBs; }
 };

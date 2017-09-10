@@ -39,6 +39,7 @@
 #include "../SRPlatform/Interface/SRAlignedAllocator.h"
 #include "../SRPlatform/Interface/SRBaseSubtask.h"
 #include "../SRPlatform/Interface/SRBaseTask.h"
+#include "../SRPlatform/Interface/SRBasicTypes.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRBucketSummator.h"
 #include "../SRPlatform/Interface/SRCast.h"

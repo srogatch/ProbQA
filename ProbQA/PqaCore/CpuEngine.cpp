@@ -381,7 +381,20 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   const size_t nWithBuckets = bucketsOffs + SRBucketSummator<taNumber>::GetMemoryRequirementBytes(nWorkers);
   SRSmartMPP<uint8_t> commonBuf(_memPool, nWithBuckets);
 
-  SRBucketSummator<taNumber> buckSum(nWorkers, commonBuf.Get() + bucketsOffs);
+  SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
+  SRBucketSummator<taNumber> bs(nWorkers, commonBuf.Get() + bucketsOffs);
+
+  //Test code for SRBucketSummator compilation
+  //bs.CalcAdd(0, _mm256_setzero_pd());
+  //bs.CalcAdd(1, _mm256_castsi256_pd(_mm256_set1_epi8(-1i8)), 3);
+  //taNumber test = bs.ComputeSum(pr);
+
+  {
+    CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz);
+
+    //pr.
+  }
+  
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));
