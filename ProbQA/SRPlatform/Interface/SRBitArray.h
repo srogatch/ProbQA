@@ -42,9 +42,9 @@ private:
     assert(iFirst <= iLim);
     size_t i256First = iFirst >> SRSimd::_cLogNBits;
     size_t i256Lim = iLim >> SRSimd::_cLogNBits;
-    const __m256i firstMask = SRSimd::SetMsb1(SRSimd::_cNBits - (iFirst & SRSimd::_cBitMask));
+    const __m256i firstMask = SRSimd::SetHighBits1(SRSimd::_cNBits - (iFirst & SRSimd::_cBitMask));
     if(i256Lim <= i256First) {
-      const __m256i limMask = SRSimd::SetLsb1(iLim & SRSimd::_cBitMask);
+      const __m256i limMask = SRSimd::SetLowBits1(iLim & SRSimd::_cBitMask);
       maskVisit(_pBits[i256First], _mm256_and_si256(firstMask, limMask));
       return;
     }
@@ -54,7 +54,7 @@ private:
     }
     // Prevent visiting out of bounds if iLim is right beyond the end of the array.
     if(iLim & SRSimd::_cBitMask) {
-      const __m256i limMask = SRSimd::SetLsb1(iLim & SRSimd::_cBitMask);
+      const __m256i limMask = SRSimd::SetLowBits1(iLim & SRSimd::_cBitMask);
       maskVisit(_pBits[i256Lim], limMask);
     }
   }

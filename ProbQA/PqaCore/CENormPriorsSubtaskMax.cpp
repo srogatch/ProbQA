@@ -20,12 +20,12 @@ namespace {
 // Returns the total exponents.
 // cmMask is an output parameter for the mask for retaining the old maximum.
 ATTR_NOALIAS inline __m256i __vectorcall Process(const __m256d *PTR_RESTRICT pMants, const __m256i *PTR_RESTRICT pExps,
-  __m256i &PTR_RESTRICT cmMask, const uint8_t gaps)
+  __m256i &PTR_RESTRICT retention, const uint8_t gaps)
 {
   const __m256i totExp = _mm256_add_epi64(SRSimd::Load<false, __m256i>(pExps),
     SRSimd::ExtractExponents64<false>(SRSimd::Load<false, __m256d>(pMants)));
   // Mask away the targets at gaps
-  cmMask = SRSimd::SetToBitQuadHot(gaps);
+  retention = SRSimd::SetToBitQuadHot(gaps);
   return totExp;
 }
 
@@ -46,13 +46,11 @@ template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
     curMax = SRSimd::MaxI64(curMax, totExp, cmMask);
   }
   if (isAtPartial) {
-    __m256i cmMask;
-    const __m256i totExp = Process(pMants + task._iPartial, pExps + task._iPartial, cmMask,
+    __m256i retention;
+    const __m256i totExp = Process(pMants + task._iPartial, pExps + task._iPartial, retention,
       gapTracker.GetQuad(task._iPartial));
-    //TODO: refactor to a table + _mm_cvtsi32_si128()
-    cmMask = _mm256_or_si256(cmMask, SRSimd::SetMsb1(
-      uint16_t(SRNumPack<SRDoubleNumber>::_cnComps - task._nValid) * SRNumTraits<double>::_cnTotalBits));
-    curMax = SRSimd::MaxI64(curMax, totExp, cmMask);
+    retention = _mm256_or_si256(retention, SRSimd::SetHighComps64(SRNumPack<SRDoubleNumber>::_cnComps - task._nValid));
+    curMax = SRSimd::MaxI64(curMax, totExp, retention);
   }
   //TODO: implement - compute the horizontal max and save to the task
 }

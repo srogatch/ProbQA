@@ -28,9 +28,7 @@ template<> void BucketerSubtaskSum<SRDoubleNumber>::Run() {
     total = SRSimd::HorizAddStraight(total, SumColumn(i)._comps);
   }
   if (isAtPartial) {
-    //TODO: refactor to a table + _mm_cvtsi32_si128()
-    const __m256d mask = _mm256_castsi256_pd(SRSimd::SetLsb1(
-      uint16_t(task._nValid) * SRNumTraits<double>::_cnTotalBits));
+    const __m256d mask = _mm256_castsi256_pd(SRSimd::SetLowComps64(task._nValid));
     total = SRSimd::HorizAddStraight(total, _mm256_and_pd(mask, SumColumn(task._iPartial)._comps));
   }
   _pBs->_pWorkerSums[_iWorker]._comps = total;

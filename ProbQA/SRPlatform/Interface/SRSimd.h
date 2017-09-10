@@ -80,18 +80,36 @@ public:
     return GetPaddedBytes(nItems * taItemSize);
   }
 
-  ATTR_NOALIAS static __m256i __vectorcall SetMsb1(const uint16_t nMsb1) {
+  // set Most Significant bits to 1
+  ATTR_NOALIAS static __m256i __vectorcall SetHighBits1(const uint16_t nMsBits1) {
     const __m256i ones = _mm256_set1_epi8(-1i8);
-    __m256i shift = _mm256_set1_epi32(nMsb1);
+    __m256i shift = _mm256_set1_epi32(nMsBits1);
     shift = _mm256_subs_epu16(_cSet1MsbOffs, shift);
     return _mm256_sllv_epi32(ones, shift);
   }
 
-  ATTR_NOALIAS static __m256i __vectorcall SetLsb1(const uint16_t nLsb1) {
+  // set Least Significant bits to 1
+  ATTR_NOALIAS static __m256i __vectorcall SetLowBits1(const uint16_t nLsBits1) {
     const __m256i ones = _mm256_set1_epi8(-1i8);
-    __m256i shift = _mm256_set1_epi32(nLsb1);
+    __m256i shift = _mm256_set1_epi32(nLsBits1);
     shift = _mm256_subs_epu16(_cSet1LsbOffs, shift);
     return _mm256_srlv_epi32(ones, shift);
+  }
+
+  ATTR_NOALIAS static __m256i __vectorcall BroadcastBytesToComps64(const uint32_t bytes) {
+    const __m128i source = _mm_cvtsi32_si128(bytes);
+    return _mm256_cvtepi8_epi64(source);
+  }
+
+  // set Most Significant 64-bit components to all-one bits
+  ATTR_NOALIAS static __m256i __vectorcall SetHighComps64(const SRVectCompCount nComps) {
+    const uint32_t packed = static_cast<uint32_t>((uint64_t(-1i32) >> (nComps << 3)) - 1);
+    return BroadcastBytesToComps64(packed);
+  }
+
+  ATTR_NOALIAS static __m256i __vectorcall SetLowComps64(const SRVectCompCount nComps) {
+    const uint32_t packed = static_cast<uint32_t>((1ui64 << (nComps << 3)) - 1);
+    return BroadcastBytesToComps64(packed);
   }
 
   template<bool taNorm0> ATTR_NOALIAS static __m256i __vectorcall ExtractExponents64(const __m256d nums) {
@@ -155,8 +173,7 @@ public:
   // Version for frequent calls in a bottleneck code.
   ATTR_NOALIAS static __m256i __vectorcall SetToBitQuadHot(const uint8_t bitQuad) {
     assert(bitQuad < _cnStbqEntries);
-    __m128i source = _mm_cvtsi32_si128(_cStbqTable[bitQuad]);
-    return _mm256_cvtepi8_epi64(source);
+    return BroadcastBytesToComps64(_cStbqTable[bitQuad]);
   }
 };
 
