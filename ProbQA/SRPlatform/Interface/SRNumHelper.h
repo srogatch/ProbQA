@@ -15,6 +15,9 @@ public:
   template<typename taNumber> ATTR_NOALIAS static int64_t
   Vectorize(const int64_t nItems, int64_t &PTR_RESTRICT iPartial, SRVectCompCount &PTR_RESTRICT nValid)
   {
+    // I tried this with enable_if_t instead, but it gives compiler errors supposedly due to a bug in MSVC++2017
+    // https://stackoverflow.com/questions/46144103/enable-if-not-working-in-visual-studio-when-using-a-constexpr-function-as-argume
+    // https://stackoverflow.com/questions/46104002/why-cant-this-enable-if-function-template-be-specialized-in-vs2017
     constexpr bool isPowOf2 = SRMath::StaticIsPowOf2(SRNumPack<taNumber>::_cnComps);
     if (isPowOf2) {
       constexpr SRVectCompCount shift = SRMath::StaticFloorLog2(SRNumPack<taNumber>::_cnComps);

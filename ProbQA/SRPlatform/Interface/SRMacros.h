@@ -29,6 +29,9 @@
 #define PTR_RESTRICT __restrict
 #define SR_UNREACHABLE __assume(0)
 
+#define FLOAT_PRECISE_BEGIN __pragma(float_control(push)) __pragma(float_control(precise, on))
+#define FLOAT_PRECISE_END __pragma(float_control(pop))
+
 // Cast for *printf format
 #define CASTF_HU(var) static_cast<unsigned short>(var)
 #define CASTF_DU(var) static_cast<unsigned int>(var)

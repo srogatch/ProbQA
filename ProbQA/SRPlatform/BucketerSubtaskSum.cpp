@@ -20,7 +20,7 @@ template<> SRNumPack<SRDoubleNumber> __vectorcall BucketerSubtaskSum<SRDoubleNum
 
 template<> void BucketerSubtaskSum<SRDoubleNumber>::Run() {
   auto const& task = static_cast<const BucketerTask<SRDoubleNumber>&>(*GetTask());
-  _pBs = &task.GetBS();
+  _pBs = &task.GetBucketSummator();
 
   const bool isAtPartial = (_iLimit == task._iPartial + 1);
   __m256d total = _mm256_setzero_pd();
@@ -31,6 +31,7 @@ template<> void BucketerSubtaskSum<SRDoubleNumber>::Run() {
     const __m256d mask = _mm256_castsi256_pd(SRSimd::SetLowComps64(task._nValid));
     total = SRSimd::HorizAddStraight(total, _mm256_and_pd(mask, SumColumn(task._iPartial)._comps));
   }
+  //TODO: shall we rather reduce it to double here, so to minimize the work for the head thread?
   _pBs->_pWorkerSums[_iWorker]._comps = total;
 }
 

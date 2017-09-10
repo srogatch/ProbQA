@@ -72,11 +72,11 @@ public:
     taCache ? _mm256_store_si256(genP, genV) : _mm256_stream_si256(genP, genV);
   }
 
-  static size_t GetPaddedBytes(const size_t nUnpaddedBytes) {
+  constexpr static size_t GetPaddedBytes(const size_t nUnpaddedBytes) {
     return (nUnpaddedBytes + _cByteMask) & (~_cByteMask);
   }
 
-  template<size_t taItemSize> static size_t PaddedBytesFromItems(const size_t nItems) {
+  template<size_t taItemSize> constexpr static size_t PaddedBytesFromItems(const size_t nItems) {
     return GetPaddedBytes(nItems * taItemSize);
   }
 
@@ -175,7 +175,58 @@ public:
     assert(bitQuad < _cnStbqEntries);
     return BroadcastBytesToComps64(_cStbqTable[bitQuad]);
   }
+
+  template<bool taCache> ATTR_NOALIAS inline static double StableSum(double *p, const size_t nDoubles);
 };
+
+template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(double *p, const size_t nDoubles) {
+  const size_t nVects = nDoubles >> 2;
+  const size_t iTail = nVects << 2;
+  const SRVectCompCount nTail = nDoubles - iTail;
+  double tailSum;
+
+  FLOAT_PRECISE_BEGIN;
+  switch (nTail) {
+  case 0:
+    tailSum = 0;
+    break;
+  case 1:
+    tailSum = p[iTail];
+    break;
+  case 2:
+    tailSum = p[iTail] + p[iTail + 1];
+    break;
+  case 3:
+    tailSum = p[iTail] + p[iTail + 1] + p[iTail + 2];
+    break;
+  default:
+    SR_UNREACHABLE;
+  }
+  FLOAT_PRECISE_END;
+
+  const __m256d *vp = SRCast::CPtr<__m256d>(p);
+  __m256d sum;
+  switch (nVects) {
+  case 0:
+    return tailSum;
+  case 1:
+    sum = _mm256_permute4x64_pd(Load<taCache>(vp), _MM_SHUFFLE(3, 1, 2, 0));
+    break;
+  default: {
+    sum = Load<taCache>(vp);
+    for (size_t i = 1; i + 1 < nVects; i++) {
+      sum = HorizAddStraight(sum, vp[i]);
+    }
+    sum = _mm256_hadd_pd(sum, vp[nVects - 1]);
+    break;
+  } }
+
+  const __m128d laneSums = _mm_hadd_pd(_mm256_extractf128_pd(sum, 1), _mm256_castpd256_pd128(sum));
+
+  FLOAT_PRECISE_BEGIN;
+  return laneSums.m128d_f64[0] + laneSums.m128d_f64[1] + tailSum;
+  FLOAT_PRECISE_END;
+}
 
 template<typename T> struct SRSimd::CastImpl<T,T> {
   static T DoIt(const T par) { return par; }

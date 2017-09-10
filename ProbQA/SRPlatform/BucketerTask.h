@@ -22,7 +22,7 @@ public:
     const SRVectCompCount nValid) : SRMinimalTask(tp), _pBs(&bs), _iPartial(iPartial), _nValid(nValid)
   { }
 
-  SRBucketSummator<taNumber>& GetBS() const { return *_pBs; }
+  SRBucketSummator<taNumber>& GetBucketSummator() const { return *_pBs; }
 };
 
 } // namespace SRPlat
