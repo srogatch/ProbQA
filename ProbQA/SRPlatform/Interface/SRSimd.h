@@ -33,6 +33,8 @@ public:
 private:
   static const __m256i _cSet1MsbOffs;
   static const __m256i _cSet1LsbOffs;
+  static constexpr uint8_t _cnStbqEntries = 1 << 4;
+  static const uint32_t _cStbqTable[_cnStbqEntries];
 
 public:
   static size_t VectsFromBytes(const size_t nBytes) {
@@ -143,9 +145,18 @@ public:
     return maxes;
   }
 
-  ATTR_NOALIAS static __m256i __vectorcall SetToBitQuad(const uint8_t bitQuad) {
+  // Version for infrequent calls, so to minimize cache footprint.
+  ATTR_NOALIAS static __m256i __vectorcall SetToBitQuadCold(const uint8_t bitQuad) {
+    assert(bitQuad < _cnStbqEntries);
     return _mm256_set_epi64x(-int64_t(bitQuad >> 3), -int64_t((bitQuad >> 2) & 1), -int64_t((bitQuad >> 1) & 1),
       -int64_t(bitQuad & 1));
+  }
+
+  // Version for frequent calls in a bottleneck code.
+  ATTR_NOALIAS static __m256i __vectorcall SetToBitQuadHot(const uint8_t bitQuad) {
+    assert(bitQuad < _cnStbqEntries);
+    __m128i source = _mm_cvtsi32_si128(_cStbqTable[bitQuad]);
+    return _mm256_cvtepi8_epi64(source);
   }
 };
 
