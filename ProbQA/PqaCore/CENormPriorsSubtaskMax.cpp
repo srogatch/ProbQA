@@ -52,7 +52,9 @@ template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
     retention = _mm256_or_si256(retention, SRSimd::SetHighComps64(SRNumPack<SRDoubleNumber>::_cnComps - task._nValid));
     curMax = SRSimd::MaxI64(curMax, totExp, retention);
   }
-  //TODO: implement - compute the horizontal max and save to the task
+  const int64_t scalarMax = SRSimd::FullHorizMaxI64(curMax);
+  //TODO: implement - save to the task
+  //TODO: maybe implement standard result collection approach for subtasks?
 }
 
 

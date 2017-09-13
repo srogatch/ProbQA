@@ -10,6 +10,55 @@
 namespace SRPlat {
 
 class SRPoolRunner {
+public: // types
+  template<typename taSubtask> class Keeper {
+    friend class SRPoolRunner;
+
+    taSubtask *const _pSubtasks;
+    typename taSubtask::TTask *_pTask;
+    SRThreadCount _nSubtasks = 0;
+
+    //NOTE: this method doesn't set variables in a way to prevent another ReleaseInternal() operation.
+    void ReleaseInternal() {
+      if (_pTask) {
+        _pTask->WaitComplete();
+      }
+      for (SRThreadCount i = 0; i < _nSubtasks; i++) {
+        _pSubtasks[i].~taSubtask();
+      }
+    }
+
+  public:
+    explicit Keeper(void *pSubtasksMem, typename taSubtask::TTask& task)
+      : _pSubtasks(SRCast::Ptr<taSubtask>(pSubtasksMem)), _pTask(&task) { }
+
+    ~Keeper() {
+      ReleaseInternal();
+    }
+
+    Keeper(const Keeper&) = delete;
+    Keeper& operator=(const Keeper&) = delete;
+
+    Keeper(Keeper&& source) : _pSubtasks(source._pSubtasks), _pTask(source._pTask), _nSubtasks(source._nSubtasks)
+    {
+      source._pTask = nullptr;
+      source._nSubtasks = 0;
+    }
+
+    Keeper& operator=(Keeper&& source) {
+      if (this != &source) {
+        ReleaseInternal();
+        _pSubtasks = source._pSubtasks;
+        _pTask = source._pTask;
+        _nSubtasks = source._nSubtasks;
+        source._pTask = nullptr;
+        source._nSubtasks = 0;
+      }
+      return *this;
+    }
+  };
+
+private: // variables
   SRThreadPool *_pTp;
   void *_pSubtasksMem;
 
@@ -18,11 +67,11 @@ public:
 
   SRThreadPool& GetThreadPool() const { return *_pTp; }
 
-  template<typename taSubtask, typename taCallback> inline void SplitAndRunSubtasks(typename taSubtask::TTask& task,
-    const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit);
+  template<typename taSubtask, typename taCallback> inline Keeper<taSubtask> SplitAndRunSubtasks(
+    typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit);
 
-  template<typename taSubtask> inline void SplitAndRunSubtasks(typename taSubtask::TTask& task, const size_t nItems,
-    const SRThreadCount nWorkers)
+  template<typename taSubtask> inline Keeper<taSubtask> SplitAndRunSubtasks(typename taSubtask::TTask& task,
+    const size_t nItems, const SRThreadCount nWorkers)
   {
     return SplitAndRunSubtasks<taSubtask>(task, nItems, nWorkers,
       [&](void *pStMem, SRThreadCount iWorker, int64_t iFirst, int64_t iLimit) {
@@ -32,14 +81,16 @@ public:
     );
   }
 
-  template<typename taSubtask> inline void SplitAndRunSubtasks(typename taSubtask::TTask& task, const size_t nItems) {
+  template<typename taSubtask> inline Keeper<taSubtask> SplitAndRunSubtasks(typename taSubtask::TTask& task,
+    const size_t nItems)
+  {
     return SplitAndRunSubtasks<taSubtask>(task, nItems, _pTp->GetWorkerCount());
   }
 
-  template<typename taSubtask, typename taCallback> inline void RunPerWorkerSubtasks(typename taSubtask::TTask& task,
-    const SRThreadCount nWorkers, const taCallback &subtaskInit);
+  template<typename taSubtask, typename taCallback> inline Keeper<taSubtask> RunPerWorkerSubtasks(
+    typename taSubtask::TTask& task, const SRThreadCount nWorkers, const taCallback &subtaskInit);
 
-  template<typename taSubtask> inline void RunPerWorkerSubtasks(typename taSubtask::TTask& task,
+  template<typename taSubtask> inline Keeper<taSubtask> RunPerWorkerSubtasks(typename taSubtask::TTask& task,
     const SRThreadCount nWorkers)
   {
     return RunPerWorkerSubtasks<taSubtask>(task, nWorkers, [&](void *pStMem, SRThreadCount iWorker) {
@@ -49,66 +100,48 @@ public:
   }
 };
 
-template<typename taSubtask, typename taCallback> inline void SRPoolRunner::SplitAndRunSubtasks(
+template<typename taSubtask, typename taCallback> inline
+  SRPoolRunner::Keeper<taSubtask> SRPoolRunner::SplitAndRunSubtasks(
   typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit)
 {
-  taSubtask *const pSubtasks = SRCast::Ptr<taSubtask>(_pSubtasksMem);
-  SRThreadCount nSubtasks = 0;
-  bool bWorkersFinished = false;
-
-  auto&& subtasksFinally = SRMakeFinally([&] {
-    if (!bWorkersFinished) {
-      task.WaitComplete();
-    }
-    for (size_t i = 0; i < nSubtasks; i++) {
-      pSubtasks[i].~taSubtask();
-    }
-  }); (void)subtasksFinally;
+  Keeper<taSubtask> kp(_pSubtasksMem, task);
 
   size_t nextStart = 0;
   const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
 
-  while (nSubtasks < nWorkers && nextStart < nItems) {
+  while (kp._nSubtasks < nWorkers && nextStart < nItems) {
     const size_t curStart = nextStart;
-    nextStart += perWorker.quot + (((long long)nSubtasks < perWorker.rem) ? 1 : 0);
+    nextStart += perWorker.quot + (((long long)kp._nSubtasks < perWorker.rem) ? 1 : 0);
     assert(nextStart <= nItems);
-    subtaskInit(pSubtasks + nSubtasks, nSubtasks, curStart, nextStart);
+    subtaskInit(kp._pSubtasks + kp._nSubtasks, kp._nSubtasks, curStart, nextStart);
     // For finalization, it's important to increment subtask counter right after another subtask has been
     //   constructed.
-    nSubtasks++;
+    kp._nSubtasks++;
   }
-  _pTp->EnqueueAdjacent(pSubtasks, nSubtasks, task);
+  _pTp->EnqueueAdjacent(kp._pSubtasks, kp._nSubtasks, task);
 
-  bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
+  kp._pTask = nullptr; // Don't call again SRBaseTask::WaitComplete() if it throws here.
   task.WaitComplete();
+  return std::move(kp);
 }
 
-template<typename taSubtask, typename taCallback> inline void SRPoolRunner::RunPerWorkerSubtasks(
+template<typename taSubtask, typename taCallback> inline
+  SRPoolRunner::Keeper<taSubtask> SRPoolRunner::RunPerWorkerSubtasks(
   typename taSubtask::TTask& task, const SRThreadCount nWorkers, const taCallback &subtaskInit)
 {
-  taSubtask *const pSubtasks = SRCast::Ptr<taSubtask>(_pSubtasksMem);
-  SRThreadCount nSubtasks = 0;
-  bool bWorkersFinished = false;
+  Keeper<taSubtask> kp(_pSubtasksMem, task);
 
-  auto&& subtasksFinally = SRMakeFinally([&] {
-    if (!bWorkersFinished) {
-      task.WaitComplete();
-    }
-    for (SRThreadCount i = 0; i < nSubtasks; i++) {
-      pSubtasks[i].~taSubtask();
-    }
-  }); (void)subtasksFinally;
-
-  while (nSubtasks < nWorkers) {
-    subtaskInit(pSubtasks + nSubtasks, nSubtasks);
+  while (kp._nSubtasks < nWorkers) {
+    subtaskInit(kp._pSubtasks + kp._nSubtasks, kp._nSubtasks);
     // For finalization, it's important to increment subtask counter right after another subtask has been
     //   constructed.
-    nSubtasks++;
+    kp._nSubtasks++;
   }
-  _pTp->EnqueueAdjacent(pSubtasks, nSubtasks, task);
+  _pTp->EnqueueAdjacent(kp._pSubtasks, kp._nSubtasks, task);
 
-  bWorkersFinished = true; // Don't call again SRBaseTask::WaitComplete() if it throws here.
+  kp._pTask = nullptr; // Don't call again SRBaseTask::WaitComplete() if it throws here.
   task.WaitComplete();
+  return std::move(kp);
 }
 
 } // namespace SRPlat

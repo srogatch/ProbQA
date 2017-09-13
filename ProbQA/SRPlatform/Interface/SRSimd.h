@@ -172,6 +172,14 @@ public:
     return maxes;
   }
 
+  ATTR_NOALIAS static int64_t __vectorcall FullHorizMaxI64(const __m256i a) {
+    const __m128i hiLane = _mm256_extracti128_si256(a, 1);
+    const __m128i loLane = _mm256_castsi256_si128(a);
+    const __m128i isLoGreater = _mm_cmpgt_epi64(loLane, hiLane);
+    const __m128i maxes = _mm_blendv_epi8(hiLane, loLane, isLoGreater);
+    return std::max(maxes.m128i_i64[0], maxes.m128i_i64[1]);
+  }
+
   // Version for infrequent calls, so to minimize cache footprint.
   ATTR_NOALIAS static __m256i __vectorcall SetToBitQuadCold(const uint8_t bitQuad) {
     assert(bitQuad < _cnStbqEntries);
