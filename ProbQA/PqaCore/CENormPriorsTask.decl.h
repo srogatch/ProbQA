@@ -11,14 +11,22 @@
 
 namespace ProbQA {
 
+#pragma warning( push )
+#pragma warning( disable : 4324 ) // structure was padded due to alignment specifier
 template<typename taNumber> class CENormPriorsTask : public CEBaseTask {
 public:
   const CEQuiz<taNumber> *const _pQuiz;
+  SRPlat::SRBucketSummator<taNumber> *_pBs;
+  // The number to add to the exponent so to get it within the representable range or to cut off if corrected exponent
+  //   is too small. Repeated in each 64-bit component.
   int64_t _iPartial;
   SRPlat::SRVectCompCount _nValid;
+  __m256i _corrExp;
 
 public:
-  explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz);
+  explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz,
+    SRPlat::SRBucketSummator<taNumber> &bs);
 };
+#pragma warning( pop )
 
 } // namespace ProbQA

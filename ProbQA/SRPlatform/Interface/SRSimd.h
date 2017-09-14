@@ -122,7 +122,24 @@ public:
     return _mm256_sub_epi64(exps, _cDoubleExp0Down);
   }
 
+  // Extract components 1,3,5,7
+  ATTR_NOALIAS static __m128i __vectorcall ExtractOdd(const __m256i vect) {
+    const __m128i hiLane = _mm256_extracti128_si256(vect, 1);
+    const __m128i loLane = _mm256_castsi256_si128(vect);
+    return _mm_castps_si128(_mm_shuffle_ps(
+      _mm_castsi128_ps(loLane), _mm_castsi128_ps(hiLane), _MM_SHUFFLE(3, 1, 3, 1)));
+  }
+
+  // Extract components 0,2,4,6
+  ATTR_NOALIAS static __m128i __vectorcall ExtractEven(const __m256i vect) {
+    const __m128i hiLane = _mm256_extracti128_si256(vect, 1);
+    const __m128i loLane = _mm256_castsi256_si128(vect);
+    return _mm_castps_si128(_mm_shuffle_ps(
+      _mm_castsi128_ps(loLane), _mm_castsi128_ps(hiLane), _MM_SHUFFLE(2, 0, 2, 0)));
+  }
+
   template<bool taNorm0> ATTR_NOALIAS static __m128i __vectorcall ExtractExponents32(const __m256d nums) {
+    // Don't reuse ExtractOdd, so to avoid integer-float transition penalties.
     const __m128 hiLane = _mm_castpd_ps(_mm256_extractf128_pd(nums, 1));
     const __m128 loLane = _mm_castpd_ps(_mm256_castpd256_pd128(nums));
     const __m128i high32 = _mm_castps_si128(_mm_shuffle_ps(loLane, hiLane, _MM_SHUFFLE(3, 1, 3, 1)));
@@ -150,6 +167,12 @@ public:
     const __m256d e0nums = _mm256_or_pd(_mm256_castsi256_pd(_cDoubleExp0Up),
       _mm256_andnot_pd(_mm256_castsi256_pd(_cDoubleExpMaskUp), nums));
     return e0nums;
+  }
+
+  ATTR_NOALIAS static __m256d __vectorcall ReplaceExponents(const __m256d nums, const __m256i exps) {
+    const __m256d newExps = _mm256_castsi256_pd(_mm256_slli_epi64(exps, SRNumTraits<double>::_cExponentOffs));
+    const __m256d newNums = _mm256_or_pd(newExps, _mm256_andnot_pd(_mm256_castsi256_pd(_cDoubleExpMaskUp), nums));
+    return newNums;
   }
 
   ATTR_NOALIAS static __m256d __vectorcall HorizAddStraight(const __m256d a, const __m256d b) {

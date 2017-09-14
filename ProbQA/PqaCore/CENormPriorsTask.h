@@ -9,7 +9,7 @@
 namespace ProbQA {
 
 template<typename taNumber> inline CENormPriorsTask<taNumber>::CENormPriorsTask(CpuEngine<taNumber> &engine,
-  CEQuiz<taNumber> &quiz) : CEBaseTask(engine), _pQuiz(&quiz)
+  CEQuiz<taNumber> &quiz, SRPlat::SRBucketSummator<taNumber> &bs) : CEBaseTask(engine), _pQuiz(&quiz), _pBs(&bs)
 { }
 
 } // namespace ProbQA

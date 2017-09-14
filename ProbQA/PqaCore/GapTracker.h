@@ -6,13 +6,13 @@
 
 namespace ProbQA {
 
-// This class is not thread-safe.
-//TODO: refactor to get a possibility to fetch 4 bits at once
+// This class is not thread-safe. The underlying bit array must set to "true" (indicating a gap) values beyond the size,
+//   so to allow uniform handling of partial vectors on the bounds as if the invalid items are just in a gap.
 template <typename taId> class GapTracker {
   std::vector<taId> _gaps;
   SRPlat::SRBitArray _isGap; // remove R after refactorring
 public:
-  explicit GapTracker() : _isGap(0, false) { }
+  explicit GapTracker() : _isGap(0, true) { }
 
   bool IsGap(const taId at) const { return _isGap.GetOne(SRPlat::SRCast::ToUint64(at)); }
 
@@ -32,6 +32,7 @@ public:
     if (_gaps.size() <= 0) {
       taId answer = _isGap.Size();
       _isGap.Add(1);
+      _isGap.ClearOne(answer);
       return answer;
     }
     taId answer = _gaps.back();
@@ -43,7 +44,7 @@ public:
   // Grow to the specified length setting the new items as not gaps.
   void GrowTo(const taId newLength) {
     assert(newLength >= taId(_isGap.Size()));
-    _isGap.GrowTo(SRPlat::SRCast::ToUint64(newLength));
+    _isGap.GrowTo(SRPlat::SRCast::ToUint64(newLength), false);
   }
 
   // Client access to the gaps vector, e.g. to sort it and then make compaction.

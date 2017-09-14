@@ -76,7 +76,7 @@ public:
     const size_t nItems, const SRThreadCount nWorkers)
   {
     return SplitAndRunSubtasks<taSubtask>(task, nItems, nWorkers,
-      [&](void *pStMem, SRThreadCount iWorker, int64_t iFirst, int64_t iLimit) {
+      [&](void *pStMem, const SRThreadCount iWorker, const int64_t iFirst, const int64_t iLimit) {
         taSubtask *pSt = new(pStMem) taSubtask(&task);
         pSt->SetStandardParams(iWorker, iFirst, iLimit);
       }
@@ -95,7 +95,7 @@ public:
   template<typename taSubtask> inline Keeper<taSubtask> RunPerWorkerSubtasks(typename taSubtask::TTask& task,
     const SRThreadCount nWorkers)
   {
-    return RunPerWorkerSubtasks<taSubtask>(task, nWorkers, [&](void *pStMem, SRThreadCount iWorker) {
+    return RunPerWorkerSubtasks<taSubtask>(task, nWorkers, [&](void *pStMem, const SRThreadCount iWorker) {
       taSubtask *pSt = new(pStMem) taSubtask(&task);
       pSt->SetStandardParams(iWorker, iWorker, iWorker + 1);
     });

@@ -8,15 +8,12 @@
 
 namespace ProbQA {
 
-template<typename taNumber> class CENormPriorsSubtaskMax : public SRPlat::SRStandardSubtask {
+template<typename taNumber> class CENormPriorsSubtaskCorrSum : public SRPlat::SRStandardSubtask {
 public: // types
   typedef CENormPriorsTask<taNumber> TTask;
 
-public: // variables
-  int64_t _maxExp; // Result
-
 public: // methods
-  explicit CENormPriorsSubtaskMax(CENormPriorsTask<taNumber> *pTask);
+  explicit CENormPriorsSubtaskCorrSum(CENormPriorsTask<taNumber> *pTask);
   virtual void Run() override final;
 };
 

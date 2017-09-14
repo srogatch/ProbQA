@@ -24,11 +24,12 @@ private: // methods
   static inline constexpr int32_t WorkerRowLengthBytes();
   inline taNumber& ModBucket(const SRThreadCount iWorker, const uint32_t iBucket);
   inline taNumber& ModOffs(const size_t byteOffs);
-  inline static __m128i __vectorcall Get4Offsets(const SRThreadCount iWorker, const __m256d nums);
+  inline static __m128i __vectorcall OffsetsFrom4Exps(const SRThreadCount iWorker, const __m128i exps32);
   inline static SRPacked64 __vectorcall Get2Offsets(const SRThreadCount iWorker, const __m128d nums);
   inline taNumber __vectorcall SumWorkerSums();
   inline taNumber* GetWorkerRow(const SRThreadCount iWorker) const;
   inline const SRNumPack<taNumber>& GetVect(const SRThreadCount iWorker, const uint32_t iVect) const;
+  inline void AddInternal4(const SRNumPack<taNumber> np, const __m128i offsets);
 
 public: // methods
   static inline size_t GetMemoryRequirementBytes(const SRThreadCount nWorkers);
@@ -39,9 +40,12 @@ public: // methods
 
   //// Passing |np| by value is only efficient so long as it fits and AVX register. There can be a separate function
   ////   without __vectorcall to take it by const reference.
-  void __vectorcall CalcAdd(const SRThreadCount iWorker, const SRNumPack<taNumber> np);
+  inline void __vectorcall CalcAdd(const SRThreadCount iWorker, const SRNumPack<taNumber> np);
+  inline void __vectorcall Add(const SRThreadCount iWorker, const SRNumPack<taNumber> np, const __m256i exps);
+
   // Add a vector, in which only first nValid components are valid (e.g. the rest is out of range).
-  void __vectorcall CalcAdd(const SRThreadCount iWorker, const SRNumPack<taNumber> np, const SRVectCompCount nValid);
+  inline void __vectorcall CalcAdd(const SRThreadCount iWorker, const SRNumPack<taNumber> np,
+    const SRVectCompCount nValid);
 
   inline taNumber ComputeSum(SRPoolRunner &pr);
 };
@@ -83,11 +87,10 @@ template<typename taNumber> inline taNumber& SRBucketSummator<taNumber>::ModOffs
   return *SRCast::Ptr<taNumber>(SRCast::Ptr<uint8_t>(_pBuckets) + byteOffs);
 }
 
-template<typename taNumber> inline __m128i __vectorcall SRBucketSummator<taNumber>::Get4Offsets(
-  const SRThreadCount iWorker, const __m256d nums)
+template<typename taNumber> inline __m128i __vectorcall SRBucketSummator<taNumber>::OffsetsFrom4Exps(
+  const SRThreadCount iWorker, const __m128i exps32)
 {
-  const __m128i exps = SRSimd::ExtractExponents32<false>(nums);
-  const __m128i scaled = _mm_mul_epi32(exps, taNumber::_cSizeBytes128_32);
+  const __m128i scaled = _mm_mul_epi32(exps32, taNumber::_cSizeBytes128_32);
   const __m128i offsets = _mm_add_epi32(scaled, _mm_set1_epi32(iWorker * WorkerRowLengthBytes()));
   return offsets;
 }
@@ -126,10 +129,9 @@ template<> inline void SRBucketSummator<SRDoubleNumber>::ZeroBuckets(const  SRTh
     WorkerRowLengthBytes() >> SRSimd::_cLogNBytes);
 }
 
-template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(const SRThreadCount iWorker,
-  const SRNumPack<SRDoubleNumber> np)
+template<> inline void SRBucketSummator<SRDoubleNumber>::AddInternal4(const SRNumPack<SRDoubleNumber> np,
+  const __m128i offsets)
 {
-  const __m128i offsets = Get4Offsets(iWorker, np._comps);
   SRDoubleNumber &b0 = ModOffs(offsets.m128i_u32[0]);
   SRDoubleNumber &b1 = ModOffs(offsets.m128i_u32[1]);
   SRDoubleNumber &b2 = ModOffs(offsets.m128i_u32[2]);
@@ -145,6 +147,20 @@ template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(co
   b2.SetValue(sums.m256d_f64[2]);
   b1.SetValue(sums.m256d_f64[1]);
   b0.SetValue(sums.m256d_f64[0]);
+}
+
+template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(const SRThreadCount iWorker,
+  const SRNumPack<SRDoubleNumber> np)
+{
+  const __m128i offsets = OffsetsFrom4Exps(iWorker, SRSimd::ExtractExponents32<false>(np._comps));
+  AddInternal4(np, offsets);
+}
+
+template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::Add(const SRThreadCount iWorker,
+  const SRNumPack<SRDoubleNumber> np, const __m256i exps64)
+{
+  const __m128i offsets = OffsetsFrom4Exps(iWorker, SRSimd::ExtractEven(exps64));
+  AddInternal4(np, offsets);
 }
 
 template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(const SRThreadCount iWorker,

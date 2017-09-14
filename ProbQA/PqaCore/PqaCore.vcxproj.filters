@@ -171,6 +171,9 @@
     <ClInclude Include="BucketSummator.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CENormPriorsSubtaskCorrSum.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -216,6 +219,9 @@
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CENormPriorsSubtaskMax.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

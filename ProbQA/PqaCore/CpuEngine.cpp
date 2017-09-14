@@ -15,6 +15,7 @@
 #include "../PqaCore/CECreateQuizOperation.h"
 #include "../PqaCore/CENormPriorsTask.h"
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
+#include "../PqaCore/CENormPriorsSubtaskCorrSum.h"
 
 using namespace SRPlat;
 
@@ -384,19 +385,13 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
   SRBucketSummator<taNumber> bs(nWorkers, commonBuf.Get() + bucketsOffs);
 
-  //Test code for SRBucketSummator compilation
-  //bs.CalcAdd(0, _mm256_setzero_pd());
-  //bs.CalcAdd(1, _mm256_castsi256_pd(_mm256_set1_epi8(-1i8)), 3);
-  //taNumber test = bs.ComputeSum(pr);
-
   {
-    CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz);
+    CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bs);
     const int64_t nTargetVects = SRNumHelper::Vectorize<taNumber>(_dims._nTargets, normPriorsTask._iPartial,
       normPriorsTask._nValid);
     const SRThreadCount nResultVects = nWorkers >> SRSimd::_cLogNComps64;
     const SRVectCompCount nTail = SRVectCompCount(nWorkers - (nResultVects << SRSimd::_cLogNComps64));
-    int64_t corrExp;
-    {
+    { // The lifetime for maximum selection subtasks
       SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp
         = pr.SplitAndRunSubtasks<CENormPriorsSubtaskMax<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
       __m256i vMaxExps;
@@ -419,11 +414,16 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       }
       const int64_t fullMax = SRSimd::FullHorizMaxI64(vMaxExps);
       const int64_t highBound = taNumber::_cMaxExp + taNumber::_cExpOffs - SRMath::CeilLog2(_dims._nTargets) - 2;
-      if (fullMax <= std::numeric_limits<int64_t>::min() + highBound + 1) {
-        //TODO: return underflow error (perhaps because all the targets are in gaps)
+      const int64_t minAllowed = std::numeric_limits<int64_t>::min() + highBound + 1;
+      if (fullMax <= minAllowed) {
+        err = PqaError(PqaErrorCode::I64Underflow, new I64UnderflowErrorParams(fullMax, minAllowed),
+          SRString::MakeUnowned("Max exponent over the priors is too low. Are all the targets in gaps?"));
+        return cInvalidPqaId;
       }
-      corrExp = highBound - fullMax; // so that fullMax + correction == highBound
+      normPriorsTask._corrExp = _mm256_set1_epi64x(highBound - fullMax); // so that fullMax + correction == highBound
     }
+    //TODO: a possibility to reuse the previous split (calculated for the previous subtasks)?
+    pr.SplitAndRunSubtasks<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
 
   }
   

@@ -161,4 +161,17 @@ public:
   }
 };
 
+class PQACORE_API I64UnderflowErrorParams : public IPqaErrorParams {
+  int64_t _actual;
+  int64_t _minAllowed;
+public:
+  explicit I64UnderflowErrorParams(const int64_t actual, const int64_t minAllowed) : _actual(actual),
+    _minAllowed(minAllowed) { }
+  int64_t GetActual() const { return _actual; }
+  int64_t GetMinAllowed() const { return _minAllowed; }
+  virtual SRPlat::SRString ToString() override final {
+    return SRPlat::SRMessageBuilder("actual=")(_actual)(", minAllowed=")(_minAllowed).GetOwnedSRString();
+  }
+};
+
 } // namespace ProbQA
