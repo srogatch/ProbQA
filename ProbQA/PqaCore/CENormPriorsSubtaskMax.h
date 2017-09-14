@@ -13,6 +13,9 @@ template<typename taNumber> class CENormPriorsSubtaskMax : public SRPlat::SRStan
 public: // types
   typedef CENormPriorsTask<taNumber> TTask;
 
+public: // variables
+  int64_t _maxExp; // Result
+
 public: // methods
   explicit CENormPriorsSubtaskMax(CENormPriorsTask<taNumber> *pTask);
   virtual void Run() override final;

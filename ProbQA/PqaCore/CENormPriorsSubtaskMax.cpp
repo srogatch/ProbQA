@@ -18,7 +18,7 @@ template<typename taNumber> CENormPriorsSubtaskMax<taNumber>::CENormPriorsSubtas
 namespace {
 
 // Returns the total exponents.
-// cmMask is an output parameter for the mask for retaining the old maximum.
+// |retention| is an output parameter for the mask for retaining the old maximum.
 ATTR_NOALIAS inline __m256i __vectorcall Process(const __m256d *PTR_RESTRICT pMants, const __m256i *PTR_RESTRICT pExps,
   __m256i &PTR_RESTRICT retention, const uint8_t gaps)
 {
@@ -41,9 +41,9 @@ template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
 
   __m256i curMax = _mm256_set1_epi64x(std::numeric_limits<int64_t>::min());
   for (TPqaId i = _iFirst, iEn = (isAtPartial ? task._iPartial : _iLimit); i < iEn; i++) {
-    __m256i cmMask;
-    const __m256i totExp = Process(pMants + i, pExps + i, cmMask, gapTracker.GetQuad(i));
-    curMax = SRSimd::MaxI64(curMax, totExp, cmMask);
+    __m256i retention;
+    const __m256i totExp = Process(pMants + i, pExps + i, retention, gapTracker.GetQuad(i));
+    curMax = SRSimd::MaxI64(curMax, totExp, retention);
   }
   if (isAtPartial) {
     __m256i retention;
@@ -52,9 +52,7 @@ template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
     retention = _mm256_or_si256(retention, SRSimd::SetHighComps64(SRNumPack<SRDoubleNumber>::_cnComps - task._nValid));
     curMax = SRSimd::MaxI64(curMax, totExp, retention);
   }
-  const int64_t scalarMax = SRSimd::FullHorizMaxI64(curMax);
-  //TODO: implement - save to the task
-  //TODO: maybe implement standard result collection approach for subtasks?
+  _maxExp = SRSimd::FullHorizMaxI64(curMax);
 }
 
 

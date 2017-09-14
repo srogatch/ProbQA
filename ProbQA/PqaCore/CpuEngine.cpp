@@ -393,7 +393,37 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz);
     const int64_t nTargetVects = SRNumHelper::Vectorize<taNumber>(_dims._nTargets, normPriorsTask._iPartial,
       normPriorsTask._nValid);
-    pr.SplitAndRunSubtasks<CENormPriorsSubtaskMax<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
+    const SRThreadCount nResultVects = nWorkers >> SRSimd::_cLogNComps64;
+    const SRVectCompCount nTail = SRVectCompCount(nWorkers - (nResultVects << SRSimd::_cLogNComps64));
+    int64_t corrExp;
+    {
+      SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp
+        = pr.SplitAndRunSubtasks<CENormPriorsSubtaskMax<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
+      __m256i vMaxExps;
+      auto fnFetch = [&](const SRVectCompCount at) { return kp.GetSubtask(at)->_maxExp; };
+      if (nResultVects == 0) {
+        SRSimd::ForTailI64(nTail, fnFetch, [&](const __m256i& vect) { vMaxExps = vect; },
+          std::numeric_limits<int64_t>::min());
+      }
+      else {
+        vMaxExps = _mm256_set_epi64x(kp.GetSubtask(3)->_maxExp, kp.GetSubtask(2)->_maxExp, kp.GetSubtask(1)->_maxExp,
+          kp.GetSubtask(0)->_maxExp);
+        for (SRThreadCount i = 1; i < nResultVects; i++) {
+          const SRThreadCount iBase = (i << SRSimd::_cLogNComps64);
+          const __m256i cand = _mm256_set_epi64x(kp.GetSubtask(iBase + 3)->_maxExp,
+            kp.GetSubtask(iBase + 2)->_maxExp, kp.GetSubtask(iBase + 1)->_maxExp, kp.GetSubtask(iBase)->_maxExp);
+          vMaxExps = SRSimd::MaxI64(vMaxExps, cand);
+        }
+        SRSimd::ForTailI64(nTail, fnFetch, [&](const __m256i& cand) { vMaxExps = SRSimd::MaxI64(vMaxExps, cand); },
+          std::numeric_limits<int64_t>::min());
+      }
+      const int64_t fullMax = SRSimd::FullHorizMaxI64(vMaxExps);
+      const int64_t highBound = taNumber::_cMaxExp + taNumber::_cExpOffs - SRMath::CeilLog2(_dims._nTargets) - 2;
+      if (fullMax <= std::numeric_limits<int64_t>::min() + highBound + 1) {
+        //TODO: return underflow error (perhaps because all the targets are in gaps)
+      }
+      corrExp = highBound - fullMax; // so that fullMax + correction == highBound
+    }
 
   }
   

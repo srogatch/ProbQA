@@ -18,6 +18,7 @@ public:
 
   static constexpr uint8_t _cLogNBits = 8; //AVX2, 256 bits, log2(256)=8
   static constexpr uint8_t _cLogNBytes = _cLogNBits - 3;
+  static constexpr uint8_t _cLogNComps64 = _cLogNBytes - 3;
   static constexpr size_t _cNBits = 1 << _cLogNBits;
   static constexpr size_t _cNBytes = 1 << _cLogNBytes;
 
@@ -172,6 +173,12 @@ public:
     return maxes;
   }
 
+  ATTR_NOALIAS static __m256i __vectorcall MaxI64(const __m256i a, const __m256i b) {
+    const __m256i isAGreater = _mm256_cmpgt_epi64(a, b);
+    const __m256i maxes = _mm256_blendv_epi8(b, a, isAGreater);
+    return maxes;
+  }
+
   ATTR_NOALIAS static int64_t __vectorcall FullHorizMaxI64(const __m256i a) {
     const __m128i hiLane = _mm256_extracti128_si256(a, 1);
     const __m128i loLane = _mm256_castsi256_si128(a);
@@ -191,6 +198,64 @@ public:
   ATTR_NOALIAS static __m256i __vectorcall SetToBitQuadHot(const uint8_t bitQuad) {
     assert(bitQuad < _cnStbqEntries);
     return BroadcastBytesToComps64(_cStbqTable[bitQuad]);
+  }
+
+  template<typename cbFetch, typename cbProcess> ATTR_NOALIAS static void ForTailF64(
+    const SRVectCompCount nComps, const cbFetch &PTR_RESTRICT fetch, const cbProcess &PTR_RESTRICT process,
+    const double placeholder)
+  {
+    __m256d vect;
+    switch (nComps) {
+    case 0:
+      return;
+    case 1: {
+      const __m128d hi = _mm_set1_pd(placeholder);
+      const __m128d lo = _mm_set_pd(placeholder, fetch(0));
+      vect = _mm256_set_m128d(hi, lo);
+      break;
+    }
+    case 2: {
+      const __m128d hi = _mm_set1_pd(placeholder);
+      const __m128d lo = _mm_set_pd(fetch(1), fetch(0));
+      vect = _mm256_set_m128d(hi, lo);
+      break;
+    }
+    case 3: {
+      vect = _mm256_set_pd(placeholder, fetch(2), fetch(1), fetch(0));
+      break;
+    }
+    default:
+      __assume(0);
+    }
+    process(vect);
+  }
+
+  template<typename cbFetch, typename cbProcess> ATTR_NOALIAS static void ForTailI64(
+    const SRVectCompCount nComps, const cbFetch &PTR_RESTRICT fetch, const cbProcess &PTR_RESTRICT process,
+    const int64_t placeholder)
+  {
+    __m256i vect;
+    switch (nComps) {
+    case 0:
+      return;
+    case 1: {
+      vect = _mm256_insert_epi64(_mm256_set1_epi64x(placeholder), fetch(0), 0);
+      break;
+    }
+    case 2: {
+      const __m128i hi = _mm_set1_epi64x(placeholder);
+      const __m128i lo = _mm_set_epi64x(fetch(1), fetch(0));
+      vect = _mm256_set_m128i(hi, lo);
+      break;
+    }
+    case 3: {
+      vect = _mm256_set_epi64x(placeholder, fetch(2), fetch(1), fetch(0));
+      break;
+    }
+    default:
+      __assume(0);
+    }
+    process(vect);
   }
 
 };

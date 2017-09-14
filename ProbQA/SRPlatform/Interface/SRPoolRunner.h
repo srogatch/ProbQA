@@ -56,6 +56,8 @@ public: // types
       }
       return *this;
     }
+
+    taSubtask *GetSubtask(const SRThreadCount at) { return _pSubtasks + at; }
   };
 
 private: // variables
@@ -113,7 +115,7 @@ template<typename taSubtask, typename taCallback> inline
     const size_t curStart = nextStart;
     nextStart += perWorker.quot + (((long long)kp._nSubtasks < perWorker.rem) ? 1 : 0);
     assert(nextStart <= nItems);
-    subtaskInit(kp._pSubtasks + kp._nSubtasks, kp._nSubtasks, curStart, nextStart);
+    subtaskInit(kp.GetSubtask(kp._nSubtasks), kp._nSubtasks, curStart, nextStart);
     // For finalization, it's important to increment subtask counter right after another subtask has been
     //   constructed.
     kp._nSubtasks++;
@@ -132,7 +134,7 @@ template<typename taSubtask, typename taCallback> inline
   Keeper<taSubtask> kp(_pSubtasksMem, task);
 
   while (kp._nSubtasks < nWorkers) {
-    subtaskInit(kp._pSubtasks + kp._nSubtasks, kp._nSubtasks);
+    subtaskInit(kp.GetSubtask(kp._nSubtasks), kp._nSubtasks);
     // For finalization, it's important to increment subtask counter right after another subtask has been
     //   constructed.
     kp._nSubtasks++;

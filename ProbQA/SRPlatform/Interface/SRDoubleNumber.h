@@ -14,6 +14,8 @@ class SRPLATFORM_API SRDoubleNumber : public SRRealNumber {
 public: // constants
   static const __m128i _cSizeBytes128_32;
   static const SRPacked64 _cSizeBytes64_32;
+  static const int64_t _cMaxExp = 1023;
+  static const int64_t _cExpOffs = 1023;
 
 private: // variables
   double _value;
