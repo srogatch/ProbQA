@@ -19,8 +19,6 @@ public:
   SRPlat::SRBucketSummator<taNumber> *_pBs;
   // The number to add to the exponent so to get it within the representable range or to cut off if corrected exponent
   //   is too small. Repeated in each 64-bit component.
-  int64_t _iPartial;
-  SRPlat::SRVectCompCount _nValid;
   __m256i _corrExp;
 
 public:

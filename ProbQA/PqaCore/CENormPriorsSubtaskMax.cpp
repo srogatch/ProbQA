@@ -44,18 +44,10 @@ template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
   ctx._pExps = SRCast::CPtr<__m256i>(task._pQuiz->GetTlhExps());
   ctx._pMants = SRCast::CPtr<__m256d>(task._pQuiz->GetTlhMants());
 
-  const bool isAtPartial = (_iLimit + 1 == task._iPartial);
-
   __m256i curMax = _mm256_set1_epi64x(std::numeric_limits<int64_t>::min());
-  for (TPqaId i = _iFirst, iEn = (isAtPartial ? task._iPartial : _iLimit); i < iEn; i++) {
+  for (TPqaId i = _iFirst, iEn = _iLimit; i < iEn; i++) {
     __m256i retention;
     const __m256i totExp = ctx.Process(i, retention);
-    curMax = SRSimd::MaxI64(curMax, totExp, retention);
-  }
-  if (isAtPartial) {
-    __m256i retention;
-    const __m256i totExp = ctx.Process(task._iPartial, retention);
-    retention = _mm256_or_si256(retention, SRSimd::SetHighComps64(SRNumPack<SRDoubleNumber>::_cnComps - task._nValid));
     curMax = SRSimd::MaxI64(curMax, totExp, retention);
   }
   _maxExp = SRSimd::FullHorizMaxI64(curMax);

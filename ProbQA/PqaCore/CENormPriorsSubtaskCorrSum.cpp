@@ -52,19 +52,13 @@ template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
   ctx._pExps = SRCast::Ptr<__m256i>(ctx._pTask->_pQuiz->GetTlhExps());
   ctx._pMants = SRCast::Ptr<__m256d>(ctx._pTask->_pQuiz->GetTlhMants());
 
-  const bool isAtPartial = (_iLimit + 1 == ctx._pTask->_iPartial);
-
   bs.ZeroBuckets(_iWorker);
 
-  for (TPqaId i = _iFirst, iEn = (isAtPartial ? ctx._pTask->_iPartial : _iLimit); i < iEn; i++) {
+  for (TPqaId i = _iFirst, iEn = _iLimit; i < iEn; i++) {
     __m256i exps;
     const __m256d addend = ctx.Process(i, exps);
     bs.Add(_iWorker, addend, exps);
   }
-  if (isAtPartial) {
-
-  }
-  //TODO: implement
 }
 
 

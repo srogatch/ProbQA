@@ -387,8 +387,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   {
     CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bs);
-    const int64_t nTargetVects = SRNumHelper::Vectorize<taNumber>(_dims._nTargets, normPriorsTask._iPartial,
-      normPriorsTask._nValid);
+    const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
     const SRThreadCount nResultVects = nWorkers >> SRSimd::_cLogNComps64;
     const SRVectCompCount nTail = SRVectCompCount(nWorkers - (nResultVects << SRSimd::_cLogNComps64));
     { // The lifetime for maximum selection subtasks
@@ -425,6 +424,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     //TODO: a possibility to reuse the previous split (calculated for the previous subtasks)?
     pr.SplitAndRunSubtasks<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
 
+    taNumber sumPriors = bs.ComputeSum(pr);
+    //TODO: implement - divide by the sum
   }
   
 
