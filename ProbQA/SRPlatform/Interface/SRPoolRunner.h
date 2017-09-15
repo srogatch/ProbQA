@@ -90,13 +90,31 @@ public:
     size_t nextStart = 0;
     const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
     while (nSubtasks < nWorkers && nextStart < nItems) {
-      const size_t curStart = nextStart;
       nextStart += perWorker.quot + (((long long)nSubtasks < perWorker.rem) ? 1 : 0);
       assert(nextStart <= nItems);
       pBounds[nSubtasks] = nextStart;
       nSubtasks++;
     }
     return {pBounds, nSubtasks};
+  }
+
+  //NOTE: use the static version to specify worker count explicitly. This version takes it from thread pool.
+  Split CalcSplit(void *pSplitMem, const size_t nItems) {
+    return CalcSplit(pSplitMem, nItems, _pTp->GetWorkerCount());
+  }
+
+  template<typename taSubtask, typename taCallback> inline Keeper<taSubtask> RunPreSplit(
+    typename taSubtask::TTask& task, const Split& split, const taCallback &subtaskInit);
+
+  template<typename taSubtask> inline Keeper<taSubtask> RunPreSplit(
+    typename taSubtask::TTask& task, const Split& split)
+  {
+    return RunPreSplit<taSubtask>(task, split,
+      [&](void *pStMem, const SRThreadCount iWorker, const int64_t iFirst, const int64_t iLimit) {
+        taSubtask *pSt = new(pStMem) taSubtask(&task);
+        pSt->SetStandardParams(iWorker, iFirst, iLimit);
+      }
+    );
   }
 
   template<typename taSubtask, typename taCallback> inline Keeper<taSubtask> SplitAndRunSubtasks(
@@ -132,6 +150,25 @@ public:
   }
 };
 
+template<typename taSubtask, typename taCallback> inline SRPoolRunner::Keeper<taSubtask> SRPoolRunner::RunPreSplit(
+  typename taSubtask::TTask& task, const Split& split, const taCallback &subtaskInit)
+{
+  Keeper<taSubtask> kp(_pSubtasksMem, task);
+  size_t curStart = 0;
+  while(kp._nSubtasks < split._nSubtasks) {
+    const size_t nextStart = split._pBounds[kp._nSubtasks];
+    subtaskInit(kp.GetSubtask(kp._nSubtasks), kp._nSubtasks, curStart, nextStart);
+    // For finalization, it's important to increment subtask counter right after another subtask has been constructed.
+    kp._nSubtasks++;
+    curStart = nextStart;
+  }
+  _pTp->EnqueueAdjacent(kp._pSubtasks, kp._nSubtasks, task);
+
+  kp._pTask = nullptr; // Don't call again SRBaseTask::WaitComplete() if it throws here.
+  task.WaitComplete();
+  return std::move(kp);
+}
+
 template<typename taSubtask, typename taCallback> inline
   SRPoolRunner::Keeper<taSubtask> SRPoolRunner::SplitAndRunSubtasks(
   typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit)
@@ -146,8 +183,7 @@ template<typename taSubtask, typename taCallback> inline
     nextStart += perWorker.quot + (((long long)kp._nSubtasks < perWorker.rem) ? 1 : 0);
     assert(nextStart <= nItems);
     subtaskInit(kp.GetSubtask(kp._nSubtasks), kp._nSubtasks, curStart, nextStart);
-    // For finalization, it's important to increment subtask counter right after another subtask has been
-    //   constructed.
+    // For finalization, it's important to increment subtask counter right after another subtask has been constructed.
     kp._nSubtasks++;
   }
   _pTp->EnqueueAdjacent(kp._pSubtasks, kp._nSubtasks, task);
@@ -165,8 +201,7 @@ template<typename taSubtask, typename taCallback> inline
 
   while (kp._nSubtasks < nWorkers) {
     subtaskInit(kp.GetSubtask(kp._nSubtasks), kp._nSubtasks);
-    // For finalization, it's important to increment subtask counter right after another subtask has been
-    //   constructed.
+    // For finalization, it's important to increment subtask counter right after another subtask has been constructed.
     kp._nSubtasks++;
   }
   _pTp->EnqueueAdjacent(kp._pSubtasks, kp._nSubtasks, task);

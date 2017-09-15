@@ -73,6 +73,7 @@ template<typename taNumber> inline size_t SRBucketSummator<taNumber>::GetMemoryR
 template<typename taNumber> inline SRBucketSummator<taNumber>::SRBucketSummator(
   const SRThreadCount nWorkers, void* pMem) : _nWorkers(nWorkers)
 {
+  assert((uintptr_t(pMem) & SRSimd::_cByteMask) == 0);
   _pBuckets = static_cast<taNumber*>(pMem);
   _pWorkerSums = SRCast::Ptr<taNumber>(GetWorkerRow(nWorkers));
 }

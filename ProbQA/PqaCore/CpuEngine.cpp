@@ -378,7 +378,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   const size_t subtasksOffs = 0;
-  const size_t bucketsOffs = nWorkers * SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>>::value;
+  const size_t splitOffs = nWorkers * SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>,
+    CENormPriorsSubtaskCorrSum<taNumber>>::value;
+  const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t nWithBuckets = bucketsOffs + SRBucketSummator<taNumber>::GetMemoryRequirementBytes(nWorkers);
   SRSmartMPP<uint8_t> commonBuf(_memPool, nWithBuckets);
 
@@ -388,9 +390,12 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   {
     CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bs);
     const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
+    const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
+
     { // The lifetime for maximum selection subtasks
-      SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp
-        = pr.SplitAndRunSubtasks<CENormPriorsSubtaskMax<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
+      SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp = pr.RunPreSplit<CENormPriorsSubtaskMax<taNumber>>(
+        normPriorsTask, targSplit);
+      assert(kp.GetNSubtasks() == targSplit._nSubtasks);
       const SRThreadCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
       const SRVectCompCount nTail = SRVectCompCount(kp.GetNSubtasks() - (nResultVects << SRSimd::_cLogNComps64));
       __m256i vMaxExps;
@@ -421,10 +426,11 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       }
       normPriorsTask._corrExp = _mm256_set1_epi64x(highBound - fullMax); // so that fullMax + correction == highBound
     }
-    //TODO: a possibility to reuse the previous split (calculated for the previous subtasks)?
-    pr.SplitAndRunSubtasks<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
 
+    // Correct the exponents towards the taNumber range, and calculate their sum
+    pr.RunPreSplit<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, targSplit);
     taNumber sumPriors = bs.ComputeSum(pr);
+
     //TODO: implement - divide by the sum
   }
   
