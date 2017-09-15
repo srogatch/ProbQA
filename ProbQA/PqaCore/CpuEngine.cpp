@@ -388,11 +388,11 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   {
     CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bs);
     const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
-    const SRThreadCount nResultVects = nWorkers >> SRSimd::_cLogNComps64;
-    const SRVectCompCount nTail = SRVectCompCount(nWorkers - (nResultVects << SRSimd::_cLogNComps64));
     { // The lifetime for maximum selection subtasks
       SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp
         = pr.SplitAndRunSubtasks<CENormPriorsSubtaskMax<taNumber>>(normPriorsTask, nTargetVects, nWorkers);
+      const SRThreadCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
+      const SRVectCompCount nTail = SRVectCompCount(kp.GetNSubtasks() - (nResultVects << SRSimd::_cLogNComps64));
       __m256i vMaxExps;
       auto fnFetch = [&](const SRVectCompCount at) { return kp.GetSubtask(at)->_maxExp; };
       if (nResultVects == 0) {

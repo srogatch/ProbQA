@@ -58,6 +58,16 @@ public: // types
     }
 
     taSubtask *GetSubtask(const SRThreadCount at) { return _pSubtasks + at; }
+    SRThreadCount GetNSubtasks() const { return _nSubtasks; }
+  };
+
+  struct Split {
+    // The first subtask starts at 0, the last subtask ends at the last bound. The other bounds are both the start of
+    //   the next subtask and the limit of the previous subtask.
+    const size_t *const _pBounds;
+    const SRThreadCount _nSubtasks;
+
+    Split(const size_t *const pBounds, const SRThreadCount nSubtasks) : _pBounds(pBounds), _nSubtasks(nSubtasks) { }
   };
 
 private: // variables
@@ -65,9 +75,29 @@ private: // variables
   void *_pSubtasksMem;
 
 public:
+  static size_t CalcSplitMemReq(const SRThreadCount nWorkers) {
+    return nWorkers * sizeof(size_t);
+  }
+
   explicit SRPoolRunner(SRThreadPool& tp, void *pSubtasksMem) : _pTp(&tp), _pSubtasksMem(pSubtasksMem) { }
 
   SRThreadPool& GetThreadPool() const { return *_pTp; }
+
+  static Split CalcSplit(void *pSplitMem, const size_t nItems, const SRThreadCount nWorkers) {
+    size_t *pBounds = static_cast<size_t*>(pSplitMem);
+    SRThreadCount nSubtasks = 0;
+
+    size_t nextStart = 0;
+    const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
+    while (nSubtasks < nWorkers && nextStart < nItems) {
+      const size_t curStart = nextStart;
+      nextStart += perWorker.quot + (((long long)nSubtasks < perWorker.rem) ? 1 : 0);
+      assert(nextStart <= nItems);
+      pBounds[nSubtasks] = nextStart;
+      nSubtasks++;
+    }
+    return {pBounds, nSubtasks};
+  }
 
   template<typename taSubtask, typename taCallback> inline Keeper<taSubtask> SplitAndRunSubtasks(
     typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit);

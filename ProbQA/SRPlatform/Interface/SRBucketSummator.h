@@ -26,7 +26,7 @@ private: // methods
   inline taNumber& ModOffs(const size_t byteOffs);
   inline static __m128i __vectorcall OffsetsFrom4Exps(const SRThreadCount iWorker, const __m128i exps32);
   inline static SRPacked64 __vectorcall Get2Offsets(const SRThreadCount iWorker, const __m128d nums);
-  inline taNumber __vectorcall SumWorkerSums();
+  inline taNumber __vectorcall SumWorkerSums(const SRThreadCount nSubtasks);
   inline taNumber* GetWorkerRow(const SRThreadCount iWorker) const;
   inline const SRNumPack<taNumber>& GetVect(const SRThreadCount iWorker, const uint32_t iVect) const;
   inline void AddInternal4(const SRNumPack<taNumber> np, const __m128i offsets);
@@ -109,8 +109,9 @@ template<typename taNumber> taNumber SRBucketSummator<taNumber>::ComputeSum(SRPo
   SRVectCompCount nValid;
   const size_t nVects = SRNumHelper::Vectorize<taNumber>(BucketCount(), iPartial, nValid);
   BucketerTask<taNumber> task(pr.GetThreadPool(), *this, iPartial, nValid);
-  pr.SplitAndRunSubtasks<BucketerSubtaskSum<taNumber>>(task, nVects, _nWorkers);
-  return SumWorkerSums();
+  const SRThreadCount nSubtasks = pr.SplitAndRunSubtasks<BucketerSubtaskSum<taNumber>>(task, nVects, _nWorkers)
+    .GetNSubtasks();
+  return SumWorkerSums(nSubtasks);
 }
 
 template<typename taNumber> inline const SRNumPack<taNumber>& SRBucketSummator<taNumber>::GetVect(
@@ -198,8 +199,10 @@ template<> inline void __vectorcall SRBucketSummator<SRDoubleNumber>::CalcAdd(co
   }
 }
 
-template<> inline SRDoubleNumber __vectorcall SRBucketSummator<SRDoubleNumber>::SumWorkerSums() {
-  return SRDoubleNumber(SRSimd::StableSum<false>(SRCast::CPtr<double>(_pWorkerSums), _nWorkers));
+template<> inline SRDoubleNumber __vectorcall SRBucketSummator<SRDoubleNumber>::SumWorkerSums(
+  const SRThreadCount nSubtasks)
+{
+  return SRDoubleNumber(SRSimd::StableSum<false>(SRCast::CPtr<double>(_pWorkerSums), nSubtasks));
 }
 
 } // namespace SRPlat
