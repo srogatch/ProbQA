@@ -19,7 +19,7 @@ protected: // methods
   static inline constexpr int32_t WorkerRowLengthBytes();
   ATTR_NOALIAS inline taNumber& ModOffs(const size_t byteOffs);
   inline void AddInternal4(const SRNumPack<taNumber> np, const __m128i offsets);
-
+  inline void AddInternal4(const SRNumPack<taNumber> np, const SRVectCompCount nValid, __m128i offsets);
 public: // methods
 };
 
@@ -27,9 +27,8 @@ template<typename taNumber> inline BaseBucketSummator<taNumber>::BaseBucketSumma
   : _pBuckets(static_cast<taNumber*>(pMem)) { }
 
 template<typename taNumber> inline constexpr int32_t BaseBucketSummator<taNumber>::WorkerRowLengthBytes() {
-  // If (sizeof(taNumber)*GetBucketCount()) is not a multiple of SIMD size, we should add padding so to keep each
-  //   worker's piece of the array aligned for SIMD.
-  return (BucketCount() * sizeof(taNumber) + SRSimd::_cByteMask) & (~SRSimd::_cByteMask);
+  // We should add padding so to keep the array aligned for SIMD (so that out of bounds access is not UB).
+  return static_cast<int32_t>(SRSimd::GetPaddedBytes(BucketCount() * sizeof(taNumber)));
 }
 
 template<typename taNumber> ATTR_NOALIAS inline taNumber& BaseBucketSummator<taNumber>::ModOffs(const size_t byteOffs) {
@@ -62,6 +61,14 @@ template<> inline void BaseBucketSummator<SRDoubleNumber>::AddInternal4(const SR
   //b2.SetValue(sums.m256d_f64[2]);
   //b1.SetValue(sums.m256d_f64[1]);
   //b0.SetValue(sums.m256d_f64[0]);
+}
+
+template<> inline void BaseBucketSummator<SRDoubleNumber>::AddInternal4(const SRNumPack<SRDoubleNumber> np,
+  const SRVectCompCount nValid, const __m128i offsets)
+{
+  for (SRVectCompCount i = 0; i < nValid; i++) {
+    ModOffs(offsets.m128i_u32[i]) += np._comps.m256d_f64[i];
+  }
 }
 
 } // namespace SRPlat

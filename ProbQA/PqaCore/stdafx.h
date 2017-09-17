@@ -42,6 +42,7 @@
 #include "../SRPlatform/Interface/SRBasicTypes.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRBucketSummatorPar.h"
+#include "../SRPlatform/Interface/SRBucketSummatorSeq.h"
 #include "../SRPlatform/Interface/SRCast.h"
 #include "../SRPlatform/Interface/SRConditionVariable.h"
 #include "../SRPlatform/Interface/SRCpuInfo.h"

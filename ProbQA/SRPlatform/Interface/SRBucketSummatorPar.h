@@ -21,7 +21,6 @@ template<typename taNumber> class SRBucketSummatorPar : public BaseBucketSummato
 private: // methods
   inline taNumber& ModBucket(const SRThreadCount iWorker, const uint32_t iBucket);
   inline static __m128i __vectorcall OffsetsFrom4Exps(const SRThreadCount iWorker, const __m128i exps32);
-  inline static SRPacked64 __vectorcall Get2Offsets(const SRThreadCount iWorker, const __m128d nums);
   inline taNumber __vectorcall SumWorkerSums(const SRThreadCount nSubtasks);
   inline taNumber* GetWorkerRow(const SRThreadCount iWorker) const;
   inline const SRNumPack<taNumber>& GetVect(const SRThreadCount iWorker, const uint32_t iVect) const;
@@ -80,15 +79,6 @@ template<typename taNumber> inline __m128i __vectorcall SRBucketSummatorPar<taNu
   return offsets;
 }
 
-template<typename taNumber> inline SRPacked64 __vectorcall SRBucketSummatorPar<taNumber>::Get2Offsets(
-  const SRThreadCount iWorker, const __m128d nums)
-{
-  const SRPacked64 exps = SRSimd::ExtractExponents32<false>(nums);
-  const SRPacked64 scaled(exps._u64 * sizeof(taNumber));
-  const SRPacked64 offsets(scaled._u64 + SRPacked64::Set1U32(iWorker * WorkerRowLengthBytes())._u64);
-  return offsets;
-}
-
 template<typename taNumber> taNumber SRBucketSummatorPar<taNumber>::ComputeSum(SRPoolRunner &pr) {
   int64_t iPartial;
   SRVectCompCount nValid;
@@ -105,7 +95,7 @@ template<typename taNumber> inline const SRNumPack<taNumber>& SRBucketSummatorPa
   return SRCast::Ptr<SRNumPack<taNumber>>(GetWorkerRow(iWorker))[iVect];
 }
 
-/////////////////////////////////// SRBucketSummator<SRDoubleNumber> implementation ////////////////////////////////////
+///////////////////////////////// SRBucketSummatorPar<SRDoubleNumber> implementation ///////////////////////////////////
 
 template<> inline void SRBucketSummatorPar<SRDoubleNumber>::ZeroBuckets(const  SRThreadCount iWorker) {
   SRUtils::FillZeroVects<true>(SRCast::Ptr<__m256i>(GetWorkerRow(iWorker)),
@@ -129,36 +119,8 @@ template<> inline void __vectorcall SRBucketSummatorPar<SRDoubleNumber>::Add(con
 template<> inline void __vectorcall SRBucketSummatorPar<SRDoubleNumber>::CalcAdd(const SRThreadCount iWorker,
   const SRNumPack<SRDoubleNumber> np, const typename SRVectCompCount nValid)
 {
-  assert(nValid <= 4);
-  switch (nValid) {
-  case 0:
-    return;
-  case 4:
-    return CalcAdd(iWorker, np); // full vector addition
-  case 1: {
-    const int16_t exponent = SRNumTraits<double>::ExtractExponent<false>(np._comps.m256d_f64[0]);
-    ModBucket(iWorker, exponent) += np._comps.m256d_f64[0];
-    return;
-  }
-
-  case 3: {
-    const int16_t exponent = SRNumTraits<double>::ExtractExponent<false>(np._comps.m256d_f64[2]);
-    ModBucket(iWorker, exponent) += np._comps.m256d_f64[2];
-  }
-  // Fall through
-  case 2: {
-    SRPacked64 offsets = Get2Offsets(iWorker, _mm256_castpd256_pd128(np._comps));
-    SRDoubleNumber &b0 = ModOffs(offsets._u32[0]);
-    SRDoubleNumber &b1 = ModOffs(offsets._u32[1]);
-    const __m128d old = _mm_set_pd(b1.GetValue(), b0.GetValue());
-    const __m128d sums = _mm_add_pd(old, _mm256_castpd256_pd128(np._comps));
-    b1.SetValue(sums.m128d_f64[1]);
-    b0.SetValue(sums.m128d_f64[0]);
-    break;
-  }
-  default:
-    __assume(0);
-  }
+  const __m128i offsets = OffsetsFrom4Exps(iWorker, SRSimd::ExtractExponents32<false>(np._comps));
+  AddInternal4(np, nValid, offsets);
 }
 
 template<> inline SRDoubleNumber __vectorcall SRBucketSummatorPar<SRDoubleNumber>::SumWorkerSums(

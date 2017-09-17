@@ -387,8 +387,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   const size_t runLengthOffs = SRSimd::GetPaddedBytes(bucketsOffs + std::max(
     // Here we rely that GetMemoryRequirementBytes() returns SIMD-aligned number of bytes.
     SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
-    //TODO: use sequential summator here instead.
-    nWorkers * SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(1) ));
+    SRBucketSummatorSeq<taNumber>::GetMemoryRequirementBytes() * nWorkers ));
   const size_t nWithRunLength = runLengthOffs + SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nQuestions);
   SRSmartMPP<uint8_t> commonBuf(_memPool, nWithRunLength);
 

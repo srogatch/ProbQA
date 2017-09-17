@@ -222,6 +222,7 @@
     <ClInclude Include="Interface\SRBasicTypes.h" />
     <ClInclude Include="Interface\SRBitArray.h" />
     <ClInclude Include="Interface\SRBucketSummatorPar.h" />
+    <ClInclude Include="Interface\SRBucketSummatorSeq.h" />
     <ClInclude Include="Interface\SRCast.h" />
     <ClInclude Include="Interface\SRConditionVariable.h" />
     <ClInclude Include="Interface\SRCpuInfo.h" />

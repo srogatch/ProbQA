@@ -21,9 +21,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
   const __m256d *pPriors = SRCast::CPtr<__m256d>(quiz.GetTlhMants());
-  //TODO: use sequential bucket summator instead
-  //SRBucketSummatorPar<SRDoubleNumber> bs(1, task._pBSes
-  //  + SRBucketSummatorPar<SRDoubleNumber>::GetMemoryRequirementBytes(1) * _iWorker);
+  SRBucketSummatorSeq<SRDoubleNumber> bss(
+    task._pBSes + SRBucketSummatorSeq<SRDoubleNumber>::GetMemoryRequirementBytes() * _iWorker);
 
   double prevRunLength = 0;
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
