@@ -25,6 +25,12 @@
     <Filter Include="Docs">
       <UniqueIdentifier>{b5ffd68c-1e88-47d2-b6ec-937d77baf86a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\CPU Engine\Tasks">
+      <UniqueIdentifier>{daceb309-221f-4489-b3f2-f856f2cebbf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\CPU Engine\Subtasks">
+      <UniqueIdentifier>{a1afe85d-aa58-4374-9aa6-57086103d035}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -69,18 +75,6 @@
     <ClInclude Include="CECreateQuizOperation.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
-    <ClInclude Include="CETrainSubtaskAdd.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainSubtaskDistrib.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainTask.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainTaskNumSpec.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
     <ClInclude Include="CpuEngine.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
@@ -91,21 +85,6 @@
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
     <ClInclude Include="BaseCpuEngine.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETask.fwd.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETask.decl.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETask.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CEBaseTask.decl.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CEBaseTask.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
     <ClInclude Include="CpuEngine.fwd.h">
@@ -129,50 +108,77 @@
     <ClInclude Include="CEQuiz.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
-    <ClInclude Include="CETrainTask.fwd.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainTask.decl.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CEUpdatePriorsTask.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CEUpdatePriorsTask.decl.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CEUpdatePriorsTask.fwd.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CEUpdatePriorsSubtaskMul.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainSubtaskDistrib.fwd.h">
-      <Filter>Header Files\CPU Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CETrainSubtaskDistrib.decl.h">
-      <Filter>Header Files\CPU Engine</Filter>
+    <ClInclude Include="CEBaseTask.decl.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
     <ClInclude Include="CEBaseTask.fwd.h">
-      <Filter>Header Files\CPU Engine</Filter>
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CEBaseTask.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
     <ClInclude Include="CENormPriorsTask.decl.h">
-      <Filter>Header Files\CPU Engine</Filter>
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
     <ClInclude Include="CENormPriorsTask.fwd.h">
-      <Filter>Header Files\CPU Engine</Filter>
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
     <ClInclude Include="CENormPriorsTask.h">
-      <Filter>Header Files\CPU Engine</Filter>
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
-    <ClInclude Include="CENormPriorsSubtaskMax.h">
-      <Filter>Header Files\CPU Engine</Filter>
+    <ClInclude Include="CETask.decl.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
-    <ClInclude Include="BucketSummator.h">
-      <Filter>Header Files\CPU Engine</Filter>
+    <ClInclude Include="CETask.fwd.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETask.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTask.decl.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTask.fwd.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTask.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainTaskNumSpec.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CEUpdatePriorsTask.decl.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CEUpdatePriorsTask.fwd.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CEUpdatePriorsTask.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
     <ClInclude Include="CENormPriorsSubtaskCorrSum.h">
-      <Filter>Header Files\CPU Engine</Filter>
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CENormPriorsSubtaskMax.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskAdd.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskDistrib.decl.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskDistrib.fwd.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CETrainSubtaskDistrib.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CEUpdatePriorsSubtaskMul.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CENormPriorsSubtaskDiv.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -222,6 +228,9 @@
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CENormPriorsSubtaskDiv.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

@@ -16,6 +16,7 @@
 #include "../PqaCore/CENormPriorsTask.h"
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
 #include "../PqaCore/CENormPriorsSubtaskCorrSum.h"
+#include "../PqaCore/CENormPriorsSubtaskDiv.h"
 
 using namespace SRPlat;
 
@@ -378,8 +379,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   const size_t subtasksOffs = 0;
-  const size_t splitOffs = nWorkers * SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>,
-    CENormPriorsSubtaskCorrSum<taNumber>>::value;
+  const size_t splitOffs = nWorkers * SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
+    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber> >::value;
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t nWithBuckets = bucketsOffs + SRBucketSummator<taNumber>::GetMemoryRequirementBytes(nWorkers);
   SRSmartMPP<uint8_t> commonBuf(_memPool, nWithBuckets);
@@ -387,7 +388,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
   SRBucketSummator<taNumber> bs(nWorkers, commonBuf.Get() + bucketsOffs);
 
-  {
+  { //TODO: move this block to a separate function, encapsulating local variables in a context structure?
     CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bs);
     const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
     const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
@@ -429,11 +430,14 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
     // Correct the exponents towards the taNumber range, and calculate their sum
     pr.RunPreSplit<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, targSplit);
-    taNumber sumPriors = bs.ComputeSum(pr);
+    normPriorsTask._sumPriors.Set1(bs.ComputeSum(pr));
 
-    //TODO: implement - divide by the sum
+    // Divide priors by their sum, so to get probabilities.
+    pr.RunPreSplit<CENormPriorsSubtaskDiv<taNumber>>(normPriorsTask, targSplit);
   }
   
+  TPqaId nValidTargets = _dims._nTargets - _targetGaps.GetNGaps();
+
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));

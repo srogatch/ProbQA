@@ -50,6 +50,8 @@ public:
   // Client access to the gaps vector, e.g. to sort it and then make compaction.
   std::vector<taId>& Gaps() { return _gaps; }
 
+  taId GetNGaps() const { return _gaps.size(); }
+
   void Compact(const taId newLength) {
     assert(newLength <= taId(_isGap.Size()));
     _isGap.ClearRange(0, SRPlat::SRCast::ToUint64(newLength));

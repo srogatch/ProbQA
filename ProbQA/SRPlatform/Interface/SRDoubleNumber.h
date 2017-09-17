@@ -55,6 +55,7 @@ template<> struct SRNumPack<SRDoubleNumber> {
 
   SRNumPack() { }
   SRNumPack(const __m256d value) : _comps(value) { }
+  void Set1(SRDoubleNumber value) { _comps = _mm256_set1_pd(value.GetValue()); }
 };
 
 static_assert(sizeof(SRNumPack<SRDoubleNumber>) == sizeof(__m256d), "To enable reinterpret_cast");

@@ -20,6 +20,7 @@ public:
   // The number to add to the exponent so to get it within the representable range or to cut off if corrected exponent
   //   is too small. Repeated in each 64-bit component.
   __m256i _corrExp;
+  SRPlat::SRNumPack<taNumber> _sumPriors;
 
 public:
   explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz,

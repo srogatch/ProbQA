@@ -193,7 +193,6 @@
     <ClInclude Include="BaseCpuEngine.fwd.h" />
     <ClInclude Include="BaseCpuEngine.decl.h" />
     <ClInclude Include="BaseCpuEngine.h" />
-    <ClInclude Include="BucketSummator.h" />
     <ClInclude Include="CEBaseTask.decl.h" />
     <ClInclude Include="CEBaseTask.fwd.h" />
     <ClInclude Include="CEBaseTask.h" />
@@ -201,6 +200,7 @@
     <ClInclude Include="CECreateQuizOperation.fwd.h" />
     <ClInclude Include="CECreateQuizOperation.h" />
     <ClInclude Include="CENormPriorsSubtaskCorrSum.h" />
+    <ClInclude Include="CENormPriorsSubtaskDiv.h" />
     <ClInclude Include="CENormPriorsSubtaskMax.h" />
     <ClInclude Include="CENormPriorsTask.decl.h" />
     <ClInclude Include="CENormPriorsTask.fwd.h" />
@@ -244,6 +244,7 @@
     <ClCompile Include="BaseCpuEngine.cpp" />
     <ClCompile Include="CECreateQuizOperation.cpp" />
     <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp" />
+    <ClCompile Include="CENormPriorsSubtaskDiv.cpp" />
     <ClCompile Include="CENormPriorsSubtaskMax.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp" />

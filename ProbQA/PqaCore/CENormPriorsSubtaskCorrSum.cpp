@@ -43,7 +43,6 @@ struct ContextDouble {
 };
 
 template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
-
   ContextDouble ctx;
   ctx._pTask = static_cast<const CENormPriorsTask<SRDoubleNumber>*>(GetTask());
   auto const &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(ctx._pTask->GetBaseEngine());
