@@ -14,9 +14,7 @@ namespace ProbQA {
 template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSubtaskMul(TTask *pTask)
   : SRStandardSubtask(pTask) { }
 
-template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::RunInternal(
-  const CEUpdatePriorsTask<SRDoubleNumber>& task) const
-{
+template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::RunInternal(const TTask& task) const {
   constexpr uint8_t logNumsPerVect = SRSimd::_cLogNBytes - SRMath::StaticCeilLog2(sizeof(SRDoubleNumber));
   auto& engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &quiz = *task._pQuiz;
@@ -82,7 +80,7 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
 }
 
 template<> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::Run() {
-  auto& task = static_cast<const CEUpdatePriorsTask<SRDoubleNumber>&>(*GetTask());
+  auto& task = static_cast<const TTask&>(*GetTask());
   // This should be a tail call
   (task._nVectsInCache < 2) ? RunInternal<false>(task) : RunInternal<true>(task);
 }

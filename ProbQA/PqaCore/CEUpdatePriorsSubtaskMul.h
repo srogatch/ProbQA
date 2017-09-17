@@ -14,7 +14,7 @@ public: // types
   typedef CEUpdatePriorsTask<taNumber> TTask;
 
 private: // methods
-  template<bool taCache> void RunInternal(const CEUpdatePriorsTask<taNumber>& task) const;
+  template<bool taCache> void RunInternal(const TTask& task) const;
 
 public: // methods
   explicit CEUpdatePriorsSubtaskMul(TTask *pTask);

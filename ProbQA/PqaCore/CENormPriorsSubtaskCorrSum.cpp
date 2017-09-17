@@ -44,7 +44,7 @@ struct ContextDouble {
 
 template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
   ContextDouble ctx;
-  ctx._pTask = static_cast<const CENormPriorsTask<SRDoubleNumber>*>(GetTask());
+  ctx._pTask = static_cast<const TTask*>(GetTask());
   auto const &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(ctx._pTask->GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = ctx._pTask->GetQuiz();
   SRBucketSummator<SRDoubleNumber> &PTR_RESTRICT bs = (ctx._pTask->GetBS());

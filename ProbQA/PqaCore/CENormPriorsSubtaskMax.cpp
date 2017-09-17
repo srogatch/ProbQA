@@ -36,7 +36,7 @@ struct ContextDouble {
 } // anonymous namespace
 
 template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
-  auto const &PTR_RESTRICT task = static_cast<const CENormPriorsTask<SRDoubleNumber>&>(*GetTask());
+  auto const &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto const &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
 

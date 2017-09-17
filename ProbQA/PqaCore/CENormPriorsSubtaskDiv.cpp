@@ -15,7 +15,7 @@ template<typename taNumber> CENormPriorsSubtaskDiv<taNumber>::CENormPriorsSubtas
   : SRStandardSubtask(pTask) { }
 
 template<> void CENormPriorsSubtaskDiv<SRDoubleNumber>::Run() {
-  auto const &PTR_RESTRICT task = static_cast<const CENormPriorsTask<SRDoubleNumber>&>(*GetTask());
+  auto const &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   __m256d* pMants = SRCast::Ptr<__m256d>(task.GetQuiz().GetTlhMants());
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     const __m256d original = SRSimd::Load<false>(pMants + i);
