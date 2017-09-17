@@ -206,6 +206,7 @@
     </MASM>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BaseBucketSummator.h" />
     <ClInclude Include="BucketerSubtaskSum.h" />
     <ClInclude Include="BucketerTask.h" />
     <ClInclude Include="DbgLogger.h" />
@@ -220,7 +221,7 @@
     <ClInclude Include="Interface\SRAlignedDeleter.h" />
     <ClInclude Include="Interface\SRBasicTypes.h" />
     <ClInclude Include="Interface\SRBitArray.h" />
-    <ClInclude Include="Interface\SRBucketSummator.h" />
+    <ClInclude Include="Interface\SRBucketSummatorPar.h" />
     <ClInclude Include="Interface\SRCast.h" />
     <ClInclude Include="Interface\SRConditionVariable.h" />
     <ClInclude Include="Interface\SRCpuInfo.h" />

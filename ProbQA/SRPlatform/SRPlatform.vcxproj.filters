@@ -174,9 +174,6 @@
     <ClInclude Include="Interface\SRDoubleNumber.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\SRBucketSummator.h">
-      <Filter>Header Files\Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\SRRealNumber.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
@@ -202,6 +199,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Interface\SRNumHelper.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseBucketSummator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SRBucketSummatorPar.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
   </ItemGroup>

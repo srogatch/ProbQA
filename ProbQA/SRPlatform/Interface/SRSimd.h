@@ -223,6 +223,27 @@ public:
     return BroadcastBytesToComps64(_cStbqTable[bitQuad]);
   }
 
+  // Checks 4 32-bit components for conflicts. If components from lower to higher are abcd, returns:
+  //   Bit 0: a conflicts with b
+  //   Bit 1: b conflicts with c
+  //   Bit 2: c conflicts with d
+  //   Bit 3: d conflicts with a
+  //   Bit 4: a conflicts with c
+  //   Bit 5: b conflicts with d
+  // The other bits are cleared. So it returns 0 if no conflicts.
+  ATTR_NOALIAS static uint8_t __vectorcall DetectConflicts32(const __m128i comps) {
+    // Compare:
+    //   abcdabcd
+    //   bcdacdXX
+    const __m256i repeated = _mm256_broadcastsi128_si256(comps);
+    const __m256i shuffled = _mm256_set_m128i(_mm_set_epi64x(-1, _mm_extract_epi64(comps, 1)),
+      _mm_shuffle_epi32(comps, _MM_SHUFFLE(0, 3, 2, 1)));
+    const __m256i equal = _mm256_cmpeq_epi32(repeated, shuffled);
+    int conflicts = _mm256_movemask_ps(_mm256_castsi256_ps(equal));
+    // Clear bits 6 and 7, if occasionally c or d is equal to -1.
+    return static_cast<uint8_t>(conflicts & 63);
+  }
+
   template<typename cbFetch, typename cbProcess> ATTR_NOALIAS static void ForTailF64(
     const SRVectCompCount nComps, const cbFetch &PTR_RESTRICT fetch, const cbProcess &PTR_RESTRICT process,
     const double placeholder)

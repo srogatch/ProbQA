@@ -386,16 +386,17 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t runLengthOffs = SRSimd::GetPaddedBytes(bucketsOffs + std::max(
     // Here we rely that GetMemoryRequirementBytes() returns SIMD-aligned number of bytes.
-    SRBucketSummator<taNumber>::GetMemoryRequirementBytes(nWorkers),
-    nWorkers * SRBucketSummator<taNumber>::GetMemoryRequirementBytes(1) ));
+    SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
+    //TODO: use sequential summator here instead.
+    nWorkers * SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(1) ));
   const size_t nWithRunLength = runLengthOffs + SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nQuestions);
   SRSmartMPP<uint8_t> commonBuf(_memPool, nWithRunLength);
 
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
-  SRBucketSummator<taNumber> bs(nWorkers, commonBuf.Get() + bucketsOffs);
+  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
 
   { //TODO: move this block to a separate function, encapsulating local variables in a context structure?
-    CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bs);
+    CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bsp);
     const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
     const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
 
@@ -436,7 +437,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
     // Correct the exponents towards the taNumber range, and calculate their sum
     pr.RunPreSplit<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, targSplit);
-    normPriorsTask._sumPriors.Set1(bs.ComputeSum(pr));
+    normPriorsTask._sumPriors.Set1(bsp.ComputeSum(pr));
 
     // Divide priors by their sum, so to get probabilities.
     pr.RunPreSplit<CENormPriorsSubtaskDiv<taNumber>>(normPriorsTask, targSplit);

@@ -5,7 +5,7 @@
 #include "stdafx.h"
 #include "../SRPlatform/Interface/SRPoolRunner.h"
 #include "../SRPlatform/Interface/SRStandardSubtask.h"
-#include "../SRPlatform/Interface/SRBucketSummator.h"
+#include "../SRPlatform/Interface/SRBucketSummatorPar.h"
 #include "../SRPlatform/Interface/SRMath.h"
 #include "../SRPlatform/Interface/SRQueue.h"
 #include "../SRPlatform/Interface/SRTaskWaiter.h"

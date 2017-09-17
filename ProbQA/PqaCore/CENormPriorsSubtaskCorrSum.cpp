@@ -49,17 +49,17 @@ template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
   ctx._pTask = static_cast<const TTask*>(GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(ctx._pTask->GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = ctx._pTask->GetQuiz();
-  SRBucketSummator<SRDoubleNumber> &PTR_RESTRICT bs = (ctx._pTask->GetBS());
+  SRBucketSummatorPar<SRDoubleNumber> &PTR_RESTRICT bsp = (ctx._pTask->GetBSP());
   ctx._pGt = &engine.GetTargetGaps();
   ctx._pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
   ctx._pMants = SRCast::Ptr<__m256d>(quiz.GetTlhMants());
 
-  bs.ZeroBuckets(_iWorker);
+  bsp.ZeroBuckets(_iWorker);
 
   for (TPqaId i = _iFirst, iEn = _iLimit; i < iEn; i++) {
     __m256i exps;
     const __m256d addend = ctx.Process(i, exps);
-    bs.Add(_iWorker, addend, exps);
+    bsp.Add(_iWorker, addend, exps);
   }
 }
 

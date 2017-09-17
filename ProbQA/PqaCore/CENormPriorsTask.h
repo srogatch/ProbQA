@@ -15,7 +15,7 @@ namespace ProbQA {
 #pragma warning( disable : 4324 ) // structure was padded due to alignment specifier
 template<typename taNumber> class CENormPriorsTask : public CEBaseTask {
   const CEQuiz<taNumber> *const _pQuiz;
-  SRPlat::SRBucketSummator<taNumber> *const _pBs;
+  SRPlat::SRBucketSummatorPar<taNumber> *const _pBsp;
 public:
   // The number to add to the exponent so to get it within the representable range or to cut off if corrected exponent
   //   is too small. Repeated in each 64-bit component.
@@ -24,15 +24,15 @@ public:
 
 public:
   explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz,
-    SRPlat::SRBucketSummator<taNumber> &bs);
+    SRPlat::SRBucketSummatorPar<taNumber> &bs);
 
   const CEQuiz<taNumber>& GetQuiz() const { return *_pQuiz; }
-  SRPlat::SRBucketSummator<taNumber>& GetBS() const { return *_pBs; }
+  SRPlat::SRBucketSummatorPar<taNumber>& GetBSP() const { return *_pBsp; }
 };
 #pragma warning( pop )
 
 template<typename taNumber> inline CENormPriorsTask<taNumber>::CENormPriorsTask(CpuEngine<taNumber> &engine,
-  CEQuiz<taNumber> &quiz, SRPlat::SRBucketSummator<taNumber> &bs) : CEBaseTask(engine), _pQuiz(&quiz), _pBs(&bs)
+  CEQuiz<taNumber> &quiz, SRPlat::SRBucketSummatorPar<taNumber> &bs) : CEBaseTask(engine), _pQuiz(&quiz), _pBsp(&bs)
 { }
 
 } // namespace ProbQA
