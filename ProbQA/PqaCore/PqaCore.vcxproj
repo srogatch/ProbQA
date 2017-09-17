@@ -244,6 +244,7 @@
   <ItemGroup>
     <ClCompile Include="BaseCpuEngine.cpp" />
     <ClCompile Include="CECreateQuizOperation.cpp" />
+    <ClCompile Include="CEEvalQsSubtaskConsider.cpp" />
     <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp" />
     <ClCompile Include="CENormPriorsSubtaskDiv.cpp" />
     <ClCompile Include="CENormPriorsSubtaskMax.cpp" />

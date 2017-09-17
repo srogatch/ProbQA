@@ -11,6 +11,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+template class CETrainSubtaskAdd<SRDoubleNumber>;
+
 template<> void CETrainSubtaskAdd<SRDoubleNumber>::Run() {
   auto& cTask = static_cast<const TTask&>(*GetTask()); // enable optimizations with const
   auto& engine = static_cast<CpuEngine<SRDoubleNumber>&>(cTask.GetBaseEngine());
@@ -63,7 +65,5 @@ template<> void CETrainSubtaskAdd<SRDoubleNumber>::Run() {
     iLast = cPrev[iLast];
   } while (iLast != cInvalidPqaId);
 }
-
-template class CETrainSubtaskAdd<SRDoubleNumber>;
 
 } // namespace ProbQA

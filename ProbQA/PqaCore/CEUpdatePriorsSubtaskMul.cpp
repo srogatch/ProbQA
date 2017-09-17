@@ -11,6 +11,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+template class CEUpdatePriorsSubtaskMul<SRDoubleNumber>;
+
 template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSubtaskMul(TTask *pTask)
   : SRStandardSubtask(pTask) { }
 
@@ -84,7 +86,5 @@ template<> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::Run() {
   // This should be a tail call
   (task._nVectsInCache < 2) ? RunInternal<false>(task) : RunInternal<true>(task);
 }
-
-template class CEUpdatePriorsSubtaskMul<SRDoubleNumber>;
 
 } // namespace ProbQA

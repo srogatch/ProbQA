@@ -18,9 +18,13 @@ public:
     return ((nBits + SRSimd::_cBitMask) & (~SRSimd::_cBitMask)) >> 3;
   }
 
-  template<bool taCache> ATTR_NOALIAS static void FillZero(__m256i *pArray, const size_t nBits) {
+  template<bool taCache> ATTR_NOALIAS static void FillZero(__m256i *pArray, const int64_t nBits) {
     const size_t nVects = SRSimd::VectsFromBits(nBits);
     SRUtils::FillZeroVects<taCache>(pArray, nVects);
+  }
+
+  ATTR_NOALIAS static bool Test(const __m256i *pArray, const int64_t iBit) {
+    return SRCast::CPtr<uint8_t>(pArray)[iBit >> 3] & (1ui8 << (iBit & 7));
   }
 };
 

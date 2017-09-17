@@ -236,6 +236,9 @@
     <ClCompile Include="CENormPriorsSubtaskDiv.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
+    <ClCompile Include="CEEvalQsSubtaskConsider.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Docs\CpuEngineGuidelines.txt">

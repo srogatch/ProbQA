@@ -11,6 +11,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+template class CENormPriorsSubtaskMax<SRDoubleNumber>;
+
 template<typename taNumber> CENormPriorsSubtaskMax<taNumber>::CENormPriorsSubtaskMax(TTask *pTask)
   : SRStandardSubtask(pTask) { }
 
@@ -36,8 +38,8 @@ struct ContextDouble {
 } // anonymous namespace
 
 template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
-  auto const &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
-  auto const &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
+  auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
+  auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
 
   ContextDouble ctx;
@@ -53,8 +55,5 @@ template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
   }
   _maxExp = SRSimd::FullHorizMaxI64(curMax);
 }
-
-
-template class CENormPriorsSubtaskMax<SRPlat::SRDoubleNumber>;
 
 } // namespace ProbQA

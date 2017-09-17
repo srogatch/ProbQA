@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "../PqaCore/CEEvalQsTask.fwd.h"
+
 namespace ProbQA {
 
 template<typename taNumber> class CEEvalQsSubtaskConsider : public SRPlat::SRStandardSubtask {

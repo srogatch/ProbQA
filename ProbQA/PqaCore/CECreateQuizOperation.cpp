@@ -13,10 +13,12 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+template class CECreateQuizResume<SRDoubleNumber>;
+
 template<> void CECreateQuizResume<SRDoubleNumber>::UpdateLikelihoods(BaseCpuEngine &baseCe, CEBaseQuiz &baseQuiz)
 {
-  auto &engine = static_cast<CpuEngine<SRDoubleNumber>&>(baseCe);
-  auto &quiz = static_cast<CEQuiz<SRDoubleNumber>&>(baseQuiz);
+  auto &PTR_RESTRICT engine = static_cast<CpuEngine<SRDoubleNumber>&>(baseCe);
+  auto &PTR_RESTRICT quiz = static_cast<CEQuiz<SRDoubleNumber>&>(baseQuiz);
   //The input must have been validated
   const EngineDimensions& dims = engine.GetDims();
   const size_t nVects = SRSimd::VectsFromComps<double>(dims._nTargets);
@@ -32,7 +34,5 @@ template<> void CECreateQuizResume<SRDoubleNumber>::UpdateLikelihoods(BaseCpuEng
     pr.SplitAndRunSubtasks<CEUpdatePriorsSubtaskMul<SRDoubleNumber>>(task, nVects);
   }
 }
-
-template class CECreateQuizResume<SRDoubleNumber>;
 
 } // namespace ProbQA

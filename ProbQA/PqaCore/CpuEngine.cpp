@@ -18,6 +18,7 @@
 #include "../PqaCore/CENormPriorsSubtaskCorrSum.h"
 #include "../PqaCore/CENormPriorsSubtaskDiv.h"
 #include "../PqaCore/CEEvalQsTask.h"
+#include "../PqaCore/CEEvalQsSubtaskConsider.h"
 
 using namespace SRPlat;
 
@@ -380,11 +381,15 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   const size_t subtasksOffs = 0;
-  const size_t splitOffs = nWorkers * SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
-    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber> >::value;
+  const size_t splitOffs = subtasksOffs + nWorkers * SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
+    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber>, CEEvalQsSubtaskConsider<taNumber> >::value;
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
-  const size_t nWithBuckets = bucketsOffs + SRBucketSummator<taNumber>::GetMemoryRequirementBytes(nWorkers);
-  SRSmartMPP<uint8_t> commonBuf(_memPool, nWithBuckets);
+  const size_t runLengthOffs = SRSimd::GetPaddedBytes(bucketsOffs + std::max(
+    // Here we rely that GetMemoryRequirementBytes() returns SIMD-aligned number of bytes.
+    SRBucketSummator<taNumber>::GetMemoryRequirementBytes(nWorkers),
+    nWorkers * SRBucketSummator<taNumber>::GetMemoryRequirementBytes(1) ));
+  const size_t nWithRunLength = runLengthOffs + SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nQuestions);
+  SRSmartMPP<uint8_t> commonBuf(_memPool, nWithRunLength);
 
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
   SRBucketSummator<taNumber> bs(nWorkers, commonBuf.Get() + bucketsOffs);
@@ -438,9 +443,14 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   }
 
   {
-    CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps());
+    CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps(),
+      commonBuf.Get() + bucketsOffs, SRCast::Ptr<taNumber>(commonBuf.Get() + runLengthOffs));
+    // Although there are no more subtasks which would use this split, it will be used for run-length analysis.
+    const SRPoolRunner::Split questionSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, _dims._nQuestions,
+      nWorkers);
     SRRWLock<false> rwl(_rws);
-    //SRPoolRunner::Keeper<>
+    SRPoolRunner::Keeper<CEEvalQsSubtaskConsider<taNumber>> kp = pr.RunPreSplit<CEEvalQsSubtaskConsider<taNumber>>(
+      evalQsTask, questionSplit);
   }
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(

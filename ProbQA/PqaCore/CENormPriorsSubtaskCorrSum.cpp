@@ -13,6 +13,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+template class CENormPriorsSubtaskCorrSum<SRDoubleNumber>;
+
 template<typename taNumber> CENormPriorsSubtaskCorrSum<taNumber>::CENormPriorsSubtaskCorrSum(TTask *pTask)
   : SRStandardSubtask(pTask) { }
 
@@ -45,7 +47,7 @@ struct ContextDouble {
 template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
   ContextDouble ctx;
   ctx._pTask = static_cast<const TTask*>(GetTask());
-  auto const &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(ctx._pTask->GetBaseEngine());
+  auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(ctx._pTask->GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = ctx._pTask->GetQuiz();
   SRBucketSummator<SRDoubleNumber> &PTR_RESTRICT bs = (ctx._pTask->GetBS());
   ctx._pGt = &engine.GetTargetGaps();
@@ -60,8 +62,5 @@ template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
     bs.Add(_iWorker, addend, exps);
   }
 }
-
-
-template class CENormPriorsSubtaskCorrSum<SRPlat::SRDoubleNumber>;
 
 } // namespace ProbQA

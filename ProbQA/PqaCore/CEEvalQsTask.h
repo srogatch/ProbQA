@@ -11,14 +11,24 @@
 
 namespace ProbQA {
 
+template<typename taNumber> class CEEvalQsSubtaskConsider;
+
 template<typename taNumber> class CEEvalQsTask : public CEBaseTask {
+  friend class CEEvalQsSubtaskConsider<taNumber>;
+
   const CEQuiz<taNumber> *const _pQuiz;
+  uint8_t *const _pBSes;
+  taNumber *const _pRunLength;
   const TPqaId _nValidTargets;
 public: // variables
 
 public: // methods
-  explicit inline CEEvalQsTask(CpuEngine<taNumber> &engine, const CEQuiz<taNumber> &quiz, const TPqaId nValidTargets)
-    : CEBaseTask(engine), _pQuiz(&quiz), _nValidTargets(nValidTargets) { }
+  explicit inline CEEvalQsTask(CpuEngine<taNumber> &engine, const CEQuiz<taNumber> &quiz, const TPqaId nValidTargets,
+    uint8_t *pBSes, taNumber *pRunLength)
+    : CEBaseTask(engine), _pQuiz(&quiz), _nValidTargets(nValidTargets), _pBSes(pBSes), _pRunLength(pRunLength)
+  { }
+
+  const CEQuiz<taNumber>& GetQuiz() const { return *_pQuiz; }
 };
 
 } // namespace ProbQA
