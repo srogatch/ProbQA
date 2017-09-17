@@ -10,7 +10,7 @@
 
 namespace ProbQA {
 
-template<typename taNumber> CETrainSubtaskDistrib<taNumber>::CETrainSubtaskDistrib(CETrainTask<taNumber> *pTask,
+template<typename taNumber> CETrainSubtaskDistrib<taNumber>::CETrainSubtaskDistrib(TTask *pTask,
   const AnsweredQuestion *pFirst, const AnsweredQuestion *pLim)
   : SRPlat::SRBaseSubtask(pTask), _pFirst(pFirst), _pLim(pLim)
 {

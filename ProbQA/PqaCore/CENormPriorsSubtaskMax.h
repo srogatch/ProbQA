@@ -16,7 +16,7 @@ public: // variables
   int64_t _maxExp; // Result
 
 public: // methods
-  explicit CENormPriorsSubtaskMax(CENormPriorsTask<taNumber> *pTask);
+  explicit CENormPriorsSubtaskMax(TTask *pTask);
   virtual void Run() override final;
 };
 

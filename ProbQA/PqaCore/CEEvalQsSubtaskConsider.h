@@ -4,16 +4,14 @@
 
 #pragma once
 
-#include "../PqaCore/CENormPriorsTask.fwd.h"
-
 namespace ProbQA {
 
-template<typename taNumber> class CENormPriorsSubtaskDiv : public SRPlat::SRStandardSubtask {
+template<typename taNumber> class CEEvalQsSubtaskConsider : public SRPlat::SRStandardSubtask {
 public: // types
-  typedef CENormPriorsTask<taNumber> TTask;
+  typedef CEEvalQsTask<taNumber> TTask;
 
 public: // methods
-  explicit CENormPriorsSubtaskDiv(TTask *pTask);
+  explicit CEEvalQsSubtaskConsider(TTask *pTask);
   virtual void Run() override final;
 };
 

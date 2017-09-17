@@ -13,8 +13,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<typename taNumber> CENormPriorsSubtaskCorrSum<taNumber>::CENormPriorsSubtaskCorrSum(
-  CENormPriorsTask<taNumber> *pTask) : SRStandardSubtask(pTask) { }
+template<typename taNumber> CENormPriorsSubtaskCorrSum<taNumber>::CENormPriorsSubtaskCorrSum(TTask *pTask)
+  : SRStandardSubtask(pTask) { }
 
 struct ContextDouble {
   const GapTracker<TPqaId> *PTR_RESTRICT _pGt;
@@ -46,10 +46,11 @@ template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
   ContextDouble ctx;
   ctx._pTask = static_cast<const CENormPriorsTask<SRDoubleNumber>*>(GetTask());
   auto const &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(ctx._pTask->GetBaseEngine());
-  SRBucketSummator<SRDoubleNumber> &PTR_RESTRICT bs = *(ctx._pTask->_pBs);
+  const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = ctx._pTask->GetQuiz();
+  SRBucketSummator<SRDoubleNumber> &PTR_RESTRICT bs = (ctx._pTask->GetBS());
   ctx._pGt = &engine.GetTargetGaps();
-  ctx._pExps = SRCast::Ptr<__m256i>(ctx._pTask->_pQuiz->GetTlhExps());
-  ctx._pMants = SRCast::Ptr<__m256d>(ctx._pTask->_pQuiz->GetTlhMants());
+  ctx._pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
+  ctx._pMants = SRCast::Ptr<__m256d>(quiz.GetTlhMants());
 
   bs.ZeroBuckets(_iWorker);
 

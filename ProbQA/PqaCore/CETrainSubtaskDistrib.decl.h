@@ -18,7 +18,7 @@ private: // variables
   const AnsweredQuestion *_pLim;
 
 public: // methods
-  CETrainSubtaskDistrib(CETrainTask<taNumber> *pTask, const AnsweredQuestion *pFirst, const AnsweredQuestion *pLim);
+  CETrainSubtaskDistrib(TTask *pTask, const AnsweredQuestion *pFirst, const AnsweredQuestion *pLim);
   virtual void Run() override final;
 };
 

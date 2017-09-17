@@ -13,7 +13,7 @@ public: // types
   typedef CENormPriorsTask<taNumber> TTask;
 
 public: // methods
-  explicit CENormPriorsSubtaskCorrSum(CENormPriorsTask<taNumber> *pTask);
+  explicit CENormPriorsSubtaskCorrSum(TTask *pTask);
   virtual void Run() override final;
 };
 

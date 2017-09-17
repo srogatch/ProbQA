@@ -17,7 +17,7 @@ private: // methods
   template<bool taCache> void RunInternal(const CEUpdatePriorsTask<taNumber>& task) const;
 
 public: // methods
-  explicit CEUpdatePriorsSubtaskMul(CEUpdatePriorsTask<taNumber> *pTask);
+  explicit CEUpdatePriorsSubtaskMul(TTask *pTask);
   virtual void Run() override final;
 };
 

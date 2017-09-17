@@ -17,6 +17,7 @@
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
 #include "../PqaCore/CENormPriorsSubtaskCorrSum.h"
 #include "../PqaCore/CENormPriorsSubtaskDiv.h"
+#include "../PqaCore/CEEvalQsTask.h"
 
 using namespace SRPlat;
 
@@ -435,9 +436,12 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     // Divide priors by their sum, so to get probabilities.
     pr.RunPreSplit<CENormPriorsSubtaskDiv<taNumber>>(normPriorsTask, targSplit);
   }
-  
-  TPqaId nValidTargets = _dims._nTargets - _targetGaps.GetNGaps();
 
+  {
+    CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps());
+    SRRWLock<false> rwl(_rws);
+    //SRPoolRunner::Keeper<>
+  }
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::NextQuestion")));

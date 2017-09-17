@@ -4,9 +4,24 @@
 
 #pragma once
 
-#include "../PqaCore/CEUpdatePriorsTask.decl.h"
+#include "../PqaCore/CEUpdatePriorsTask.fwd.h"
+#include "../PqaCore/CEQuiz.fwd.h"
+#include "../PqaCore/CpuEngine.fwd.h"
+#include "../PqaCore/CEBaseTask.h"
 
 namespace ProbQA {
+
+template<typename taNumber> class CEUpdatePriorsTask : public CEBaseTask {
+public: // variables
+  const CEQuiz<taNumber> *const _pQuiz;
+  const AnsweredQuestion* const _pAQs;
+  const TPqaId _nAnswered;
+  const uint32_t _nVectsInCache;
+
+public: // methods
+  CEUpdatePriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz, const TPqaId nAnswered,
+    const AnsweredQuestion* const pAQs, const uint32_t nVectsInCache);
+};
 
 template<typename taNumber> inline CEUpdatePriorsTask<taNumber>::CEUpdatePriorsTask(CpuEngine<taNumber> &engine,
   CEQuiz<taNumber> &quiz, const TPqaId nAnswered, const AnsweredQuestion* const pAQs, const uint32_t nVectsInCache)

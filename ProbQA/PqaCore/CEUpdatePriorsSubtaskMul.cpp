@@ -11,9 +11,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSubtaskMul(
-  CEUpdatePriorsTask<taNumber> *pTask) : SRStandardSubtask(pTask)
-{ }
+template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSubtaskMul(TTask *pTask)
+  : SRStandardSubtask(pTask) { }
 
 template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::RunInternal(
   const CEUpdatePriorsTask<SRDoubleNumber>& task) const

@@ -11,7 +11,7 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<typename taNumber> CENormPriorsSubtaskMax<taNumber>::CENormPriorsSubtaskMax(CENormPriorsTask<taNumber> *pTask)
+template<typename taNumber> CENormPriorsSubtaskMax<taNumber>::CENormPriorsSubtaskMax(TTask *pTask)
   : SRStandardSubtask(pTask) { }
 
 namespace {
@@ -38,11 +38,12 @@ struct ContextDouble {
 template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
   auto const &PTR_RESTRICT task = static_cast<const CENormPriorsTask<SRDoubleNumber>&>(*GetTask());
   auto const &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
+  const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
 
   ContextDouble ctx;
   ctx._pGt = &engine.GetTargetGaps();
-  ctx._pExps = SRCast::CPtr<__m256i>(task._pQuiz->GetTlhExps());
-  ctx._pMants = SRCast::CPtr<__m256d>(task._pQuiz->GetTlhMants());
+  ctx._pExps = SRCast::CPtr<__m256i>(quiz.GetTlhExps());
+  ctx._pMants = SRCast::CPtr<__m256d>(quiz.GetTlhMants());
 
   __m256i curMax = _mm256_set1_epi64x(std::numeric_limits<int64_t>::min());
   for (TPqaId i = _iFirst, iEn = _iLimit; i < iEn; i++) {
