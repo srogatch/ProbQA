@@ -9,7 +9,23 @@
 
 namespace SRPlat {
 
-class SRVectMath {
+class SRPLATFORM_API SRVectMath {
+  // The limit is 19 because we process only high 32 bits of doubles, and out of 20 bits of mantissa there, 1 bit is
+  //   used for rounding.s
+  static constexpr uint8_t _cnLog2TblBits = 10; // 1024 numbers times 8 bytes = 8KB.
+  static const __m256d _c2divLn2; // 2.0/ln(2)
+  static const __m256d _cDoubleNotExp;
+  static const __m256d _cDoubleExp0;
+  static const __m256i _cAvxExp2YMask;
+  static const __m256d _cPlusBit;
+  static const __m128i _cSseMantTblMask;
+  static const __m128i _cExpNorm0;
+  //static const __m128i _cSseRoundingMantTblMask;
+  //static const __m128i _cSseRoundingBit;
+  static double _plusLog2Table[1 << _cnLog2TblBits]; // plus |cnLog2TblBits|th highest bit
+  static bool _isInitialized;
+
+  static bool Initialize();
 public:
   // For x<=0, a number smaller than -1023 is returned.
   static __m256d __vectorcall Log2Cold(const __m256d x) {
@@ -23,7 +39,7 @@ public:
     const __m256d cmpResAvx = _mm256_cmp_pd(yExp0, /* sqrt(2) */ _mm256_set1_pd(1.4142135623730950488016887242097),
       _CMP_GT_OQ);
     
-    // Clear the lowest exponent bit, so that exponent becomes 1022 indicating -1.
+    // Clear the lowest exponent bit, so that exponent becomes 1022 indicating -1, for mantissas larger than sqrt(2).
     const __m256d y = _mm256_xor_pd(yExp0, _mm256_and_pd(cmpResAvx, _mm256_set1_pd(
       /* Lowest exponent bit */ SRCast::F64FromU64(1ui64<< SRNumTraits<double>::_cExponentOffs) )));
     const __m128i cmpResSse = _mm_castps_si128(SRSimd::ExtractOdd(_mm256_castpd_ps(cmpResAvx)));
@@ -60,6 +76,42 @@ public:
 
     const __m256d log2_x = _mm256_fmadd_pd(terms012345,
       /* 2.0/ln(2) */ _mm256_set1_pd(2.8853900817779268147208156228095), expsPD);
+    return log2_x;
+  }
+
+  static __m256d __vectorcall Log2Hot(const __m256d x) {
+    const __m256d zClearExp = _mm256_and_pd(_cDoubleNotExp, x);
+    const __m256d z = _mm256_or_pd(zClearExp, _cDoubleExp0);
+
+    //const __m128i high32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(_mm256_castpd_si256(x), gHigh32Permute));
+    const __m128 hiLane = _mm_castpd_ps(_mm256_extractf128_pd(x, 1));
+    const __m128 loLane = _mm_castpd_ps(_mm256_castpd256_pd128(x));
+    const __m128i high32 = _mm_castps_si128(_mm_shuffle_ps(loLane, hiLane, _MM_SHUFFLE(3, 1, 3, 1)));
+
+    // This requires that x is non-negative, because the sign bit is not cleared before computing the exponent.
+    const __m128i exps32 = _mm_srai_epi32(high32, SRNumTraits<double>::_cExponentOffs - 32);
+    const __m128i normExps = _mm_sub_epi32(exps32, _cExpNorm0);
+
+    // Compute y as approximately equal to log2(z)
+    const __m128i indexes = _mm_and_si128(_cSseMantTblMask, _mm_srai_epi32(high32,
+      SRNumTraits<double>::_cnMantissaBits - 32 - _cnLog2TblBits));
+    //const __m256d y = _mm256_i32gather_pd(gPlusLog2Table, indexes, /*number of bytes per item*/ 8);
+    const __m256d y = _mm256_set_pd(_plusLog2Table[indexes.m128i_u32[3]], _plusLog2Table[indexes.m128i_u32[2]],
+      _plusLog2Table[indexes.m128i_u32[1]], _plusLog2Table[indexes.m128i_u32[0]]);
+    // Compute A as z/exp2(y)
+    const __m256d exp2_Y = _mm256_or_pd(_cPlusBit, _mm256_and_pd(z, _mm256_castsi256_pd(_cAvxExp2YMask)));
+
+    // Calculate t=(A-1)/(A+1)
+    const __m256d tNum = _mm256_sub_pd(z, exp2_Y);
+    const __m256d tDen = _mm256_add_pd(z, exp2_Y); // both numerator and denominator would be divided by exp2_Y
+
+    const __m256d t = _mm256_div_pd(tNum, tDen);
+
+    const __m256d log2_z = _mm256_fmadd_pd(/*terms012345*/ t, _c2divLn2, y);
+
+    const __m256d leading = _mm256_cvtepi32_pd(normExps); // leading integer part for the logarithm
+
+    const __m256d log2_x = _mm256_add_pd(log2_z, leading);
     return log2_x;
   }
 };

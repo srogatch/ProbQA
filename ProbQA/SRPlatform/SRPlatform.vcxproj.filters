@@ -284,6 +284,9 @@
     <ClCompile Include="SRDoubleNumber.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SRVectMath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="SRFlushCache.asm">
