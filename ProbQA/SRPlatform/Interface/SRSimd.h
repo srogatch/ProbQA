@@ -130,12 +130,26 @@ public:
       _mm_castsi128_ps(loLane), _mm_castsi128_ps(hiLane), _MM_SHUFFLE(3, 1, 3, 1)));
   }
 
+  // Extract components 1,3,5,7. This should be faster than the integer version due to less casts.
+  ATTR_NOALIAS static __m128 __vectorcall ExtractOdd(const __m256 vect) {
+    const __m128 hiLane = _mm256_extractf128_ps(vect, 1);
+    const __m128 loLane = _mm256_castps256_ps128(vect);
+    return _mm_shuffle_ps(loLane, hiLane, _MM_SHUFFLE(3, 1, 3, 1));
+  }
+
   // Extract components 0,2,4,6
   ATTR_NOALIAS static __m128i __vectorcall ExtractEven(const __m256i vect) {
     const __m128i hiLane = _mm256_extracti128_si256(vect, 1);
     const __m128i loLane = _mm256_castsi256_si128(vect);
     return _mm_castps_si128(_mm_shuffle_ps(
       _mm_castsi128_ps(loLane), _mm_castsi128_ps(hiLane), _MM_SHUFFLE(2, 0, 2, 0)));
+  }
+
+  // Extract components 0,2,4,6. This should be faster than the integer version due to less casts.
+  ATTR_NOALIAS static __m128 __vectorcall ExtractEven(const __m256 vect) {
+    const __m128 hiLane = _mm256_extractf128_ps(vect, 1);
+    const __m128 loLane = _mm256_castps256_ps128(vect);
+    return _mm_shuffle_ps(loLane, hiLane, _MM_SHUFFLE(2, 0, 2, 0));
   }
 
   template<bool taNorm0> ATTR_NOALIAS static __m128i __vectorcall ExtractExponents32(const __m256d nums) {
@@ -246,63 +260,69 @@ public:
 
   template<typename cbFetch, typename cbProcess> ATTR_NOALIAS static void ForTailF64(
     const SRVectCompCount nComps, const cbFetch &PTR_RESTRICT fetch, const cbProcess &PTR_RESTRICT process,
-    const double placeholder)
-  {
-    __m256d vect;
-    switch (nComps) {
-    case 0:
-      return;
-    case 1: {
-      const __m128d hi = _mm_set1_pd(placeholder);
-      const __m128d lo = _mm_set_pd(placeholder, fetch(0));
-      vect = _mm256_set_m128d(hi, lo);
-      break;
-    }
-    case 2: {
-      const __m128d hi = _mm_set1_pd(placeholder);
-      const __m128d lo = _mm_set_pd(fetch(1), fetch(0));
-      vect = _mm256_set_m128d(hi, lo);
-      break;
-    }
-    case 3: {
-      vect = _mm256_set_pd(placeholder, fetch(2), fetch(1), fetch(0));
-      break;
-    }
-    default:
-      __assume(0);
-    }
-    process(vect);
-  }
+    const double placeholder);
 
   template<typename cbFetch, typename cbProcess> ATTR_NOALIAS static void ForTailI64(
     const SRVectCompCount nComps, const cbFetch &PTR_RESTRICT fetch, const cbProcess &PTR_RESTRICT process,
-    const int64_t placeholder)
-  {
-    __m256i vect;
-    switch (nComps) {
-    case 0:
-      return;
-    case 1: {
-      vect = _mm256_insert_epi64(_mm256_set1_epi64x(placeholder), fetch(0), 0);
-      break;
-    }
-    case 2: {
-      const __m128i hi = _mm_set1_epi64x(placeholder);
-      const __m128i lo = _mm_set_epi64x(fetch(1), fetch(0));
-      vect = _mm256_set_m128i(hi, lo);
-      break;
-    }
-    case 3: {
-      vect = _mm256_set_epi64x(placeholder, fetch(2), fetch(1), fetch(0));
-      break;
-    }
-    default:
-      __assume(0);
-    }
-    process(vect);
-  }
+    const int64_t placeholder);
 
 };
+
+template<typename cbFetch, typename cbProcess> ATTR_NOALIAS void SRSimd::ForTailF64(const SRVectCompCount nComps,
+  const cbFetch &PTR_RESTRICT fetch, const cbProcess &PTR_RESTRICT process, const double placeholder)
+{
+  __m256d vect;
+  switch (nComps) {
+  case 0:
+    return;
+  case 1: {
+    const __m128d hi = _mm_set1_pd(placeholder);
+    const __m128d lo = _mm_set_pd(placeholder, fetch(0));
+    vect = _mm256_set_m128d(hi, lo);
+    break;
+  }
+  case 2: {
+    const __m128d hi = _mm_set1_pd(placeholder);
+    const __m128d lo = _mm_set_pd(fetch(1), fetch(0));
+    vect = _mm256_set_m128d(hi, lo);
+    break;
+  }
+  case 3: {
+    vect = _mm256_set_pd(placeholder, fetch(2), fetch(1), fetch(0));
+    break;
+  }
+  default:
+    __assume(0);
+  }
+  process(vect);
+}
+
+template<typename cbFetch, typename cbProcess> ATTR_NOALIAS void SRSimd::ForTailI64(const SRVectCompCount nComps,
+  const cbFetch &PTR_RESTRICT fetch, const cbProcess &PTR_RESTRICT process, const int64_t placeholder)
+{
+  __m256i vect;
+  switch (nComps) {
+  case 0:
+    return;
+  case 1: {
+    vect = _mm256_insert_epi64(_mm256_set1_epi64x(placeholder), fetch(0), 0);
+    break;
+  }
+  case 2: {
+    const __m128i hi = _mm_set1_epi64x(placeholder);
+    const __m128i lo = _mm_set_epi64x(fetch(1), fetch(0));
+    vect = _mm256_set_m128i(hi, lo);
+    break;
+  }
+  case 3: {
+    vect = _mm256_set_epi64x(placeholder, fetch(2), fetch(1), fetch(0));
+    break;
+  }
+  default:
+    __assume(0);
+  }
+  process(vect);
+}
 
 FLOAT_PRECISE_BEGIN
 template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(const double *PTR_RESTRICT p,

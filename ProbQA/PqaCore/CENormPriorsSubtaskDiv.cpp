@@ -24,6 +24,7 @@ template<> void CENormPriorsSubtaskDiv<SRDoubleNumber>::Run() {
     const __m256d normalized = _mm256_div_pd(original, task._sumPriors._comps);
     SRSimd::Store<false>(pMants + i, original);
   }
+  _mm_sfence();
 }
 
 } // namespace ProbQA

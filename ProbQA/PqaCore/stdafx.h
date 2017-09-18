@@ -66,3 +66,4 @@
 #include "../SRPlatform/Interface/SRTaskWaiter.h"
 #include "../SRPlatform/Interface/SRThreadPool.h"
 #include "../SRPlatform/Interface/SRUtils.h"
+#include "../SRPlatform/Interface/SRVectMath.h"
