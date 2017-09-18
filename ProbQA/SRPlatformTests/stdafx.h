@@ -37,8 +37,9 @@
 #pragma warning( pop )
 
 // SRPlatform library includes
-#include "../SRPlatform/Interface/SRPlatform.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
+#include "../SRPlatform/Interface/SRFastRandom.h"
+#include "../SRPlatform/Interface/SRVectMath.h"
 
 // Google Test Framework includes
 #include <gtest/gtest.h>

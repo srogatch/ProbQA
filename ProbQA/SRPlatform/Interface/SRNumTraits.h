@@ -22,6 +22,7 @@ template<> struct SRNumTraits<double> {
   static constexpr uint64_t _cExponent0Up = uint64_t(_cExponent0Down) << _cExponentOffs;
   static constexpr uint16_t _cExponentMaskDown = 0x7ff;
   static constexpr uint64_t _cExponentMaskUp = uint64_t(_cExponentMaskDown) << _cExponentOffs;
+  static constexpr uint64_t _cSignMaskUp = 1ui64 << _cSignOffs;
 
   template<bool taNorm0> static int16_t ExtractExponent(const double value) {
     const int16_t exponent = _cExponentMaskDown & (SRCast::U64FromF64(value) >> _cExponentOffs);

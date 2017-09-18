@@ -11,10 +11,12 @@ namespace SRPlat {
 
 class SRVectMath {
 public:
-  __m256d __vectorcall Log2Cold(__m256d x) {
-    // Clear exponent bits
-    const __m256d yClearExp = _mm256_and_pd( // exponent bits 0, other bits 1
-      _mm256_set1_pd(SRCast::F64FromU64(~SRNumTraits<double>::_cExponentMaskUp)), x);
+  // For x<=0, a number smaller than -1023 is returned.
+  static __m256d __vectorcall Log2Cold(const __m256d x) {
+    // Clear exponent and sign bits
+    const __m256d yClearExp = _mm256_and_pd(x, _mm256_set1_pd(SRCast::F64FromU64(
+      /* exponent and sign bits 0, other bits 1*/
+       ~(SRNumTraits<double>::_cExponentMaskUp | SRNumTraits<double>::_cSignMaskUp))));
     const __m256d yExp0 = _mm256_or_pd(yClearExp,
       _mm256_set1_pd(SRCast::F64FromU64(SRNumTraits<double>::_cExponent0Up)));
 
