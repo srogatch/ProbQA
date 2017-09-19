@@ -12,7 +12,7 @@ TEST(SRVectMathTest, Log2Cold) {
   {
     const __m256d actual = SRVectMath::Log2Cold(numsF64);
     for (int8_t j = 0; j <= 3; j++) {
-      ASSERT_LE(actual.m256d_f64[j], -1023.0);
+      ASSERT_LE(actual.m256d_f64[j], -1022.5);
     }
   }
   for (int64_t i = 0; i < 1000 * 1000; i++) {
@@ -23,7 +23,7 @@ TEST(SRVectMathTest, Log2Cold) {
     const __m256d actual = SRVectMath::Log2Cold(numsF64);
     for (int8_t j = 0; j <= 3; j++) {
       if (numsI64.m256i_u64[j] <= 0) {
-        ASSERT_LE(actual.m256d_f64[j], -1023.0);
+        ASSERT_LE(actual.m256d_f64[j], -1022.5);
         continue;
       }
       const double expected = std::log2(numsF64.m256d_f64[j]);
@@ -39,7 +39,7 @@ TEST(SRVectMathTest, Log2Hot) {
   {
     const __m256d actual = SRVectMath::Log2Hot(numsF64);
     for (int8_t j = 0; j <= 3; j++) {
-      ASSERT_LE(actual.m256d_f64[j], -1022.0);
+      ASSERT_LE(actual.m256d_f64[j], -1022.5);
     }
   }
   for (int64_t i = 0; i < 1000 * 1000; i++) {
@@ -50,7 +50,7 @@ TEST(SRVectMathTest, Log2Hot) {
     const __m256d actual = SRVectMath::Log2Hot(numsF64);
     for (int8_t j = 0; j <= 3; j++) {
       if (numsI64.m256i_u64[j] <= 0) {
-        ASSERT_LE(actual.m256d_f64[j], -1022.0);
+        ASSERT_LE(actual.m256d_f64[j], -1022.5);
         continue;
       }
       const double expected = std::log2(numsF64.m256d_f64[j]);

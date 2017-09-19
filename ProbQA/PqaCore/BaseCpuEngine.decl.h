@@ -54,7 +54,7 @@ protected: // methods
   explicit BaseCpuEngine(const EngineDefinition& engDef);
 
 public: // Internal interface methods
-  SRPlat::ISRLogger *GetLogger() { return _pLogger.load(std::memory_order_relaxed); }
+  SRPlat::ISRLogger *GetLogger() const { return _pLogger.load(std::memory_order_relaxed); }
   TMemPool& GetMemPool() { return _memPool; }
   SRPlat::SRThreadPool& GetWorkers() { return _tpWorkers; }
   SRPlat::SRReaderWriterSync& GetRws() { return _rws; }

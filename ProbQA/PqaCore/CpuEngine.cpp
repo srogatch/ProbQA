@@ -388,10 +388,18 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     // Here we rely that GetMemoryRequirementBytes() returns SIMD-aligned number of bytes.
     SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
     SRBucketSummatorSeq<taNumber>::GetMemoryRequirementBytes() * nWorkers ));
+  // The shared block for CEEvalQsSubtaskConsider
   const size_t posteriorOffs = runLengthOffs + SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nQuestions);
   const size_t threadPosteriorBytes = SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nTargets);
-  const size_t nWithPosterior = posteriorOffs + nWorkers * threadPosteriorBytes;
-  SRSmartMPP<uint8_t> commonBuf(_memPool, nWithPosterior);
+  const size_t answerMetricsOffs = posteriorOffs + nWorkers * threadPosteriorBytes;
+  const size_t threadAnswerMetricsBytes = 2 * SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nAnswers);
+  const size_t nWithAnswerMetrics = answerMetricsOffs + nWorkers * threadAnswerMetricsBytes;
+  // The shared block for binary search over the run length.
+  const size_t grandTotalsOffs = posteriorOffs;
+  const size_t nWithGrandTotals = grandTotalsOffs + sizeof(taNumber) * nWorkers;
+
+  const size_t totalBytes = std::max(nWithAnswerMetrics, nWithGrandTotals);
+  SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
 
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
   SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
@@ -408,7 +416,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       const SRThreadCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
       const SRVectCompCount nTail = SRVectCompCount(kp.GetNSubtasks() - (nResultVects << SRSimd::_cLogNComps64));
       __m256i vMaxExps;
-      auto fnFetch = [&](const SRVectCompCount at) { return kp.GetSubtask(at)->_maxExp; };
+      auto fnFetch = [&kp, iBase=(nResultVects << SRSimd::_cLogNComps64)](const SRVectCompCount at) {
+        return kp.GetSubtask(iBase + at)->_maxExp;
+      };
       if (nResultVects == 0) {
         SRSimd::ForTailI64(nTail, fnFetch, [&](const __m256i& vect) { vMaxExps = vect; },
           std::numeric_limits<int64_t>::min());
@@ -447,13 +457,22 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   {
     CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps(),
       commonBuf.Get() + bucketsOffs, SRCast::Ptr<taNumber>(commonBuf.Get() + runLengthOffs),
-      commonBuf.Get() + posteriorOffs, threadPosteriorBytes);
+      commonBuf.Get() + posteriorOffs, threadPosteriorBytes, commonBuf.Get() + answerMetricsOffs,
+      threadAnswerMetricsBytes);
     // Although there are no more subtasks which would use this split, it will be used for run-length analysis.
     const SRPoolRunner::Split questionSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, _dims._nQuestions,
       nWorkers);
-    SRRWLock<false> rwl(_rws);
-    SRPoolRunner::Keeper<CEEvalQsSubtaskConsider<taNumber>> kp = pr.RunPreSplit<CEEvalQsSubtaskConsider<taNumber>>(
-      evalQsTask, questionSplit);
+    {
+      SRRWLock<false> rwl(_rws);
+      SRPoolRunner::Keeper<CEEvalQsSubtaskConsider<taNumber>> kp = pr.RunPreSplit<CEEvalQsSubtaskConsider<taNumber>>(
+        evalQsTask, questionSplit);
+    }
+    taNumber *pGrandTotals = SRCast::Ptr<taNumber>(commonBuf.Get() + grandTotalsOffs);
+    for (SRThreadCount i = 0; i < questionSplit._nSubtasks; i++) {
+      const taNumber curGT = evalQsTask.GetRunLength()[questionSplit._pBounds[i] - 1];
+      pGrandTotals[i] = curGT;
+      //TODO: accumulate
+    }
   }
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
