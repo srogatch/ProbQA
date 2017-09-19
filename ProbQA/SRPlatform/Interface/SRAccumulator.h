@@ -5,23 +5,26 @@
 #pragma once
 
 #include "../SRPlatform/Interface/SRMacros.h"
+#include "../SRPlatform/Interface/SRDoubleNumber.h"
 
 namespace SRPlat {
 
-class SRAccumulator {
+template <typename taNumber> class SRAccumulator;
+
+template<> class SRAccumulator<SRDoubleNumber> {
   double _sum;
   double _corr;
 
 public:
   SRAccumulator() { }
-  explicit SRAccumulator(const double value) : _sum(value), _corr(0) { }
-  inline double Get();
-  inline SRAccumulator& Add(const double value);
+  explicit SRAccumulator(const SRDoubleNumber value) : _sum(value.GetValue()), _corr(0) { }
+  inline SRDoubleNumber Get();
+  inline SRAccumulator& Add(const SRDoubleNumber value);
 };
 
 FLOAT_PRECISE_BEGIN
-inline SRAccumulator& SRAccumulator::Add(const double value) {
-  const double y = value - _corr;
+inline SRAccumulator<SRDoubleNumber>& SRAccumulator<SRDoubleNumber>::Add(const SRDoubleNumber value) {
+  const double y = value.GetValue() - _corr;
   const double t = _sum + y;
   _corr = (t - _sum) - y;
   _sum = t;
@@ -29,8 +32,8 @@ inline SRAccumulator& SRAccumulator::Add(const double value) {
 }
 FLOAT_PRECISE_END
 
-inline double SRAccumulator::Get() {
-  return _sum - _corr;
+inline SRDoubleNumber SRAccumulator<SRDoubleNumber>::Get() {
+  return SRDoubleNumber(_sum - _corr);
 }
 
 } // namespace SRPlat

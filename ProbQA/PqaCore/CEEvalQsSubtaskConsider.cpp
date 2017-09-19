@@ -39,7 +39,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       task._pRunLength[i].SetValue(prevRunLength);
       continue;
     }
-    SRAccumulator accTotW(0.0);
+    SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
     for (TPqaId k = 0; k < engine.GetDims()._nAnswers; k++) {
       bss.ZeroBuckets();
       const __m256d *psAik = SRCast::CPtr<__m256d>(&engine.GetA(i, k, 0));
@@ -54,7 +54,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       }
       const double Wk = bss.ComputeSum().GetValue();
       bss.ZeroBuckets();
-      accTotW.Add(Wk);
+      accTotW.Add(SRDoubleNumber(Wk));
       pAnswerWeigths[k] = Wk;
       const __m256d vWk = _mm256_set1_pd(Wk);
       for (TPqaId j = 0; j < nTargVects; j++) {
@@ -68,24 +68,25 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const double entropyHik = -bss.ComputeSum().GetValue();
       pAnswerEntropies[k] = entropyHik;
     }
-    const double totW = accTotW.Get();
+    const double totW = accTotW.Get().GetValue();
     if (std::fabs(totW - 1.0) > 1e-9) {
       LOCLOG(Warning) << SR_FILE_LINE "The sum of answer weights is" << totW;
     }
-    SRAccumulator accAvgH(0.0);
+    SRAccumulator<SRDoubleNumber> accAvgH(SRDoubleNumber(0.0));
     const TPqaId nAnswerVects = engine.GetDims()._nAnswers >> SRSimd::_cLogNComps64;
     for (TPqaId vk = 0; vk < nAnswerVects; vk++) {
       const __m256d curW = SRSimd::Load<true>(SRCast::CPtr<__m256d>(pAnswerWeigths) + vk);
       const __m256d curH = SRSimd::Load<true>(SRCast::CPtr<__m256d>(pAnswerEntropies) + vk);
       const __m256d product = _mm256_mul_pd(curW, curH);
-      accAvgH.Add(product.m256d_f64[0]).Add(product.m256d_f64[1]).Add(product.m256d_f64[2]).Add(product.m256d_f64[3]);
+      accAvgH.Add(SRDoubleNumber(product.m256d_f64[0])).Add(SRDoubleNumber(product.m256d_f64[1]))
+        .Add(SRDoubleNumber(product.m256d_f64[2])).Add(SRDoubleNumber(product.m256d_f64[3]));
     }
     for (TPqaId k = (nAnswerVects << SRSimd::_cLogNComps64); k < engine.GetDims()._nAnswers; k++) {
-      accAvgH.Add(pAnswerWeigths[k] * pAnswerEntropies[k]);
+      accAvgH.Add(SRDoubleNumber(pAnswerWeigths[k] * pAnswerEntropies[k]));
     }
 
     // The average entropy over all answers for this question
-    const double avgH = accAvgH.Get() / totW;
+    const double avgH = accAvgH.Get().GetValue() / totW;
     const double nExpectedTargets = std::exp2(avgH);
     double priority;
     if (nExpectedTargets > task._nValidTargets + 1e-9) {

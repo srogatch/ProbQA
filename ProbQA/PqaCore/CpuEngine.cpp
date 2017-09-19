@@ -467,12 +467,14 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       SRPoolRunner::Keeper<CEEvalQsSubtaskConsider<taNumber>> kp = pr.RunPreSplit<CEEvalQsSubtaskConsider<taNumber>>(
         evalQsTask, questionSplit);
     }
+    SRAccumulator<SRDoubleNumber> totG(SRDoubleNumber(0.0));
     taNumber *pGrandTotals = SRCast::Ptr<taNumber>(commonBuf.Get() + grandTotalsOffs);
     for (SRThreadCount i = 0; i < questionSplit._nSubtasks; i++) {
       const taNumber curGT = evalQsTask.GetRunLength()[questionSplit._pBounds[i] - 1];
       pGrandTotals[i] = curGT;
-      //TODO: accumulate
+      totG.Add(curGT);
     }
+
   }
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
