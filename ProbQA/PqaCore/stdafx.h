@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <memory>
 #include <queue>
+#include <random>
 #include <string>
 #include <thread>
 #include <type_traits>
@@ -52,6 +53,7 @@
 #include "../SRPlatform/Interface/SRDoubleNumber.h"
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRFastArray.h"
+#include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRFinally.h"
 #include "../SRPlatform/Interface/SRLambdaSubtask.h"
 #include "../SRPlatform/Interface/SRLock.h"

@@ -19,6 +19,10 @@ public:
   // Get |iQuad|th 4 adjacent bits denoting gaps.
   uint8_t GetQuad(const taId iQuad) const { return _isGap.GetQuad(iQuad); }
 
+  template<typename taResult> const taResult& GetPacked(const taId iPack) const {
+    return _isGap.GetPacked<taResult>(iPack);
+  }
+
   void Release(const taId at) {
     assert(!_isGap.GetOne(SRPlat::SRCast::ToUint64(at)));
     _isGap.SetOne(SRPlat::SRCast::ToUint64(at));

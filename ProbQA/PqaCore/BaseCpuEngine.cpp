@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "../PqaCore/BaseCpuEngine.h"
+#include "../PqaCore/CEQuiz.h"
 
 using namespace SRPlat;
 
@@ -24,6 +25,70 @@ BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef)
   _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)),
   _tpWorkers(CalcCompThreads()), _nMemOpThreads(CalcMemOpThreads())
 {
+}
+
+TPqaId BaseCpuEngine::FindNearestQuestion(const TPqaId iMiddle, const CEBaseQuiz &quiz) {
+  constexpr uint8_t dInf = 200;
+  const TPqaId iPack64 = iMiddle >> 6;
+  const uint8_t iWithin = iMiddle & 63;
+  const uint64_t available = ~(_questionGaps.GetPacked<uint64_t>(iPack64)
+    | SRBitHelper::GetPacked<uint64_t>(quiz.GetQAsked(), iPack64));
+  if (available != 0) {
+    const uint64_t baseMask = (1ui64 << iWithin) - 1;
+    const uint64_t higher = SRMath::AndNot(baseMask, available); // includes the bit itself
+    const uint64_t lower = baseMask & available;
+    unsigned long iSetBit;
+    const uint32_t dHigher = (_BitScanForward64(&iSetBit, higher) ? (iSetBit-iWithin) : dInf);
+    const uint32_t dLower = (_BitScanReverse64(&iSetBit, lower) ? (iWithin-iSetBit) : dInf);
+    if (dHigher < dLower) {
+      return iMiddle + dHigher;
+    } else {
+      return iMiddle - dLower;
+    }
+  }
+  const TPqaId limPack64 = (_dims._nQuestions + 63) >> 6;
+  TPqaId i = 1;
+  while ((iPack64 >= i) && (iPack64 + i < limPack64)) {
+    const uint64_t availLeft = ~(_questionGaps.GetPacked<uint64_t>(iPack64-i)
+      | SRBitHelper::GetPacked<uint64_t>(quiz.GetQAsked(), iPack64-i));
+    const uint64_t availRight = ~(_questionGaps.GetPacked<uint64_t>(iPack64 + i)
+      | SRBitHelper::GetPacked<uint64_t>(quiz.GetQAsked(), iPack64 + i));
+    if ((availLeft | availRight) == 0) {
+      i++;
+      continue;
+    }
+    unsigned long iSetBit;
+    const uint32_t dHigher = (_BitScanForward64(&iSetBit, availRight) ?  (iSetBit + 64 - iWithin) : dInf);
+    const uint32_t dLower = (_BitScanReverse64(&iSetBit, availLeft) ? (iWithin + 64 - iSetBit) : dInf);
+    if (dHigher < dLower) {
+      return iMiddle + dHigher + ((i - 1) << 6);
+    } else {
+      return iMiddle - dLower - ((i - 1) << 6);
+    }
+  }
+  while (iPack64 >= i) {
+    const uint64_t availLeft = ~(_questionGaps.GetPacked<uint64_t>(iPack64 - i)
+      | SRBitHelper::GetPacked<uint64_t>(quiz.GetQAsked(), iPack64 - i));
+    unsigned long iSetBit;
+    if (!_BitScanReverse64(&iSetBit, availLeft)) {
+      i++;
+      continue;
+    }
+    const uint32_t dLower = iWithin + 64 - iSetBit;
+    return iMiddle - dLower - ((i - 1) << 6);
+  }
+  while (iPack64 + i < limPack64) {
+    const uint64_t availRight = ~(_questionGaps.GetPacked<uint64_t>(iPack64 + i)
+      | SRBitHelper::GetPacked<uint64_t>(quiz.GetQAsked(), iPack64 + i));
+    unsigned long iSetBit;
+    if (!_BitScanForward64(&iSetBit, availRight)) {
+      i++;
+      continue;
+    }
+    const uint32_t dHigher = (iSetBit + 64 - iWithin);
+    return iMiddle + dHigher + ((i - 1) << 6);
+  }
+  return cInvalidPqaId;
 }
 
 } // namespace ProbQA

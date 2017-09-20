@@ -20,6 +20,7 @@ protected: // types
   typedef BaseCpuEngine::TMemPool TMemPool;
 
 private: // variables
+  SRPlat::SRFastRandom _fr;
   std::vector<AnsweredQuestion> _answers;
   BaseCpuEngine *_pEngine;
   // For each question, the corresponding bit indicates whether it has already been asked in this quiz
@@ -37,6 +38,7 @@ public: // methods
   TExponent* GetTlhExps() const { return _pTlhExps; }
   __m256i* GetQAsked() const { return _isQAsked; }
   std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
+  SRPlat::SRFastRandom& Random() { return _fr; }
 };
 
 template<typename taNumber> class CEQuiz : public CEBaseQuiz {

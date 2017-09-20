@@ -103,7 +103,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
 
   //// Release quizzes
   for (size_t i = 0; i < _quizzes.size(); i++) {
-    delete _quizzes[i];
+    SRCheckingRelease(_memPool, _quizzes[i]);
   }
   _quizzes.clear();
   _quizGaps.Compact(0);
@@ -248,7 +248,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
 
     // So long as this constructor only needs the number of questions and targets, it can be out of _rws because
     //   _maintSwitch guards engine dimensions in Regular mode (but not in Maintenance mode).
-    tNoSrw._pQuiz = new CEQuiz<taNumber>(this);
+    SRObjectMPP<CEQuiz<taNumber>> spQuiz(_memPool, this);
+    tNoSrw._pQuiz = spQuiz.Get();
     TPqaId quizId;
     {
       SRLock<SRCriticalSection> csl(_csQuizReg);
@@ -257,7 +258,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
         assert(quizId == TPqaId(_quizzes.size()));
         _quizzes.emplace_back(nullptr);
       }
-      _quizzes[SRCast::ToSizeT(quizId)] = tNoSrw._pQuiz;
+      _quizzes[SRCast::ToSizeT(quizId)] = spQuiz.Get();
     }
 
     {
@@ -310,22 +311,23 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
       {
         SRRWLock<false> rwl(_rws);
         // Copy prior likelihood mantissas for targets
-        SRUtils::Copy256<false, false>(tNoSrw._pQuiz->GetTlhMants(), _vB.Get(),
+        SRUtils::Copy256<false, false>(spQuiz.Get()->GetTlhMants(), _vB.Get(),
           SRSimd::VectsFromBytes(_dims._nTargets * sizeof(taNumber)));
       }
     }
     op._err = tNoSrw.TakeAggregateError();
     if(op._err.IsOk()) {
       //// If it's "resume quiz" operation, update the prior likelihoods with the questions answered.
-      op.UpdateLikelihoods(*this, *tNoSrw._pQuiz);
+      op.UpdateLikelihoods(*this, *spQuiz.Get());
     }
     if (!op._err.IsOk()) {
-      delete tNoSrw._pQuiz;
+      spQuiz.EarlyRelease();
       SRLock<SRCriticalSection> csl(_csQuizReg);
       _quizzes[SRCast::ToSizeT(quizId)] = nullptr;
       _quizGaps.Release(quizId);
       return cInvalidPqaId;
     }
+    spQuiz.Detach();
     return quizId;
   }
   CATCH_TO_ERR_SET(op._err);
@@ -414,7 +416,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
         normPriorsTask, targSplit);
       assert(kp.GetNSubtasks() == targSplit._nSubtasks);
       const SRThreadCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
-      const SRVectCompCount nTail = SRVectCompCount(kp.GetNSubtasks() - (nResultVects << SRSimd::_cLogNComps64));
+      const SRVectCompCount nTail = kp.GetNSubtasks() & ((SRThreadCount(1) << SRSimd::_cLogNComps64) - 1);
       __m256i vMaxExps;
       auto fnFetch = [&kp, iBase=(nResultVects << SRSimd::_cLogNComps64)](const SRVectCompCount at) {
         return kp.GetSubtask(iBase + at)->_maxExp;
@@ -454,7 +456,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     pr.RunPreSplit<CENormPriorsSubtaskDiv<taNumber>>(normPriorsTask, targSplit);
   }
 
-  {
+  TPqaId selQuestion;
+  do {
     CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps(),
       commonBuf.Get() + bucketsOffs, SRCast::Ptr<taNumber>(commonBuf.Get() + runLengthOffs),
       commonBuf.Get() + posteriorOffs, threadPosteriorBytes, commonBuf.Get() + answerMetricsOffs,
@@ -467,14 +470,30 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       SRPoolRunner::Keeper<CEEvalQsSubtaskConsider<taNumber>> kp = pr.RunPreSplit<CEEvalQsSubtaskConsider<taNumber>>(
         evalQsTask, questionSplit);
     }
-    SRAccumulator<SRDoubleNumber> totG(SRDoubleNumber(0.0));
+    SRAccumulator<taNumber> accTotG(taNumber(0.0));
     taNumber *pGrandTotals = SRCast::Ptr<taNumber>(commonBuf.Get() + grandTotalsOffs);
     for (SRThreadCount i = 0; i < questionSplit._nSubtasks; i++) {
       const taNumber curGT = evalQsTask.GetRunLength()[questionSplit._pBounds[i] - 1];
-      pGrandTotals[i] = curGT;
-      totG.Add(curGT);
+      accTotG.Add(curGT);
+      pGrandTotals[i] = accTotG.Get();
     }
+    taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
+    taNumber selRunLen = taNumber::MakeRandom(totG, pQuiz->Random());
+    SRThreadCount iWorker = static_cast<SRThreadCount>(
+      std::upper_bound(pGrandTotals, pGrandTotals + questionSplit._nSubtasks, selRunLen) - pGrandTotals);
+    if (iWorker >= questionSplit._nSubtasks) {
+      selQuestion = _dims._nQuestions - 1;
+      break;
+    }
+    //TODO: implement
+  } WHILE_FALSE;
 
+  // If the selected question is in a gap or already answered, try to select the neighboring questions
+  if (_questionGaps.IsGap(selQuestion) || SRBitHelper::Test(pQuiz->GetQAsked(), selQuestion)) {
+    selQuestion = FindNearestQuestion(selQuestion, *pQuiz);
+  }
+  if (selQuestion == cInvalidPqaId) {
+    //TODO: report error
   }
 
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(

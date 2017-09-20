@@ -88,14 +88,15 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     // The average entropy over all answers for this question
     const double avgH = accAvgH.Get().GetValue() / totW;
     const double nExpectedTargets = std::exp2(avgH);
+    const double cutoff = task._nValidTargets - nExpectedTargets;
     double priority;
-    if (nExpectedTargets > task._nValidTargets + 1e-9) {
+    if (cutoff  < -1e-9) {
       LOCLOG(Warning) << SR_FILE_LINE "The expected number of targets (according to entropy) is " << nExpectedTargets
         << ", while the actual number of valid targets is " << task._nValidTargets;
       priority = 1.0;
     }
     else {
-      priority = 1 + task._nValidTargets - nExpectedTargets;
+      priority = 1 + cutoff;
     }
     prevRunLength += priority;
     task._pRunLength[i].SetValue(prevRunLength);

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../PqaCore/BaseCpuEngine.fwd.h"
+#include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/CEBaseTask.fwd.h"
 #include "../PqaCore/CETask.fwd.h"
 #include "../PqaCore/Interface/IPqaEngine.h"
@@ -52,6 +53,8 @@ protected: // methods
   static SRPlat::SRThreadCount CalcCompThreads();
 
   explicit BaseCpuEngine(const EngineDefinition& engDef);
+
+  TPqaId FindNearestQuestion(const TPqaId iMiddle, const CEBaseQuiz &quiz);
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() const { return _pLogger.load(std::memory_order_relaxed); }

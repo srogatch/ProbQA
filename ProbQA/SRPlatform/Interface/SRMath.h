@@ -76,6 +76,15 @@ public:
     return (n & (n - 1)) == 0;
   }
 
+  ATTR_NOALIAS static bool IsPowOf2(const uint64_t a) {
+    // _blsr_u64() computes a&(a-1)
+    return _blsr_u64(a) == 0;
+  }
+
+  ATTR_NOALIAS static uint64_t AndNot(const uint64_t complemented, const uint64_t straight) {
+    return _andn_u64(complemented, straight);
+  }
+
   // Computes pow(sqrt(2), p) very approximately: for odd p, the last multiplier is rather 1.5 than sqrt(2).
   // For p<=1 when nPacked is not 1 or even number, it may return a number that is not a multiple of nPacked.
   template<uint64_t taNPacked> ATTR_NOALIAS static uint64_t DecompressCapacity(const uint8_t p) {

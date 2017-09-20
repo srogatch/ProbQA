@@ -24,7 +24,12 @@ public:
   }
 
   ATTR_NOALIAS static bool Test(const __m256i *pArray, const int64_t iBit) {
-    return SRCast::CPtr<uint8_t>(pArray)[iBit >> 3] & (1ui8 << (iBit & 7));
+    //return SRCast::CPtr<uint8_t>(pArray)[iBit >> 3] & (1ui8 << (iBit & 7));
+    return _bittest64(SRCast::CPtr<int64_t>(pArray), iBit);
+  }
+
+  template<typename taResult> static const taResult& GetPacked(const __m256i *pArray, const uint64_t iPack) {
+    return SRCast::CPtr<taResult>(pArray)[iPack];
   }
 };
 
@@ -173,14 +178,20 @@ public:
   }
 
   //// A group of methods for fast single-bit manipulations
-  void SetOne(const uint64_t iBit) {
-    SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] |= (1ui8 << (iBit & 7));
+  // Returns the previous state of this bit.
+  bool SetOne(const uint64_t iBit) {
+    //SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] |= (1ui8 << (iBit & 7));
+    return _bittestandset64(SRCast::Ptr<int64_t>(_pBits), iBit);
   }
-  void ClearOne(const uint64_t iBit) {
-    SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] &= ~(1ui8 << (iBit & 7));
+  // Returns the previous state of this bit.
+  bool ClearOne(const uint64_t iBit) {
+    //SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] &= ~(1ui8 << (iBit & 7));
+    return _bittestandreset64(SRCast::Ptr<int64_t>(_pBits), iBit);
   }
-  void ToggleOne(const uint64_t iBit) {
-    SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] ^= (1ui8 << (iBit & 7));
+  // Returns the previous state of this bit.
+  bool ToggleOne(const uint64_t iBit) {
+    //SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] ^= (1ui8 << (iBit & 7));
+    return _bittestandcomplement64(SRCast::Ptr<int64_t>(_pBits), iBit);
   }
 
   //// Multi-bit manipulations
@@ -222,7 +233,8 @@ public:
   }
 
   bool GetOne(const uint64_t iBit) const {
-    return SRCast::CPtr<uint8_t>(_pBits)[iBit >> 3] & (1ui8 << (iBit & 7));
+    //return SRCast::CPtr<uint8_t>(_pBits)[iBit >> 3] & (1ui8 << (iBit & 7));
+    return _bittest64(SRCast::CPtr<int64_t>(_pBits), iBit);
   }
 
   uint8_t GetQuad(const uint64_t iQuad) const {

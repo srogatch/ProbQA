@@ -143,34 +143,73 @@ public:
 // MPP - memory pool pointer
 template <typename taItem> class SRSmartMPP {
   SRBaseMemPool *_pMp;
-  taItem *_pItem;
+  taItem *_pItems;
   size_t _nBytes;
 public:
   explicit SRSmartMPP(SRBaseMemPool &mp, const size_t nItems) : _pMp(&mp), _nBytes(nItems * sizeof(taItem)) {
-    _pItem = static_cast<taItem*>(_pMp->AllocMem(_nBytes));
-    if (_pItem == nullptr) {
-      throw SRException(SRMessageBuilder(__FUNCTION__ " Failed to allocate ")(nItems)(" items, ")(sizeof(taItem))
-        (" bytes each.").GetOwnedSRString());
+    _pItems = static_cast<taItem*>(_pMp->AllocMem(_nBytes));
+    if (_pItems == nullptr) {
+      throw SRException(SRMessageBuilder(SR_FILE_LINE " Failed to allocate ")(nItems)(" items, ")(sizeof(taItem))
+        (" bytes each on memory pool ")(intptr_t(_pMp)).GetOwnedSRString());
     }
   }
 
-  taItem* Get() {
-    return _pItem;
+  taItem* Get() const {
+    return _pItems;
   }
 
   taItem* Detach() {
-    taItem* answer = _pItem;
-    _pItem = nullptr;
+    taItem* answer = _pItems;
+    _pItems = nullptr;
     return answer;
   }
 
   void EarlyRelease() {
-    _pMp->ReleaseMem(_pItem, _nBytes);
-    _pItem = nullptr;
+    _pMp->ReleaseMem(_pItems, _nBytes);
+    _pItems = nullptr;
   }
 
   ~SRSmartMPP() {
-    _pMp->ReleaseMem(_pItem, _nBytes);
+    _pMp->ReleaseMem(_pItems, _nBytes);
+  }
+};
+
+template<typename taClass> void SRCheckingRelease(SRBaseMemPool& mp, taClass *pObj) {
+  if (pObj != nullptr) {
+    pObj->~taClass();
+    mp.ReleaseMem(pObj, sizeof(taClass));
+  }
+}
+
+template<typename taClass> class SRObjectMPP {
+  SRBaseMemPool *_pMp;
+  taClass *_pObj;
+
+public:
+  template<typename ...Args> explicit SRObjectMPP(SRBaseMemPool &mp, Args && ...constructorArgs) : _pMp(&mp) {
+    _pObj = static_cast<taClass*>(_pMp->AllocMem(sizeof(taClass)));
+    if (_pObj == nullptr) {
+      throw SRException(SRMessageBuilder(SR_FILE_LINE " Failed to allocate ")(typeid(taClass).name())(" object on"
+        " memory pool ")(intptr_t(_pMp)).GetOwnedSRString());
+    }
+    new(static_cast<void*>(_pObj)) taClass(std::forward<Args>(constructorArgs)...);
+  }
+  ~SRObjectMPP() {
+    SRCheckingRelease(*_pMp, _pObj);
+  }
+  taClass* Get() const {
+    return _pObj;
+  }
+  taClass* Detach() {
+    taClass *answer = _pObj;
+    _pObj = 0;
+    return answer;
+  }
+  // If taClass destructor throws, we don't call it again from smart pointer destructor.
+  void EarlyRelease() {
+    taClass *p = _pObj;
+    _pObj = nullptr;
+    SRCheckingRelease(*_pMp, p);
   }
 };
 

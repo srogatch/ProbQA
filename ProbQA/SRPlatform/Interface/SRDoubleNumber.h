@@ -7,6 +7,7 @@
 #include "../SRPlatform/Interface/SRRealNumber.h"
 #include "../SRPlatform/Interface/SRCast.h"
 #include "../SRPlatform/Interface/SRPacked64.h"
+#include "../SRPlatform/Interface/SRFastRandom.h"
 
 namespace SRPlat {
 
@@ -23,6 +24,13 @@ private: // variables
 public:
   explicit SRDoubleNumber() { }
   explicit SRDoubleNumber(SRAmount init) : _value(SRCast::ToDouble(init)) { }
+
+  // Set to random number between 0 and |upper| inclusively. 
+  static SRDoubleNumber MakeRandom(const SRDoubleNumber upper, SRFastRandom& fr) {
+    SRDoubleNumber ans;
+    ans._value = upper.GetValue() * fr.Generate<uint64_t>() / std::numeric_limits<uint64_t>::max();
+    return ans;
+  }
 
   double GetValue() const { return _value; }
   double& ModValue() { return _value; }
@@ -48,6 +56,10 @@ public:
   SRDoubleNumber& operator+=(const SRDoubleNumber fellow) {
     _value += fellow._value;
     return *this;
+  }
+
+  bool operator<(const SRDoubleNumber fellow) const {
+    return _value < fellow._value;
   }
 };
 
