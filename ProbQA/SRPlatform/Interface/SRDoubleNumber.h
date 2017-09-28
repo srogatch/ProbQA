@@ -32,6 +32,8 @@ public:
     return ans;
   }
 
+  SRAmount ToAmount() const { return _value; }
+
   double GetValue() const { return _value; }
   double& ModValue() { return _value; }
   void SetValue(const double value) { _value = value; }

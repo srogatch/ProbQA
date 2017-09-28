@@ -471,21 +471,33 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
         evalQsTask, questionSplit);
     }
     SRAccumulator<taNumber> accTotG(taNumber(0.0));
-    taNumber *pGrandTotals = SRCast::Ptr<taNumber>(commonBuf.Get() + grandTotalsOffs);
+    const taNumber *const PTR_RESTRICT pRunLength = evalQsTask.GetRunLength();
+    taNumber *const PTR_RESTRICT pGrandTotals = SRCast::Ptr<taNumber>(commonBuf.Get() + grandTotalsOffs);
     for (SRThreadCount i = 0; i < questionSplit._nSubtasks; i++) {
-      const taNumber curGT = evalQsTask.GetRunLength()[questionSplit._pBounds[i] - 1];
+      const taNumber curGT = pRunLength[questionSplit._pBounds[i] - 1];
       accTotG.Add(curGT);
       pGrandTotals[i] = accTotG.Get();
     }
-    taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
-    taNumber selRunLen = taNumber::MakeRandom(totG, pQuiz->Random());
-    SRThreadCount iWorker = static_cast<SRThreadCount>(
+    const taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
+    const taNumber selRunLen = taNumber::MakeRandom(totG, pQuiz->Random());
+    const SRThreadCount iWorker = static_cast<SRThreadCount>(
       std::upper_bound(pGrandTotals, pGrandTotals + questionSplit._nSubtasks, selRunLen) - pGrandTotals);
     if (iWorker >= questionSplit._nSubtasks) {
+      assert(iWorker == questionSplit._nSubtasks);
       selQuestion = _dims._nQuestions - 1;
       break;
     }
-    //TODO: implement
+    const TPqaId iFirst = ((iWorker == 0) ? 0 : questionSplit._pBounds[iWorker - 1]);
+    const TPqaId iLimit = questionSplit._pBounds[iWorker];
+    selQuestion = std::upper_bound(pRunLength + iFirst, pRunLength + iLimit, selRunLen) - pRunLength;
+    if (selQuestion >= iLimit) {
+      assert(selQuestion == iLimit);
+      CELOG(Warning) << SR_FILE_LINE "Hopefully due to a rounding error, within-worker run length binary search hasn't"
+        " found a strictly greater value, while the binary search over grand totals pointed to this worker's piece."
+        " Random selection: " << selRunLen.ToAmount() << ", worker index " << iWorker << ", grand total "
+        << pGrandTotals[iWorker].ToAmount() << ", worker max run length " << pRunLength[iLimit-1].ToAmount();
+      selQuestion = iLimit - 1;
+    }
   } WHILE_FALSE;
 
   // If the selected question is in a gap or already answered, try to select the neighboring questions
@@ -493,12 +505,12 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     selQuestion = FindNearestQuestion(selQuestion, *pQuiz);
   }
   if (selQuestion == cInvalidPqaId) {
-    //TODO: report error
+    err = PqaError(PqaErrorCode::QuestionsExhausted, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Found no unasked"
+      " question that is not in a gap."));
+    return cInvalidPqaId;
   }
-
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::NextQuestion")));
-  return cInvalidPqaId;
+  pQuiz->SetActiveQuestion(selQuestion);
+  return selQuestion;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) {

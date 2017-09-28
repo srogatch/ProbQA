@@ -39,6 +39,7 @@ public: // methods
   __m256i* GetQAsked() const { return _isQAsked; }
   std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
   SRPlat::SRFastRandom& Random() { return _fr; }
+  void SetActiveQuestion(TPqaId iQuestion) { _activeQuestion = iQuestion; }
 };
 
 template<typename taNumber> class CEQuiz : public CEBaseQuiz {
