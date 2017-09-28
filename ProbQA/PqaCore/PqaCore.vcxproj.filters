@@ -183,6 +183,15 @@
     <ClInclude Include="CEEvalQsSubtaskConsider.h">
       <Filter>Header Files\CPU Engine\Subtasks</Filter>
     </ClInclude>
+    <ClInclude Include="CERecordAnswerTask.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CERecordAnswerTask.fwd.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CERecordAnswerSubtaskMul.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -237,6 +246,9 @@
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CEEvalQsSubtaskConsider.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CERecordAnswerSubtaskMul.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

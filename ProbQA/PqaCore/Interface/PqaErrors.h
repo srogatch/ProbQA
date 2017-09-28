@@ -29,7 +29,8 @@ enum class PqaErrorCode : int64_t {
   WrongMode = 14, // No error params
   UnhandledCase = 15, // No error params
   I64Underflow = 16, // I64UnderflowErrorParams
-  QuestionsExhausted = 15
+  QuestionsExhausted = 15, // No error params (yet?)
+  NoQuizActiveQuestion = 16 // NoQuizActiveQuestionErrorParams
 };
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);

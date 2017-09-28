@@ -41,6 +41,10 @@ private: // methods
   TPqaId CreateQuizInternal(CECreateQuizOpBase &op);
 #pragma endregion
 
+  CEQuiz<taNumber>* UseQuiz(PqaError& err, const TPqaId iQuiz);
+  PqaError NormalizePriors(CEQuiz<taNumber> &quiz, SRPlat::SRPoolRunner &pr, SRPlat::SRBucketSummatorPar<taNumber> &bsp,
+    const SRPlat::SRThreadCount nWorkers, void *pSplitMem);
+
 public: // Internal interface methods
 
   const taNumber& GetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) const;

@@ -351,6 +351,79 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err
   return CreateQuizInternal(resumeOp);
 }
 
+template<typename taNumber> CEQuiz<taNumber>* CpuEngine<taNumber>::UseQuiz(PqaError& err, const TPqaId iQuiz) {
+  SRLock<SRCriticalSection> csl(_csQuizReg);
+  const TPqaId nQuizzes = _quizzes.size();
+  if (iQuiz < 0 || iQuiz >= nQuizzes) {
+    csl.EarlyRelease();
+    // For nQuizzes == 0, this may return [0;-1] range: we can't otherwise return an empty range because we return
+    //   the range with both bounds inclusive.
+    err = PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuiz, 0, nQuizzes - 1),
+      SRString::MakeUnowned(SR_FILE_LINE "Quiz index is not in quiz registry range."));
+    return nullptr;
+  }
+  if (_quizGaps.IsGap(iQuiz)) {
+    csl.EarlyRelease();
+    err = PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iQuiz), SRString::MakeUnowned(
+      SR_FILE_LINE "Quiz index is not in the registry (but rather at a gap)."));
+    return nullptr;
+  }
+  return _quizzes[iQuiz];
+}
+
+template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz<taNumber> &quiz, SRPoolRunner &pr,
+  SRBucketSummatorPar<taNumber> &bsp, const SRThreadCount nWorkers, void *pSplitMem)
+{
+  CENormPriorsTask<taNumber> normPriorsTask(*this, quiz, bsp);
+  const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(pSplitMem, nTargetVects, nWorkers);
+
+  { // The lifetime for maximum selection subtasks
+    SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp = pr.RunPreSplit<CENormPriorsSubtaskMax<taNumber>>(
+      normPriorsTask, targSplit);
+    assert(kp.GetNSubtasks() == targSplit._nSubtasks);
+    const SRThreadCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
+    const SRVectCompCount nTail = kp.GetNSubtasks() & ((SRThreadCount(1) << SRSimd::_cLogNComps64) - 1);
+    __m256i vMaxExps;
+    auto fnFetch = [&kp, iBase = (nResultVects << SRSimd::_cLogNComps64)](const SRVectCompCount at) {
+      return kp.GetSubtask(iBase + at)->_maxExp;
+    };
+    if (nResultVects == 0) {
+      SRSimd::ForTailI64(nTail, fnFetch, [&](const __m256i& vect) { vMaxExps = vect; },
+        std::numeric_limits<int64_t>::min());
+    }
+    else {
+      vMaxExps = _mm256_set_epi64x(kp.GetSubtask(3)->_maxExp, kp.GetSubtask(2)->_maxExp, kp.GetSubtask(1)->_maxExp,
+        kp.GetSubtask(0)->_maxExp);
+      for (SRThreadCount i = 1; i < nResultVects; i++) {
+        const SRThreadCount iBase = (i << SRSimd::_cLogNComps64);
+        const __m256i cand = _mm256_set_epi64x(kp.GetSubtask(iBase + 3)->_maxExp,
+          kp.GetSubtask(iBase + 2)->_maxExp, kp.GetSubtask(iBase + 1)->_maxExp, kp.GetSubtask(iBase)->_maxExp);
+        vMaxExps = SRSimd::MaxI64(vMaxExps, cand);
+      }
+      SRSimd::ForTailI64(nTail, fnFetch, [&](const __m256i& cand) { vMaxExps = SRSimd::MaxI64(vMaxExps, cand); },
+        std::numeric_limits<int64_t>::min());
+    }
+    const int64_t fullMax = SRSimd::FullHorizMaxI64(vMaxExps);
+    const int64_t highBound = taNumber::_cMaxExp + taNumber::_cExpOffs - SRMath::CeilLog2(_dims._nTargets) - 2;
+    const int64_t minAllowed = std::numeric_limits<int64_t>::min() + highBound + 1;
+    if (fullMax <= minAllowed) {
+      return PqaError(PqaErrorCode::I64Underflow, new I64UnderflowErrorParams(fullMax, minAllowed),
+        SRString::MakeUnowned("Max exponent over the priors is too low. Are all the targets in gaps?"));
+    }
+    normPriorsTask._corrExp = _mm256_set1_epi64x(highBound - fullMax); // so that fullMax + correction == highBound
+  }
+
+  // Correct the exponents towards the taNumber range, and calculate their sum
+  pr.RunPreSplit<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, targSplit);
+  normPriorsTask._sumPriors.Set1(bsp.ComputeSum(pr));
+
+  // Divide priors by their sum, so to get probabilities.
+  pr.RunPreSplit<CENormPriorsSubtaskDiv<taNumber>>(normPriorsTask, targSplit);
+
+  return PqaError();
+}
+
 template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& err, const TPqaId iQuiz) {
   constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
   if (!_maintSwitch.TryEnterSpecific<msMode>()) {
@@ -360,25 +433,10 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   }
   MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
 
-  CEQuiz<taNumber> *pQuiz;
-  {
-    SRLock<SRCriticalSection> csl(_csQuizReg);
-    const TPqaId nQuizzes = _quizzes.size();
-    if(iQuiz < 0 || iQuiz >= nQuizzes) {
-      csl.EarlyRelease();
-      // For nQuizzes == 0, this may return [0;-1] range: we can't otherwise return an empty range because we return
-      //   the range with both bounds inclusive.
-      err = PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuiz, 0, nQuizzes - 1),
-        SRString::MakeUnowned("Quiz index is not in quiz registry range."));
-      return cInvalidPqaId;
-    }
-    if(_quizGaps.IsGap(iQuiz)) {
-      csl.EarlyRelease();
-      err = PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iQuiz), SRString::MakeUnowned(
-        "Quiz index is not in the registry (but rather at a gap)."));
-      return cInvalidPqaId;
-    }
-    pQuiz = _quizzes[iQuiz];
+  CEQuiz<taNumber> *pQuiz = UseQuiz(err, iQuiz);
+  if (pQuiz == nullptr) {
+    assert(!err.IsOk());
+    return cInvalidPqaId;
   }
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
@@ -406,54 +464,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
   SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
 
-  { //TODO: move this block to a separate function, encapsulating local variables in a context structure?
-    CENormPriorsTask<taNumber> normPriorsTask(*this, *pQuiz, bsp);
-    const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
-    const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
-
-    { // The lifetime for maximum selection subtasks
-      SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp = pr.RunPreSplit<CENormPriorsSubtaskMax<taNumber>>(
-        normPriorsTask, targSplit);
-      assert(kp.GetNSubtasks() == targSplit._nSubtasks);
-      const SRThreadCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
-      const SRVectCompCount nTail = kp.GetNSubtasks() & ((SRThreadCount(1) << SRSimd::_cLogNComps64) - 1);
-      __m256i vMaxExps;
-      auto fnFetch = [&kp, iBase=(nResultVects << SRSimd::_cLogNComps64)](const SRVectCompCount at) {
-        return kp.GetSubtask(iBase + at)->_maxExp;
-      };
-      if (nResultVects == 0) {
-        SRSimd::ForTailI64(nTail, fnFetch, [&](const __m256i& vect) { vMaxExps = vect; },
-          std::numeric_limits<int64_t>::min());
-      }
-      else {
-        vMaxExps = _mm256_set_epi64x(kp.GetSubtask(3)->_maxExp, kp.GetSubtask(2)->_maxExp, kp.GetSubtask(1)->_maxExp,
-          kp.GetSubtask(0)->_maxExp);
-        for (SRThreadCount i = 1; i < nResultVects; i++) {
-          const SRThreadCount iBase = (i << SRSimd::_cLogNComps64);
-          const __m256i cand = _mm256_set_epi64x(kp.GetSubtask(iBase + 3)->_maxExp,
-            kp.GetSubtask(iBase + 2)->_maxExp, kp.GetSubtask(iBase + 1)->_maxExp, kp.GetSubtask(iBase)->_maxExp);
-          vMaxExps = SRSimd::MaxI64(vMaxExps, cand);
-        }
-        SRSimd::ForTailI64(nTail, fnFetch, [&](const __m256i& cand) { vMaxExps = SRSimd::MaxI64(vMaxExps, cand); },
-          std::numeric_limits<int64_t>::min());
-      }
-      const int64_t fullMax = SRSimd::FullHorizMaxI64(vMaxExps);
-      const int64_t highBound = taNumber::_cMaxExp + taNumber::_cExpOffs - SRMath::CeilLog2(_dims._nTargets) - 2;
-      const int64_t minAllowed = std::numeric_limits<int64_t>::min() + highBound + 1;
-      if (fullMax <= minAllowed) {
-        err = PqaError(PqaErrorCode::I64Underflow, new I64UnderflowErrorParams(fullMax, minAllowed),
-          SRString::MakeUnowned("Max exponent over the priors is too low. Are all the targets in gaps?"));
-        return cInvalidPqaId;
-      }
-      normPriorsTask._corrExp = _mm256_set1_epi64x(highBound - fullMax); // so that fullMax + correction == highBound
-    }
-
-    // Correct the exponents towards the taNumber range, and calculate their sum
-    pr.RunPreSplit<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, targSplit);
-    normPriorsTask._sumPriors.Set1(bsp.ComputeSum(pr));
-
-    // Divide priors by their sum, so to get probabilities.
-    pr.RunPreSplit<CENormPriorsSubtaskDiv<taNumber>>(normPriorsTask, targSplit);
+  err = NormalizePriors(*pQuiz, pr, bsp, nWorkers, commonBuf.Get() + splitOffs);
+  if (!err.IsOk()) {
+    return cInvalidPqaId;
   }
 
   TPqaId selQuestion;
@@ -514,9 +527,30 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) {
-  (void)iQuiz; (void)iAnswer; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::RecordAnswer")));
+  constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
+      " operation (record an answer) because current mode is not regular (but maintenance/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+  // Check that iAnswer is within the range
+  if (iAnswer < 0 || iAnswer >= _dims._nAnswers) {
+    return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, _dims._nAnswers - 1),
+      SRString::MakeUnowned("Answer index is not in the answer range."));
+  }
+
+  CEQuiz<taNumber> *pQuiz;
+  {
+    PqaError err;
+    pQuiz = UseQuiz(err, iQuiz);
+    if (pQuiz == nullptr) {
+      assert(!err.IsOk());
+      return err;
+    }
+  }
+
+  return pQuiz->RecordAnswer(iAnswer);
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError& err, const TPqaId iQuiz,

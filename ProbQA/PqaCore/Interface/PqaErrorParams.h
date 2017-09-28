@@ -174,4 +174,14 @@ public:
   }
 };
 
+class PQACORE_API NoQuizActiveQuestionErrorParams : public IPqaErrorParams {
+  TPqaId _iAnswer;
+public:
+  explicit NoQuizActiveQuestionErrorParams(const TPqaId iAnswer) : _iAnswer(iAnswer) { }
+  TPqaId GetAnswerId() const { return _iAnswer; }
+  virtual SRPlat::SRString ToString() override final {
+    return SRPlat::SRMessageBuilder("answerId=")(_iAnswer).GetOwnedSRString();
+  }
+};
+
 } // namespace ProbQA

@@ -5,8 +5,8 @@
 #pragma once
 
 #include "../PqaCore/CEQuiz.fwd.h"
-#include "../PqaCore/BaseCpuEngine.fwd.h"
 #include "../PqaCore/CpuEngine.fwd.h"
+#include "../PqaCore/BaseCpuEngine.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 
 namespace ProbQA {
@@ -21,17 +21,23 @@ protected: // types
 
 private: // variables
   SRPlat::SRFastRandom _fr;
+
+protected:
   std::vector<AnsweredQuestion> _answers;
+
+private:
   BaseCpuEngine *_pEngine;
   // For each question, the corresponding bit indicates whether it has already been asked in this quiz
   __m256i *_isQAsked;
   // Exponents for the target likelyhoods: x[i] = _pTlhs[i] * pow(2, _pExps[i])
   TExponent *_pTlhExps;
+
+protected: // variables
   TPqaId _activeQuestion = cInvalidPqaId;
 
 protected: // methods
-  explicit CEBaseQuiz(BaseCpuEngine *pEngine);
-  ~CEBaseQuiz();
+  inline explicit CEBaseQuiz(BaseCpuEngine *pEngine);
+  inline ~CEBaseQuiz();
   BaseCpuEngine* GetBaseEngine() const { return _pEngine; }
 
 public: // methods
@@ -52,6 +58,7 @@ public: // methods
   ~CEQuiz();
   taNumber* GetTlhMants() const { return _pTlhMants; }
   CpuEngine<taNumber>* GetEngine() const;
+  inline PqaError RecordAnswer(const TPqaId iAnswer);
 };
 
 } // namespace ProbQA

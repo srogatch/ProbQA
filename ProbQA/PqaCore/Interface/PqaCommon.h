@@ -47,6 +47,7 @@ struct EngineDefinition {
 struct AnsweredQuestion {
   TPqaId _iQuestion;
   TPqaId _iAnswer;
+  explicit AnsweredQuestion(const TPqaId iQuestion, const TPqaId iAnswer) : _iQuestion(iQuestion), _iAnswer(iAnswer) { }
 };
 
 struct RatedTarget {

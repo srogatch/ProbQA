@@ -5,6 +5,8 @@
 #pragma once
 
 #include "../PqaCore/CEQuiz.decl.h"
+#include "../PqaCore/CERecordAnswerTask.h"
+#include "../PqaCore/CERecordAnswerSubtaskMul.h"
 #include "../PqaCore/CpuEngine.h"
 
 namespace ProbQA {
@@ -62,6 +64,34 @@ template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
   //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
   //  of targets.
   memPool.ReleaseMem(_pTlhMants, sizeof(*_pTlhMants) * nTargets);
+}
+
+template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const TPqaId iAnswer) {
+  if (_activeQuestion == cInvalidPqaId) {
+    return PqaError(PqaErrorCode::NoQuizActiveQuestion, new NoQuizActiveQuestionErrorParams(iAnswer),
+      SRPlat::SRString::MakeUnowned(SR_FILE_LINE "An attempt to record an answer in a quiz that doesn't have an active"
+        "question"));
+  }
+  _answers.emplace_back(_activeQuestion, iAnswer);
+  _activeQuestion = cInvalidPqaId;
+
+  // Update prior probabilities in the quiz
+  CpuEngine<taNumber> &PTR_RESTRICT engine = *GetEngine();
+  CERecordAnswerTask<taNumber> raTask(engine, *this, _answers.back());
+  const EngineDimensions &PTR_RESTRICT dims = engine.GetDims();
+  const size_t nVects = SRSimd::VectsFromComps<double>(dims._nTargets);
+  const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
+  constexpr size_t subtasksOffs = 0;
+  const size_t nWithSubtasks = subtasksOffs + nWorkers * SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>>::value;
+  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), nWithSubtasks);
+  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + subtasksOffs);
+
+  {
+    SRRWLock<false> rwl(engine.GetRws());
+    pr.SplitAndRunSubtasks<CERecordAnswerSubtaskMul<SRDoubleNumber>>(raTask, nVects);
+  }
+
+  return PqaError();
 }
 
 } // namespace ProbQA
