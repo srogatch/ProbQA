@@ -45,7 +45,7 @@ template<> void CENormPriorsSubtaskMax<SRDoubleNumber>::Run() {
   ContextDouble ctx;
   ctx._pGt = &engine.GetTargetGaps();
   ctx._pExps = SRCast::CPtr<__m256i>(quiz.GetTlhExps());
-  ctx._pMants = SRCast::CPtr<__m256d>(quiz.GetTlhMants());
+  ctx._pMants = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
 
   __m256i curMax = _mm256_set1_epi64x(std::numeric_limits<int64_t>::min());
   for (TPqaId i = _iFirst, iEn = _iLimit; i < iEn; i++) {

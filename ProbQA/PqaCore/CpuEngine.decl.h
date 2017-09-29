@@ -8,6 +8,9 @@
 #include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/CECreateQuizOperation.fwd.h"
 #include "../PqaCore/BaseCpuEngine.h"
+#include "../PqaCore/CENormPriorsSubtaskMax.h"
+#include "../PqaCore/CENormPriorsSubtaskCorrSum.h"
+#include "../PqaCore/CENormPriorsSubtaskDiv.h"
 
 namespace ProbQA {
 
@@ -16,6 +19,11 @@ template<typename taNumber> class CETrainTaskNumSpec;
 
 template<typename taNumber> class CpuEngine : public BaseCpuEngine {
   static_assert(std::is_base_of<SRPlat::SRRealNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
+
+public: // constants
+  static constexpr size_t _cNormPriorsMemReqPerSubtask = std::max({ SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
+    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber> >::value,
+    SRPlat::SRBucketSummatorPar<taNumber>::_cSubtaskMemReq });
 
 private: // variables
   //// N questions, K answers, M targets
@@ -42,8 +50,6 @@ private: // methods
 #pragma endregion
 
   CEQuiz<taNumber>* UseQuiz(PqaError& err, const TPqaId iQuiz);
-  PqaError NormalizePriors(CEQuiz<taNumber> &quiz, SRPlat::SRPoolRunner &pr, SRPlat::SRBucketSummatorPar<taNumber> &bsp,
-    const SRPlat::SRThreadCount nWorkers, void *pSplitMem);
 
 public: // Internal interface methods
 
@@ -55,6 +61,9 @@ public: // Internal interface methods
 
   const taNumber& GetB(const TPqaId iTarget) const;
   taNumber& ModB(const TPqaId iTarget);
+
+  PqaError NormalizePriors(CEQuiz<taNumber> &quiz, SRPlat::SRPoolRunner &pr, SRPlat::SRBucketSummatorPar<taNumber> &bsp,
+    const SRPlat::SRPoolRunner::Split& targSplit);
 
 public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef);

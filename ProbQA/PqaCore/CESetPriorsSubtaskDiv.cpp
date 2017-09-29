@@ -3,23 +3,27 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
-#include "../PqaCore/CENormPriorsSubtaskDiv.h"
-#include "../PqaCore/CENormPriorsTask.h"
+#include "../PqaCore/CESetPriorsSubtaskDiv.h"
+#include "../PqaCore/CESetPriorsTask.h"
+#include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/CEQuiz.h"
 
 using namespace SRPlat;
 
 namespace ProbQA {
 
-template class CENormPriorsSubtaskDiv<SRDoubleNumber>;
+template class CESetPriorsSubtaskDiv<SRDoubleNumber>;
 
-template<typename taNumber> CENormPriorsSubtaskDiv<taNumber>::CENormPriorsSubtaskDiv(TTask *pTask)
+template<typename taNumber> CESetPriorsSubtaskDiv<taNumber>::CESetPriorsSubtaskDiv(TTask *pTask)
   : SRStandardSubtask(pTask) { }
 
-//TODO: generalize with CESetPriorsSubtaskDiv
-template<> void CENormPriorsSubtaskDiv<SRDoubleNumber>::Run() {
+//TODO: generalize with CENormPriorsSubtaskDiv
+template<> void CESetPriorsSubtaskDiv<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
-  __m256d *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(task.GetQuiz().GetPriorMants());
+  const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
+
+  auto *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
+
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     const __m256d original = SRSimd::Load<false>(pMants + i);
     const __m256d normalized = _mm256_div_pd(original, task._sumPriors._comps);

@@ -49,14 +49,14 @@ public: // methods
 };
 
 template<typename taNumber> class CEQuiz : public CEBaseQuiz {
-  // Target LikeliHood mantissas: for better performance, they are usually NOT normalized to probabilities by dividing
-  //   by their sum. For precision and to avoid underflow, mantissas and exponents are stored separately.
-  taNumber *_pTlhMants;
+  // For precision and to avoid underflow, mantissas and exponents are stored separately.
+  // Priors must be usually normalized, except for short periods of updating them.
+  taNumber *_pPriorMants;
 
 public: // methods
   explicit CEQuiz(CpuEngine<taNumber> *pEngine);
   ~CEQuiz();
-  taNumber* GetTlhMants() const { return _pTlhMants; }
+  taNumber* GetPriorMants() const { return _pPriorMants; }
   CpuEngine<taNumber>* GetEngine() const;
   inline PqaError RecordAnswer(const TPqaId iAnswer);
 };

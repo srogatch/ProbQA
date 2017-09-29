@@ -56,7 +56,7 @@ template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
   SRBucketSummatorPar<SRDoubleNumber> &PTR_RESTRICT bsp = (ctx._pTask->GetBSP());
   ctx._pGt = &engine.GetTargetGaps();
   ctx._pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
-  ctx._pMants = SRCast::Ptr<__m256d>(quiz.GetTlhMants());
+  ctx._pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
 
   bsp.ZeroBuckets(_iWorker);
 

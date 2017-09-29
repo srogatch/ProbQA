@@ -19,8 +19,10 @@ template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT  task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
+  SRBucketSummatorPar<SRDoubleNumber> &PTR_RESTRICT bsp = task.GetBSP();
+  const GapTracker<TPqaId>& targGaps = engine.GetTargetGaps();
 
-  __m256d *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetTlhMants());
+  __m256d *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
   static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
     " 64-bit integer.");
   __m256i *PTR_RESTRICT pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
@@ -36,17 +38,11 @@ template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
 
     const __m256d oldMants = SRSimd::Load<false>(pMants + i);
     const __m256d product = _mm256_mul_pd(oldMants, P_qa_given_t);
-    //TODO: move separate summation of exponent to a common function (available to other subtasks etc.)?
-    const __m256d newMants = SRSimd::MakeExponent0(product);
+    const uint8_t gaps = targGaps.GetQuad(i);
+    const __m256d newMants = _mm256_andnot_pd(_mm256_castsi256_pd(SRSimd::SetToBitQuadHot(gaps)), product);
     SRSimd::Store<false>(pMants + i, newMants);
 
-    //TODO: AND can be removed here if numbers are non-negative or we can assume a large exponent for negatives,
-    // or use an arithmetic shift to assign such numbers a very small exponent. Unfortunately, there seems no
-    // arithmetic shift for 64-bit components in AVX2 like _mm256_srai_epi64.
-    const __m256i prodExps = SRSimd::ExtractExponents64<false>(product);
-    const __m256i oldExps = SRSimd::Load<false>(pExps + i);
-    const __m256i newExps = _mm256_add_epi64(prodExps, oldExps);
-    SRSimd::Store<false>(pExps + i, newExps);
+    bsp.CalcAdd(_iWorker, newMants);
   }
 }
 

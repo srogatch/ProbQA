@@ -6,8 +6,6 @@
 
 namespace ProbQA {
 
-class CECreateQuizOpBase;
-template<typename taNumber> class CECreateQuizStart;
-template<typename taNumber> class CECreateQuizResume;
+template<typename taNumber> class CESetPriorsTask;
 
 } // namespace ProbQA

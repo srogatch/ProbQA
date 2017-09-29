@@ -11,7 +11,8 @@ namespace ProbQA {
 inline CECreateQuizOpBase::CECreateQuizOpBase(PqaError& err) : _err(err) { }
 inline CECreateQuizOpBase::~CECreateQuizOpBase() { };
 
-inline CECreateQuizStart::CECreateQuizStart(PqaError& err) : CECreateQuizOpBase(err) { }
+template<typename taNumber> inline CECreateQuizStart<taNumber>::CECreateQuizStart(PqaError& err)
+  : CECreateQuizOpBase(err) { }
 
 template<typename taNumber> inline CECreateQuizResume<taNumber>::CECreateQuizResume(
   PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs)

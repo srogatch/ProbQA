@@ -192,6 +192,18 @@
     <ClInclude Include="CERecordAnswerSubtaskMul.h">
       <Filter>Header Files\CPU Engine\Subtasks</Filter>
     </ClInclude>
+    <ClInclude Include="CESetPriorsSubtaskSum.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CESetPriorsTask.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CESetPriorsTask.fwd.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CESetPriorsSubtaskDiv.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -249,6 +261,12 @@
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CERecordAnswerSubtaskMul.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CESetPriorsSubtaskSum.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CESetPriorsSubtaskDiv.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

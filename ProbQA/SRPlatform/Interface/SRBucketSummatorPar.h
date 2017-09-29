@@ -9,12 +9,16 @@
 #include "../SRPlatform/Interface/SRNumHelper.h"
 #include "../SRPlatform/BucketerTask.h"
 #include "../SRPlatform/BucketerSubtaskSum.h"
+#include "../SRPlatform/Interface/SRMaxSizeof.h"
 
 namespace SRPlat {
 
 template<typename taNumber> class SRBucketSummatorPar : public BaseBucketSummator<taNumber> {
   friend class BucketerSubtaskSum<taNumber>;
+public: // constants
+  static constexpr size_t _cSubtaskMemReq = SRMaxSizeof< BucketerSubtaskSum<taNumber> >::value;
 
+private:
   taNumber *_pWorkerSums;
   const SRThreadCount _nWorkers;
 

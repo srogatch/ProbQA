@@ -54,7 +54,7 @@ template<typename taNumber> CEQuiz<taNumber>::CEQuiz(CpuEngine<taNumber> *pEngin
   SRPlat::SRSmartMPP<taNumber> smppMantissas(memPool, nTargets);
 
   // As all the memory is allocated, safely proceed with finishing construction of CEQuiz object.
-  _pTlhMants = smppMantissas.Detach();
+  _pPriorMants = smppMantissas.Detach();
 }
 
 template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
@@ -63,7 +63,7 @@ template<typename taNumber> CEQuiz<taNumber>::~CEQuiz() {
   auto& memPool = GetBaseEngine()->GetMemPool();
   //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
   //  of targets.
-  memPool.ReleaseMem(_pTlhMants, sizeof(*_pTlhMants) * nTargets);
+  memPool.ReleaseMem(_pPriorMants, sizeof(*_pPriorMants) * nTargets);
 }
 
 template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const TPqaId iAnswer) {
@@ -77,19 +77,31 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
 
   // Update prior probabilities in the quiz
   CpuEngine<taNumber> &PTR_RESTRICT engine = *GetEngine();
-  CERecordAnswerTask<taNumber> raTask(engine, *this, _answers.back());
   const EngineDimensions &PTR_RESTRICT dims = engine.GetDims();
-  const size_t nVects = SRSimd::VectsFromComps<double>(dims._nTargets);
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
-  constexpr size_t subtasksOffs = 0;
-  const size_t nWithSubtasks = subtasksOffs + nWorkers * SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>>::value;
-  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), nWithSubtasks);
-  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + subtasksOffs);
 
+  constexpr size_t subtasksOffs = 0;
+  const size_t splitOffs = subtasksOffs + nWorkers *std::max({ SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
+    SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>>::value });
+  const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
+  const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs +
+    SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
+  const size_t totalBytes = nWithBuckets;
+
+  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), totalBytes);
+  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + subtasksOffs);
+  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
+
+  const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
+
+  CERecordAnswerTask<taNumber> raTask(engine, *this, _answers.back(), bsp);
   {
     SRRWLock<false> rwl(engine.GetRws());
-    pr.SplitAndRunSubtasks<CERecordAnswerSubtaskMul<SRDoubleNumber>>(raTask, nVects);
+    pr.SplitAndRunSubtasks<CERecordAnswerSubtaskMul<SRDoubleNumber>>(raTask, nTargetVects);
   }
+  raTask._sumPriors.Set1(bsp.ComputeSum(pr));
+  //TODO: divide the likelihoods by their sum calculated above
 
   return PqaError();
 }

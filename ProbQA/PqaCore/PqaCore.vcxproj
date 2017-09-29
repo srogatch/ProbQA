@@ -213,6 +213,10 @@
     <ClInclude Include="CERecordAnswerSubtaskMul.h" />
     <ClInclude Include="CERecordAnswerTask.fwd.h" />
     <ClInclude Include="CERecordAnswerTask.h" />
+    <ClInclude Include="CESetPriorsSubtaskDiv.h" />
+    <ClInclude Include="CESetPriorsSubtaskSum.h" />
+    <ClInclude Include="CESetPriorsTask.fwd.h" />
+    <ClInclude Include="CESetPriorsTask.h" />
     <ClInclude Include="CETask.fwd.h" />
     <ClInclude Include="CETask.decl.h" />
     <ClInclude Include="CETask.h" />
@@ -252,6 +256,8 @@
     <ClCompile Include="CENormPriorsSubtaskDiv.cpp" />
     <ClCompile Include="CENormPriorsSubtaskMax.cpp" />
     <ClCompile Include="CERecordAnswerSubtaskMul.cpp" />
+    <ClCompile Include="CESetPriorsSubtaskDiv.cpp" />
+    <ClCompile Include="CESetPriorsSubtaskSum.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp" />
     <ClCompile Include="CpuEngine.cpp" />

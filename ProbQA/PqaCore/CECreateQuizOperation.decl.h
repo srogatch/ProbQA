@@ -23,13 +23,14 @@ public: // methods
   CECreateQuizOpBase(CECreateQuizOpBase&&) = delete;
   CECreateQuizOpBase& operator=(CECreateQuizOpBase&&) = delete;
   virtual ~CECreateQuizOpBase();
-  virtual void UpdateLikelihoods(BaseCpuEngine &baseCe, CEBaseQuiz &baseQuiz) { (void)baseCe; (void)baseQuiz; };
+  virtual void UpdateLikelihoods(BaseCpuEngine &baseCe, CEBaseQuiz &baseQuiz) = 0;
   virtual bool IsResume() const { return false; }
 };
 
-class CECreateQuizStart : public CECreateQuizOpBase {
+template<typename taNumber> class CECreateQuizStart : public CECreateQuizOpBase {
 public: //methods
   explicit CECreateQuizStart(PqaError& err);
+  virtual void UpdateLikelihoods(BaseCpuEngine &baseCe, CEBaseQuiz &baseQuiz) override final;
 };
 
 template<typename taNumber> class CECreateQuizResume : public CECreateQuizOpBase {

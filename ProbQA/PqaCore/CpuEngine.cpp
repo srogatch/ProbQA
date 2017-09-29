@@ -14,9 +14,6 @@
 #include "../PqaCore/CEQuiz.h"
 #include "../PqaCore/CECreateQuizOperation.h"
 #include "../PqaCore/CENormPriorsTask.h"
-#include "../PqaCore/CENormPriorsSubtaskMax.h"
-#include "../PqaCore/CENormPriorsSubtaskCorrSum.h"
-#include "../PqaCore/CENormPriorsSubtaskDiv.h"
 #include "../PqaCore/CEEvalQsTask.h"
 #include "../PqaCore/CEEvalQsSubtaskConsider.h"
 
@@ -262,12 +259,6 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
     }
 
     {
-      auto&& lstZeroExps = SRMakeLambdaSubtask(&tNoSrw, [](const SRBaseSubtask &subtask) {
-        auto& task = static_cast<const NoSrwTask&>(*subtask.GetTask());
-        auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
-        SRUtils::FillZeroVects<false>(SRCast::Ptr<__m256i>(task._pQuiz->GetTlhExps()),
-          SRSimd::VectsFromBytes(engine._dims._nTargets * sizeof(CEQuiz<taNumber>::TExponent)));
-      });
       auto&& lstSetQAsked = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
         auto& task = static_cast<NoSrwTask&>(*subtask.GetTask());
         auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
@@ -303,21 +294,15 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
 
       SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
       if(op.IsResume()) {
-        _tpWorkers.Enqueue({&lstZeroExps, &lstSetQAsked, &lstAddAnswers}, tNoSrw);
+        _tpWorkers.Enqueue({&lstSetQAsked, &lstAddAnswers}, tNoSrw);
       } else {
-        _tpWorkers.Enqueue({&lstZeroExps, &lstSetQAsked}, tNoSrw);
-      }
-
-      {
-        SRRWLock<false> rwl(_rws);
-        // Copy prior likelihood mantissas for targets
-        SRUtils::Copy256<false, false>(spQuiz.Get()->GetTlhMants(), _vB.Get(),
-          SRSimd::VectsFromBytes(_dims._nTargets * sizeof(taNumber)));
+        _tpWorkers.Enqueue(&lstSetQAsked);
       }
     }
     op._err = tNoSrw.TakeAggregateError();
     if(op._err.IsOk()) {
-      //// If it's "resume quiz" operation, update the prior likelihoods with the questions answered.
+      // If it's "resume quiz" operation, update the prior likelihoods with the questions answered, and normalize the
+      //   priors. If it's "start quiz" operation, just divide the priors by their sum.
       op.UpdateLikelihoods(*this, *spQuiz.Get());
     }
     if (!op._err.IsOk()) {
@@ -335,7 +320,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::StartQuiz(PqaError& err) {
-  CECreateQuizStart startOp(err);
+  CECreateQuizStart<taNumber> startOp(err);
   return CreateQuizInternal(startOp);
 }
 
@@ -346,6 +331,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ResumeQuiz(PqaError& err
     err = PqaError(PqaErrorCode::NegativeCount, new NegativeCountErrorParams(nAnswered), SRString::MakeUnowned(
       "|nAnswered| must be non-negative."));
     return cInvalidPqaId;
+  }
+  if (nAnswered == 0) {
+    return StartQuiz(err);
   }
   CECreateQuizResume<taNumber> resumeOp(err, nAnswered, pAQs);
   return CreateQuizInternal(resumeOp);
@@ -372,11 +360,9 @@ template<typename taNumber> CEQuiz<taNumber>* CpuEngine<taNumber>::UseQuiz(PqaEr
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz<taNumber> &quiz, SRPoolRunner &pr,
-  SRBucketSummatorPar<taNumber> &bsp, const SRThreadCount nWorkers, void *pSplitMem)
+  SRBucketSummatorPar<taNumber> &bsp, const SRPoolRunner::Split& targSplit)
 {
   CENormPriorsTask<taNumber> normPriorsTask(*this, quiz, bsp);
-  const int64_t nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
-  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(pSplitMem, nTargetVects, nWorkers);
 
   { // The lifetime for maximum selection subtasks
     SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp = pr.RunPreSplit<CENormPriorsSubtaskMax<taNumber>>(
@@ -440,9 +426,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   }
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
-  const size_t subtasksOffs = 0;
-  const size_t splitOffs = subtasksOffs + nWorkers * SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
-    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber>, CEEvalQsSubtaskConsider<taNumber> >::value;
+  constexpr size_t subtasksOffs = 0;
+  const size_t splitOffs = subtasksOffs + nWorkers * std::max(_cNormPriorsMemReqPerSubtask,
+    SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value);
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t runLengthOffs = SRSimd::GetPaddedBytes(bucketsOffs + std::max(
     SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
@@ -465,7 +451,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
   SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
 
-  err = NormalizePriors(*pQuiz, pr, bsp, nWorkers, commonBuf.Get() + splitOffs);
+  const TPqaId nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
+  err = NormalizePriors(*pQuiz, pr, bsp, targSplit);
   if (!err.IsOk()) {
     return cInvalidPqaId;
   }
@@ -573,9 +561,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
   }
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
-  const size_t subtasksOffs = 0;
-  const size_t splitOffs = subtasksOffs + nWorkers * SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
-    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber> >::value;
+  constexpr size_t subtasksOffs = 0;
+  const size_t splitOffs = subtasksOffs + nWorkers * _cNormPriorsMemReqPerSubtask;
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs + 
     SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
@@ -586,7 +573,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
   SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
 
-  err = NormalizePriors(*pQuiz, pr, bsp, nWorkers, commonBuf.Get() + splitOffs);
+  const TPqaId nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
+  err = NormalizePriors(*pQuiz, pr, bsp, targSplit);
   if (!err.IsOk()) {
     return cInvalidPqaId;
   }

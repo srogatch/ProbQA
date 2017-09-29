@@ -20,17 +20,50 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
   auto& engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &quiz = *task._pQuiz;
 
-  __m256d *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetTlhMants());
   static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
     " 64-bit integer.");
-  __m256i *PTR_RESTRICT pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
+
+  auto *PTR_RESTRICT pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
+  auto *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
+  auto *PTR_RESTRICT pvB = SRCast::CPtr<__m256d>( &(engine.GetB(0)) );
+
+  //TODO: consider replacing this with an assert(), because CpuEngine checks for nAnswered==0 and resorts to StartQuiz()
+  //  in that case.
+  if (task._nAnswered == 0) {
+    for (TPqaId i = _iFirst; i < _iLimit; i++) {
+      SRSimd::Store<false>(pMants + i, SRSimd::Load<false>(pvB + i));
+      SRSimd::Store<false>(pExps + i, _mm256_setzero_si256());
+    }
+    _mm_sfence();
+    return;
+  }
 
   assert(_iLimit > _iFirst);
   const size_t nVectsInBlock = (taCache ? (task._nVectsInCache >> 1) : (_iLimit - _iFirst));
   size_t iBlockStart = _iFirst;
   for(;;) {
     const size_t iBlockLim = std::min(SRCast::ToSizeT(_iLimit), iBlockStart + nVectsInBlock);
-    for (size_t i = 0; i < SRCast::ToSizeT(task._nAnswered); i++) {
+    { // separate step for i==0
+      const AnsweredQuestion& aq = task._pAQs[0];
+      const __m256d *PTR_RESTRICT pAdjMuls = SRCast::CPtr<__m256d>(&(engine.GetA(aq._iQuestion, aq._iAnswer, 0)));
+      const __m256d *PTR_RESTRICT pAdjDivs = SRCast::CPtr<__m256d>(&(engine.GetD(aq._iQuestion, 0)));
+      for (size_t j = iBlockStart; j < iBlockLim; j++) {
+        const __m256d adjMuls = SRSimd::Load<false>(pAdjMuls + j);
+        const __m256d adjDivs = SRSimd::Load<false>(pAdjDivs + j);
+        // P(answer(aq._iQuestion)==aq._iAnswer GIVEN target==(j0,j1,j2,j3))
+        const __m256d P_qa_given_t = _mm256_div_pd(adjMuls, adjDivs);
+
+        const __m256d oldMants = SRSimd::Load<false>(pvB);
+        const __m256d product = _mm256_mul_pd(oldMants, P_qa_given_t);
+        
+        const __m256d newMants = SRSimd::MakeExponent0(product);
+        SRSimd::Store<taCache>(pMants + j, newMants);
+
+        const __m256i prodExps = SRSimd::ExtractExponents64<false>(product);
+        SRSimd::Store<taCache>(pExps + j, prodExps);
+      }
+    }
+    for (size_t i = 1; i < SRCast::ToSizeT(task._nAnswered); i++) {
       const AnsweredQuestion& aq = task._pAQs[i];
       const __m256d *PTR_RESTRICT pAdjMuls = SRCast::CPtr<__m256d>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));
       const __m256d *PTR_RESTRICT pAdjDivs = SRCast::CPtr<__m256d>(&engine.GetD(aq._iQuestion, 0));
@@ -47,9 +80,6 @@ template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>:
         const __m256d newMants = SRSimd::MakeExponent0(product);
         SRSimd::Store<taCache>(pMants + j, newMants);
 
-        //TODO: AND can be removed here if numbers are non-negative or we can assume a large exponent for negatives,
-        // or use an arithmetic shift to assign such numbers a very small exponent. Unfortunately, there seems no
-        // arithmetic shift for 64-bit components in AVX2 like _mm256_srai_epi64.
         const __m256i prodExps = SRSimd::ExtractExponents64<false>(product);
         const __m256i oldExps = SRSimd::Load<taCache>(pExps+j);
         const __m256i newExps = _mm256_add_epi64(prodExps, oldExps);

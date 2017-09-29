@@ -22,7 +22,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
-  const __m256d *PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetTlhMants());
+  const __m256d *PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
   SRBucketSummatorSeq<SRDoubleNumber> bss(
     task._pBSes + SRBucketSummatorSeq<SRDoubleNumber>::GetMemoryRequirementBytes() * _iWorker);
   __m256d *PTR_RESTRICT pPosteriors = SRCast::Ptr<__m256d>(task._pPosteriors + task._threadPosteriorBytes * _iWorker);

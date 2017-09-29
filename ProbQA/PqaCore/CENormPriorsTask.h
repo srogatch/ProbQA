@@ -24,7 +24,7 @@ public:
 
 public:
   explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz,
-    SRPlat::SRBucketSummatorPar<taNumber> &bs);
+    SRPlat::SRBucketSummatorPar<taNumber> &bsp);
 
   const CEQuiz<taNumber>& GetQuiz() const { return *_pQuiz; }
   SRPlat::SRBucketSummatorPar<taNumber>& GetBSP() const { return *_pBsp; }
@@ -32,7 +32,7 @@ public:
 #pragma warning( pop )
 
 template<typename taNumber> inline CENormPriorsTask<taNumber>::CENormPriorsTask(CpuEngine<taNumber> &engine,
-  CEQuiz<taNumber> &quiz, SRPlat::SRBucketSummatorPar<taNumber> &bs) : CEBaseTask(engine), _pQuiz(&quiz), _pBsp(&bs)
+  CEQuiz<taNumber> &quiz, SRPlat::SRBucketSummatorPar<taNumber> &bsp) : CEBaseTask(engine), _pQuiz(&quiz), _pBsp(&bsp)
 { }
 
 } // namespace ProbQA
