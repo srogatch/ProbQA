@@ -426,20 +426,20 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   constexpr size_t subtasksOffs = 0;
-  const size_t splitOffs = subtasksOffs + nWorkers * std::max(_cNormPriorsMemReqPerSubtask,
-    SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value);
+  const size_t splitOffs = subtasksOffs + nWorkers * SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value;
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
-  const size_t runLengthOffs = SRSimd::GetPaddedBytes(bucketsOffs + std::max(
-    SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
+  const size_t runLengthOffs = SRSimd::GetPaddedBytes(bucketsOffs +
     // Here we rely that SRBucketSummatorSeq::GetMemoryRequirementBytes() returns SIMD-aligned number of bytes,
     //   so that for each worker its bucket summator is aligned.
-    SRBucketSummatorSeq<taNumber>::GetMemoryRequirementBytes() * nWorkers ));
+    SRBucketSummatorSeq<taNumber>::GetMemoryRequirementBytes() * nWorkers);
+
   // The shared block for CEEvalQsSubtaskConsider
   const size_t posteriorOffs = runLengthOffs + SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nQuestions);
   const size_t threadPosteriorBytes = SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nTargets);
   const size_t answerMetricsOffs = posteriorOffs + nWorkers * threadPosteriorBytes;
   const size_t threadAnswerMetricsBytes = 2 * SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nAnswers);
   const size_t nWithAnswerMetrics = answerMetricsOffs + nWorkers * threadAnswerMetricsBytes;
+
   // The shared block for binary search over the run length.
   const size_t grandTotalsOffs = posteriorOffs;
   const size_t nWithGrandTotals = grandTotalsOffs + sizeof(taNumber) * nWorkers;
@@ -448,14 +448,6 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
 
   SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
-
-  const TPqaId nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
-  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
-  err = NormalizePriors(*pQuiz, pr, bsp, targSplit);
-  if (!err.IsOk()) {
-    return cInvalidPqaId;
-  }
 
   TPqaId selQuestion;
   do {
@@ -559,25 +551,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
     return cInvalidPqaId;
   }
 
-  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
-  constexpr size_t subtasksOffs = 0;
-  const size_t splitOffs = subtasksOffs + nWorkers * _cNormPriorsMemReqPerSubtask;
-  const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
-  const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs + 
-    SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
-
-  const size_t totalBytes = nWithBuckets;
-  SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
-
-  SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
-
-  const TPqaId nTargetVects = SRMath::PosDivideRoundUp(_dims._nTargets, TPqaId(SRNumPack<taNumber>::_cnComps));
-  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
-  err = NormalizePriors(*pQuiz, pr, bsp, targSplit);
-  if (!err.IsOk()) {
-    return cInvalidPqaId;
-  }
+  //TODO: implement, assuming normalized priors
 
   //TODO: remove when implemented
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
