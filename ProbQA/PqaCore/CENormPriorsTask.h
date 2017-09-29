@@ -14,6 +14,10 @@ namespace ProbQA {
 #pragma warning( push )
 #pragma warning( disable : 4324 ) // structure was padded due to alignment specifier
 template<typename taNumber> class CENormPriorsTask : public CEBaseTask {
+public: // types
+  typedef taNumber TNumber;
+
+private: // variables
   const CEQuiz<taNumber> *const _pQuiz;
   SRPlat::SRBucketSummatorPar<taNumber> *const _pBsp;
 public:

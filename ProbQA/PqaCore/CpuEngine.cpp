@@ -13,7 +13,6 @@
 #include "../PqaCore/CETrainTaskNumSpec.h"
 #include "../PqaCore/CEQuiz.h"
 #include "../PqaCore/CECreateQuizOperation.h"
-#include "../PqaCore/CENormPriorsTask.h"
 #include "../PqaCore/CEEvalQsTask.h"
 #include "../PqaCore/CEEvalQsSubtaskConsider.h"
 
@@ -405,7 +404,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz
   normPriorsTask._sumPriors.Set1(bsp.ComputeSum(pr));
 
   // Divide priors by their sum, so to get probabilities.
-  pr.RunPreSplit<CENormPriorsSubtaskDiv<taNumber>>(normPriorsTask, targSplit);
+  pr.RunPreSplit<CEDivTargPriorsSubtask<CENormPriorsTask<taNumber>>>(normPriorsTask, targSplit);
 
   return PqaError();
 }

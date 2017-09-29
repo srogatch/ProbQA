@@ -13,9 +13,6 @@ namespace ProbQA {
 
 template class CENormPriorsSubtaskMax<SRDoubleNumber>;
 
-template<typename taNumber> CENormPriorsSubtaskMax<taNumber>::CENormPriorsSubtaskMax(TTask *pTask)
-  : SRStandardSubtask(pTask) { }
-
 namespace {
 
 struct ContextDouble {

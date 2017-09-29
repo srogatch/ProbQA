@@ -14,9 +14,6 @@ namespace ProbQA {
 
 template class CESetPriorsSubtaskSum<SRDoubleNumber>;
 
-template<typename taNumber> CESetPriorsSubtaskSum<taNumber>::CESetPriorsSubtaskSum(TTask *pTask)
-  : SRStandardSubtask(pTask) { }
-
 template<> void CESetPriorsSubtaskSum<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());

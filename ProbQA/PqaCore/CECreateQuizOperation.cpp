@@ -3,7 +3,7 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
-#include "../PqaCore/CESetPriorsSubtaskDiv.h"
+#include "../PqaCore/CEDivTargPriorsSubtask.h"
 #include "../PqaCore/CESetPriorsSubtaskSum.h"
 #include "../PqaCore/CESetPriorsTask.h"
 #include "../PqaCore/CECreateQuizOperation.h"
@@ -29,8 +29,8 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
   constexpr size_t subtasksOffs = 0;
-  const size_t splitOffs = subtasksOffs + nWorkers *std::max({ SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
-    SRMaxSizeof<CESetPriorsSubtaskSum<taNumber>, CESetPriorsSubtaskDiv<taNumber>>::value });
+  const size_t splitOffs = subtasksOffs + nWorkers * std::max({ SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
+    SRMaxSizeof<CESetPriorsSubtaskSum<taNumber>, CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>::value });
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs +
     SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
@@ -51,7 +51,7 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
   }
   spTask._sumPriors.Set1(bsp.ComputeSum(pr));
   // Divide the likelihoods by their sum so to get probabilities
-  pr.RunPreSplit<CESetPriorsSubtaskDiv<taNumber>>(spTask, targSplit);
+  pr.RunPreSplit<CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>(spTask, targSplit);
 }
 
 template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods(BaseCpuEngine &baseCe,

@@ -14,7 +14,7 @@ public:
   typedef CERecordAnswerTask<taNumber> TTask;
 
 public:
-  explicit CERecordAnswerSubtaskMul(TTask *pTask);
+  using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };
 

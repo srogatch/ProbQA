@@ -12,6 +12,10 @@
 namespace ProbQA {
 
 template<typename taNumber> class CERecordAnswerTask : public CEBaseTask {
+public: // types
+  typedef taNumber TNumber;
+
+private: // variables
   const AnsweredQuestion _aq;
   CEQuiz<taNumber> *_pQuiz;
   SRPlat::SRBucketSummatorPar<taNumber> *const _pBsp;

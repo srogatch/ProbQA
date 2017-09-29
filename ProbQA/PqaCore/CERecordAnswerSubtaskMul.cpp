@@ -12,9 +12,6 @@ namespace ProbQA {
 
 template class CERecordAnswerSubtaskMul<SRDoubleNumber>;
 
-template<typename taNumber> CERecordAnswerSubtaskMul<taNumber>::CERecordAnswerSubtaskMul(TTask *pTask)
-  : SRStandardSubtask(pTask) { }
-
 template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT  task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
@@ -25,7 +22,6 @@ template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
   __m256d *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
   static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
     " 64-bit integer.");
-  __m256i *PTR_RESTRICT pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
 
   const AnsweredQuestion &PTR_RESTRICT aq = task.GetAQ();
   const __m256d *PTR_RESTRICT pAdjMuls = SRCast::CPtr<__m256d>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../PqaCore/CEQuiz.decl.h"
+#include "../PqaCore/CEDivTargPriorsSubtask.h"
 #include "../PqaCore/CERecordAnswerTask.h"
 #include "../PqaCore/CERecordAnswerSubtaskMul.h"
 #include "../PqaCore/CpuEngine.h"
@@ -82,7 +83,8 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
 
   constexpr size_t subtasksOffs = 0;
   const size_t splitOffs = subtasksOffs + nWorkers *std::max({ SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
-    SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>>::value });
+    SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>, CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>::value
+  });
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs +
     SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
@@ -98,11 +100,11 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
   CERecordAnswerTask<taNumber> raTask(engine, *this, _answers.back(), bsp);
   {
     SRRWLock<false> rwl(engine.GetRws());
-    pr.SplitAndRunSubtasks<CERecordAnswerSubtaskMul<SRDoubleNumber>>(raTask, nTargetVects);
+    pr.RunPreSplit<CERecordAnswerSubtaskMul<SRDoubleNumber>>(raTask, targSplit);
   }
   raTask._sumPriors.Set1(bsp.ComputeSum(pr));
-  //TODO: divide the likelihoods by their sum calculated above
-
+  // Divide the likelihoods by their sum calculated above
+  pr.RunPreSplit<CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>(raTask, targSplit);
   return PqaError();
 }
 

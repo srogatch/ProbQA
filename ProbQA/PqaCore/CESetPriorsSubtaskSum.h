@@ -13,7 +13,7 @@ public: // types
   typedef CESetPriorsTask<taNumber> TTask;
 
 public: // methods
-  explicit CESetPriorsSubtaskSum(TTask *pTask);
+  using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };
 

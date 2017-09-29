@@ -12,8 +12,13 @@
 namespace ProbQA {
 
 template<typename taNumber> class CESetPriorsTask : public CEBaseTask {
+public: // types
+  typedef taNumber TNumber;
+
+private:
   const CEQuiz<taNumber> *const _pQuiz;
   SRPlat::SRBucketSummatorPar<taNumber> *const _pBsp;
+
 public: // variables
   SRPlat::SRNumPack<taNumber> _sumPriors;
 

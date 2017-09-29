@@ -17,7 +17,7 @@ private: // methods
   template<bool taCache> void RunInternal(const TTask& task) const;
 
 public: // methods
-  explicit CEUpdatePriorsSubtaskMul(TTask *pTask);
+  using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };
 

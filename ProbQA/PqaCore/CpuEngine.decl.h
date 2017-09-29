@@ -7,10 +7,12 @@
 #include "../PqaCore/CpuEngine.fwd.h"
 #include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/CECreateQuizOperation.fwd.h"
+
 #include "../PqaCore/BaseCpuEngine.h"
+#include "../PqaCore/CENormPriorsTask.h"
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
 #include "../PqaCore/CENormPriorsSubtaskCorrSum.h"
-#include "../PqaCore/CENormPriorsSubtaskDiv.h"
+#include "../PqaCore/CEDivTargPriorsSubtask.h"
 
 namespace ProbQA {
 
@@ -21,8 +23,8 @@ template<typename taNumber> class CpuEngine : public BaseCpuEngine {
   static_assert(std::is_base_of<SRPlat::SRRealNumber, taNumber>::value, "taNumber must a PqaNumber subclass.");
 
 public: // constants
-  static constexpr size_t _cNormPriorsMemReqPerSubtask = std::max({ SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
-    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber> >::value,
+  static constexpr size_t _cNormPriorsMemReqPerSubtask = std::max({ SRMaxSizeof<CENormPriorsSubtaskMax<taNumber>,
+    CENormPriorsSubtaskCorrSum<taNumber>, CEDivTargPriorsSubtask<CENormPriorsTask<taNumber>>>::value,
     SRPlat::SRBucketSummatorPar<taNumber>::_cSubtaskMemReq });
 
 private: // variables

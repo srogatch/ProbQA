@@ -13,7 +13,7 @@ public: // types
   typedef CEEvalQsTask<taNumber> TTask;
 
 public: // methods
-  explicit CEEvalQsSubtaskConsider(TTask *pTask);
+  using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };
 

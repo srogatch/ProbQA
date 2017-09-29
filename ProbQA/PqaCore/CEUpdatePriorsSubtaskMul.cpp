@@ -13,9 +13,6 @@ namespace ProbQA {
 
 template class CEUpdatePriorsSubtaskMul<SRDoubleNumber>;
 
-template<typename taNumber> CEUpdatePriorsSubtaskMul<taNumber>::CEUpdatePriorsSubtaskMul(TTask *pTask)
-  : SRStandardSubtask(pTask) { }
-
 template<> template<bool taCache> void CEUpdatePriorsSubtaskMul<SRDoubleNumber>::RunInternal(const TTask& task) const {
   auto& engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &quiz = *task._pQuiz;

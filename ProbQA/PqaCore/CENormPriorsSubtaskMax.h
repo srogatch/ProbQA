@@ -16,7 +16,7 @@ public: // variables
   int64_t _maxExp; // Result
 
 public: // methods
-  explicit CENormPriorsSubtaskMax(TTask *pTask);
+  using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };
 

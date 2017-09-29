@@ -171,9 +171,6 @@
     <ClInclude Include="CEUpdatePriorsSubtaskMul.h">
       <Filter>Header Files\CPU Engine\Subtasks</Filter>
     </ClInclude>
-    <ClInclude Include="CENormPriorsSubtaskDiv.h">
-      <Filter>Header Files\CPU Engine\Subtasks</Filter>
-    </ClInclude>
     <ClInclude Include="CEEvalQsTask.h">
       <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
@@ -201,7 +198,13 @@
     <ClInclude Include="CESetPriorsTask.fwd.h">
       <Filter>Header Files\CPU Engine\Tasks</Filter>
     </ClInclude>
-    <ClInclude Include="CESetPriorsSubtaskDiv.h">
+    <ClInclude Include="CEDivTargPriorsSubtask.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CEDivTargPriorsSubtask.fwd.h">
+      <Filter>Header Files\CPU Engine\Subtasks</Filter>
+    </ClInclude>
+    <ClInclude Include="CEDivTargPriorsSubtask.decl.h">
       <Filter>Header Files\CPU Engine\Subtasks</Filter>
     </ClInclude>
   </ItemGroup>
@@ -254,9 +257,6 @@
     <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
-    <ClCompile Include="CENormPriorsSubtaskDiv.cpp">
-      <Filter>Source Files\CPU Engine</Filter>
-    </ClCompile>
     <ClCompile Include="CEEvalQsSubtaskConsider.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
@@ -264,9 +264,6 @@
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CESetPriorsSubtaskSum.cpp">
-      <Filter>Source Files\CPU Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="CESetPriorsSubtaskDiv.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

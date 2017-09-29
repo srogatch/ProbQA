@@ -15,9 +15,6 @@ namespace ProbQA {
 
 template class CENormPriorsSubtaskCorrSum<SRDoubleNumber>;
 
-template<typename taNumber> CENormPriorsSubtaskCorrSum<taNumber>::CENormPriorsSubtaskCorrSum(TTask *pTask)
-  : SRStandardSubtask(pTask) { }
-
 namespace {
 
 struct ContextDouble {

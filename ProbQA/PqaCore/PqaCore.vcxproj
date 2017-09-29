@@ -199,11 +199,13 @@
     <ClInclude Include="CECreateQuizOperation.decl.h" />
     <ClInclude Include="CECreateQuizOperation.fwd.h" />
     <ClInclude Include="CECreateQuizOperation.h" />
+    <ClInclude Include="CEDivTargPriorsSubtask.decl.h" />
+    <ClInclude Include="CEDivTargPriorsSubtask.fwd.h" />
+    <ClInclude Include="CEDivTargPriorsSubtask.h" />
     <ClInclude Include="CEEvalQsSubtaskConsider.h" />
     <ClInclude Include="CEEvalQsTask.fwd.h" />
     <ClInclude Include="CEEvalQsTask.h" />
     <ClInclude Include="CENormPriorsSubtaskCorrSum.h" />
-    <ClInclude Include="CENormPriorsSubtaskDiv.h" />
     <ClInclude Include="CENormPriorsSubtaskMax.h" />
     <ClInclude Include="CENormPriorsTask.fwd.h" />
     <ClInclude Include="CENormPriorsTask.h" />
@@ -213,7 +215,6 @@
     <ClInclude Include="CERecordAnswerSubtaskMul.h" />
     <ClInclude Include="CERecordAnswerTask.fwd.h" />
     <ClInclude Include="CERecordAnswerTask.h" />
-    <ClInclude Include="CESetPriorsSubtaskDiv.h" />
     <ClInclude Include="CESetPriorsSubtaskSum.h" />
     <ClInclude Include="CESetPriorsTask.fwd.h" />
     <ClInclude Include="CESetPriorsTask.h" />
@@ -253,10 +254,8 @@
     <ClCompile Include="CECreateQuizOperation.cpp" />
     <ClCompile Include="CEEvalQsSubtaskConsider.cpp" />
     <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp" />
-    <ClCompile Include="CENormPriorsSubtaskDiv.cpp" />
     <ClCompile Include="CENormPriorsSubtaskMax.cpp" />
     <ClCompile Include="CERecordAnswerSubtaskMul.cpp" />
-    <ClCompile Include="CESetPriorsSubtaskDiv.cpp" />
     <ClCompile Include="CESetPriorsSubtaskSum.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp" />
