@@ -31,7 +31,7 @@ protected: // variables
 
   EngineDimensions _dims; // Guarded by _rws in maintenance mode. Read-only in regular mode.
   const SRPlat::SRThreadCount _nMemOpThreads;
-  uint64_t _nQuestionsAsked = 0; // Guarded by _rws
+  std::atomic<uint64_t> _nQuestionsAsked = 0;
 
   //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
   //// Actually the locks form directed acyclic graph indicating which locks must be obtained one after another.

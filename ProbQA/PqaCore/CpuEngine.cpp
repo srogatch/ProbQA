@@ -215,7 +215,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
     _vB[iTarget] += amount;
 
     // This method should increase the counter of questions asked by the number of questions in this training.
-    _nQuestionsAsked += nQuestions;
+    _nQuestionsAsked.fetch_add(nQuestions, std::memory_order_relaxed);
   }
 
   return PqaError();
@@ -445,8 +445,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber>, CEEvalQsSubtaskConsider<taNumber> >::value;
   const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
   const size_t runLengthOffs = SRSimd::GetPaddedBytes(bucketsOffs + std::max(
-    // Here we rely that GetMemoryRequirementBytes() returns SIMD-aligned number of bytes.
     SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
+    // Here we rely that SRBucketSummatorSeq::GetMemoryRequirementBytes() returns SIMD-aligned number of bytes,
+    //   so that for each worker its bucket summator is aligned.
     SRBucketSummatorSeq<taNumber>::GetMemoryRequirementBytes() * nWorkers ));
   // The shared block for CEEvalQsSubtaskConsider
   const size_t posteriorOffs = runLengthOffs + SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nQuestions);
@@ -523,6 +524,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     return cInvalidPqaId;
   }
   pQuiz->SetActiveQuestion(selQuestion);
+  _nQuestionsAsked.fetch_add(1, std::memory_order_relaxed);
   return selQuestion;
 }
 
@@ -556,7 +558,40 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RecordAnswer(const TPq
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError& err, const TPqaId iQuiz,
   const TPqaId maxCount, RatedTarget *pDest) 
 {
-  (void)iQuiz; (void)maxCount; (void)pDest; //TODO: remove when implemented
+  constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
+      " operation (compute next question) because current mode is not regular (but maintenance/shutdown?)."));
+    return cInvalidPqaId;
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+  CEQuiz<taNumber> *pQuiz = UseQuiz(err, iQuiz);
+  if (pQuiz == nullptr) {
+    assert(!err.IsOk());
+    return cInvalidPqaId;
+  }
+
+  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
+  const size_t subtasksOffs = 0;
+  const size_t splitOffs = subtasksOffs + nWorkers * SRMaxSizeof< CENormPriorsSubtaskMax<taNumber>,
+    CENormPriorsSubtaskCorrSum<taNumber>, CENormPriorsSubtaskDiv<taNumber> >::value;
+  const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
+  const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs + 
+    SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
+
+  const size_t totalBytes = nWithBuckets;
+  SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
+
+  SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
+  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
+
+  err = NormalizePriors(*pQuiz, pr, bsp, nWorkers, commonBuf.Get() + splitOffs);
+  if (!err.IsOk()) {
+    return cInvalidPqaId;
+  }
+
+  //TODO: remove when implemented
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::ListTopTargets")));
   return cInvalidPqaId;
@@ -585,8 +620,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* con
 
 template<typename taNumber> uint64_t CpuEngine<taNumber>::GetTotalQuestionsAsked(PqaError& err) {
   err.Release();
-  SRRWLock<false> rwsl(_rws);
-  return _nQuestionsAsked;
+  return _nQuestionsAsked.load(std::memory_order_relaxed);
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const bool forceQuizes) {
