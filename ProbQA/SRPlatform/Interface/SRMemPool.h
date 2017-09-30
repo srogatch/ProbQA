@@ -213,6 +213,28 @@ public:
   }
 };
 
+struct SRMemTotal {
+  size_t _nBytes = 0;
+};
+
+enum class SRMemPadding : uint8_t {
+  None = 0,
+  Left = 1,
+  Right = 2,
+  Both = 3
+};
+
+struct SRMemItem {
+  size_t _offs;
+  template<SRMemPadding taPad> ATTR_NOALIAS static SRMemItem Make(SRMemTotal &mt, const size_t nBytes) {
+    SRMemItem ans;
+    ans._offs = ((uint8_t(taPad) & uint8_t(SRMemPadding::Left)) ? SRSimd::GetPaddedBytes(mt._nBytes) : mt._nBytes);
+    mt._nBytes = ((uint8_t(taPad) & uint8_t(SRMemPadding::Right)) ? SRSimd::GetPaddedBytes(ans._offs + nBytes) :
+      ans._offs + nBytes);
+    return ans;
+  }
+};
+
 template<typename taValue, typename taMemPool> struct SRCompressedMP;
 
 template<typename taValue> struct SRCompressedMP<taValue, SRBaseMemPool> {

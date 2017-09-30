@@ -245,6 +245,7 @@
     <ClInclude Include="MaintenanceSwitch.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="PqaException.h" />
+    <ClInclude Include="RatingsHeap.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="CETrainTaskNumSpec.h" />

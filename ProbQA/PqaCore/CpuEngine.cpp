@@ -15,6 +15,7 @@
 #include "../PqaCore/CECreateQuizOperation.h"
 #include "../PqaCore/CEEvalQsTask.h"
 #include "../PqaCore/CEEvalQsSubtaskConsider.h"
+#include "../PqaCore/RatingsHeap.h"
 
 using namespace SRPlat;
 
@@ -550,6 +551,40 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
     assert(!err.IsOk());
     return cInvalidPqaId;
   }
+
+  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
+  const TPqaId nTargets = _dims._nTargets;
+  
+  //TODO: move this constant to radix sort implementation
+  constexpr uint64_t nRadixSortBuckets = 256;
+  //TODO: experiment to determine operation weights (comparison vs memory operations).
+  const uint64_t nTargPerThread = SRMath::PosDivideRoundUp<uint64_t>(nTargets, nWorkers);
+  const uint64_t nRadixSortOps = 9 * std::max<uint64_t>(nTargPerThread, nRadixSortBuckets)
+    + uint64_t(maxCount) * std::max(SRMath::CeilLog2(nWorkers), 1ui8);
+  const uint64_t nHeapOps = 3 * nTargPerThread + uint64_t(maxCount) * SRMath::CeilLog2(nTargets);
+  
+  // Currently holds if maxCount > 6 * a / log2(a), where a=nTargets/nWorkers and a>=nRadixSortBuckets
+  if (nRadixSortOps < nHeapOps) {
+    //TODO: implement and take radix sort branch here
+    CELOG(Warning) << "Requested to list " << maxCount << " targets out of " << nTargets << ", which is a large"
+      " enough part to prefer radix sort (" << nRadixSortOps << " Ops) over heap (" << nHeapOps << " Ops) approach.";
+  }
+
+  // This algorithm is optimized for small number of top targets to list. A separate branch is needed if substantial
+  //   part of all targets is to be listed. That branch could use radix sort in separate threads, then heap merge.
+  SRMemTotal memTotal;
+  //const SRMemItem miSubtasks
+  constexpr size_t subtasksOffs = 0;
+  const size_t splitOffs = subtasksOffs + nWorkers * SRMaxSizeof</*TODO: make_heap subtask here*/>::value;
+  const size_t ratingsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
+  const size_t headHeapOffs = SRSimd::GetPaddedBytes(ratingsOffs + nTargets * sizeof(RatedTarget));
+  const size_t sourceInfosOffs = headHeapOffs + nWorkers * sizeof(RatingsHeapItem);
+  const size_t nWithSourceInfos = sourceInfosOffs + nWorkers * sizeof(RatingsSourceInfo);
+  //TODO: radix sort temporary array of ratings, and buckets here
+  const size_t totalBytes = nWithSourceInfos;
+
+  SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
+  SRPoolRunner pr(_tpWorkers, commonBuf.Get() + subtasksOffs);
 
   //TODO: implement, assuming normalized priors
 

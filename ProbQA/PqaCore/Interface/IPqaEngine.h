@@ -32,9 +32,11 @@ public:
   virtual TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) = 0;
   // Record the user answer for the last question asked. Must be called no more than once for each question.
   virtual PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) = 0;
+
   // Returns the number of targets written to the destination.
   // Returns -1 on error.
   virtual TPqaId ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest) = 0;
+
   // Can be called multiple times for different targets and at different stages in the quiz.
   virtual PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1) = 0;
   // Release the resources occupied by the quiz.
