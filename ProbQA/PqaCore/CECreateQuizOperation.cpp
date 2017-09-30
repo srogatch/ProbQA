@@ -28,20 +28,21 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
   const EngineDimensions& dims = engine.GetDims();
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
-  constexpr size_t subtasksOffs = 0;
-  const size_t splitOffs = subtasksOffs + nWorkers * std::max({ SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
-    SRMaxSizeof<CESetPriorsSubtaskSum<taNumber>, CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>::value });
-  const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
-  const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs +
-    SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
-  const size_t totalBytes = nWithBuckets;
+  SRMemTotal mtCommon;
+  const SRMemItem miSubtasks(nWorkers * std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
+    SRMaxSizeof<CESetPriorsSubtaskSum<taNumber>, CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>::value),
+    SRMemPadding::None, mtCommon);
+  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
+  const SRMemItem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
+    mtCommon);
 
-  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), totalBytes);
-  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + subtasksOffs);
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
+  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
+  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + miSubtasks._offs);
+  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + miBuckets._offs);
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
-  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + miSplit._offs, nTargetVects,
+    nWorkers);
 
   CESetPriorsTask<taNumber> spTask(engine, quiz, bsp);
   {
@@ -64,20 +65,20 @@ template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods
   const EngineDimensions& dims = engine.GetDims();
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
-  constexpr size_t subtasksOffs = 0;
-  const size_t splitOffs = subtasksOffs + nWorkers * std::max(CpuEngine<taNumber>::_cNormPriorsMemReqPerSubtask,
-    SRMaxSizeof<CEUpdatePriorsSubtaskMul<taNumber>>::value);
-  const size_t bucketsOffs = SRSimd::GetPaddedBytes(splitOffs + SRPoolRunner::CalcSplitMemReq(nWorkers));
-  const size_t nWithBuckets = SRSimd::GetPaddedBytes(bucketsOffs +
-    SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers));
-  const size_t totalBytes = nWithBuckets;
+  SRMemTotal mtCommon;
+  const SRMemItem miSubtasks(nWorkers * std::max(CpuEngine<taNumber>::_cNormPriorsMemReqPerSubtask,
+    SRMaxSizeof<CEUpdatePriorsSubtaskMul<taNumber>>::value), SRMemPadding::None, mtCommon);
+  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
+  const SRMemItem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
+    mtCommon);
 
-  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), totalBytes);
-  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + subtasksOffs);
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + bucketsOffs);
+  SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
+  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + miSubtasks._offs);
+  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + miBuckets._offs);
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
-  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + splitOffs, nTargetVects, nWorkers);
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + miSplit._offs, nTargetVects,
+    nWorkers);
   {
     CEUpdatePriorsTask<taNumber> task(engine, quiz, _nAnswered, _pAQs, CalcVectsInCache());
     SRRWLock<false> rwl(engine.GetRws());

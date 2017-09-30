@@ -75,6 +75,7 @@ private: // variables
   void *_pSubtasksMem;
 
 public:
+  // Returns the amount of memory required without padding. The allocating client must still pad the memory to SIMD size
   static size_t CalcSplitMemReq(const SRThreadCount nWorkers) {
     return nWorkers * sizeof(size_t);
   }
@@ -83,6 +84,7 @@ public:
 
   SRThreadPool& GetThreadPool() const { return *_pTp; }
 
+  //TODO: vectorize, and align&pad each split memory
   static Split CalcSplit(void *pSplitMem, const size_t nItems, const SRThreadCount nWorkers) {
     size_t *pBounds = static_cast<size_t*>(pSplitMem);
     SRThreadCount nSubtasks = 0;

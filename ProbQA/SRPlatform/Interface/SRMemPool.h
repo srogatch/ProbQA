@@ -226,12 +226,11 @@ enum class SRMemPadding : uint8_t {
 
 struct SRMemItem {
   size_t _offs;
-  template<SRMemPadding taPad> ATTR_NOALIAS static SRMemItem Make(SRMemTotal &mt, const size_t nBytes) {
-    SRMemItem ans;
-    ans._offs = ((uint8_t(taPad) & uint8_t(SRMemPadding::Left)) ? SRSimd::GetPaddedBytes(mt._nBytes) : mt._nBytes);
-    mt._nBytes = ((uint8_t(taPad) & uint8_t(SRMemPadding::Right)) ? SRSimd::GetPaddedBytes(ans._offs + nBytes) :
-      ans._offs + nBytes);
-    return ans;
+  ATTR_NOALIAS SRMemItem(const size_t nBytes, const SRMemPadding pad, SRMemTotal &mt) {
+    const uint8_t u8pad = static_cast<uint8_t>(pad);
+    _offs = ((u8pad & uint8_t(SRMemPadding::Left)) ? SRSimd::GetPaddedBytes(mt._nBytes) : mt._nBytes);
+    const size_t newTotal = _offs + nBytes;
+    mt._nBytes = ((u8pad & uint8_t(SRMemPadding::Right)) ? SRSimd::GetPaddedBytes(newTotal) : newTotal);
   }
 };
 
