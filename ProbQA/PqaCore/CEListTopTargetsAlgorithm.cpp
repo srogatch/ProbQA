@@ -8,7 +8,7 @@
 #include "../PqaCore/CEQuiz.h"
 #include "../PqaCore/RatingsHeap.h"
 #include "../PqaCore/CEHeapifyPriorsTask.h"
-#include "../PqaCore/PqaRange.h"
+#include "../PqaCore/CEHeapifyPriorsSubtaskMake.h"
 
 using namespace SRPlat;
 
@@ -30,24 +30,71 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   SRMemTotal mtCommon;
   const SRMemItem miSubtasks(_nWorkers * SRMaxSizeof</*TODO: make_heap subtask here*/>::value,
     SRMemPadding::None, mtCommon);
-  const SRMemItem miRatings(_nTargets * sizeof(RatedTarget), SRMemPadding::Both, mtCommon);
+  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(_nWorkers), SRMemPadding::None, mtCommon);
+  const SRMemItem miPieceLimits(_nWorkers * sizeof(TPqaId), SRMemPadding::None, mtCommon);
   const SRMemItem miHeadHeap(_nWorkers * sizeof(RatingsHeapItem), SRMemPadding::None, mtCommon);
-  const SRMemItem miSourceInfos(_nWorkers * sizeof(PqaRange), SRMemPadding::None, mtCommon);
-  //TODO: radix sort temporary array of ratings, and buckets here
+  const SRMemItem miRatings(_nTargets * sizeof(RatedTarget), SRMemPadding::Both, mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(_pEngine->GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(_pEngine->GetWorkers(), miSubtasks.BytePtr(commonBuf));
 
-  CEHeapifyPriorsTask<taNumber> hpTask(*_pEngine, *_pQuiz, miRatings.ToPtr<RatedTarget>(commonBuf),
-    miSourceInfos.ToPtr<PqaRange>(commonBuf));
-  //TODO: implement, assuming normalized priors
+  SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _nTargets, _nWorkers);
+  TPqaId *PTR_RESTRICT pPieceLimits = miPieceLimits.ToPtr<TPqaId>(commonBuf);
+  RatedTarget *PTR_RESTRICT pRatings = miRatings.ToPtr<RatedTarget>(commonBuf);
+  {
+    CEHeapifyPriorsTask<taNumber> hpTask(*_pEngine, *_pQuiz, pRatings, pPieceLimits);
+    pr.RunPreSplit<CEHeapifyPriorsSubtaskMake<taNumber>>(hpTask, targSplit);
+  }
 
-  _err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    SR_FILE_LINE "Heapify-based top targets selection")));
-  return cInvalidPqaId;
+  //NOTE: after this, the split is no more valid for launching subtasks
+  targSplit.RecalcToStarts();
+  const size_t *const PTR_RESTRICT pStarts = targSplit._pBounds;
+  RatingsHeapItem *PTR_RESTRICT pHeadHeap = miHeadHeap.ToPtr<RatingsHeapItem>(commonBuf);
+  SRThreadCount nHhItems = 0;
+  for (SRThreadCount i = 0; i < targSplit._nSubtasks; i++) {
+    const TPqaId curFirst = pStarts[i];
+    if (pPieceLimits[i] == curFirst) {
+      continue;
+    }
+    pHeadHeap[nHhItems]._iSource = i;
+    pHeadHeap[nHhItems]._prob = pRatings[curFirst]._prob;
+    nHhItems++;
+  }
+  std::make_heap(pHeadHeap, pHeadHeap + nHhItems);
+
+  for (TPqaId i = 0; i < _maxCount; i++) {
+    assert(nHhItems >= 0);
+    if (nHhItems == 0) {
+      return i; // the number of targets actually listed
+    }
+    _pDest[i]._prob = pHeadHeap[0]._prob;
+    const SRThreadCount curPiece = static_cast<SRThreadCount>(pHeadHeap[0]._iSource);
+    const TPqaId pieceStart = pStarts[curPiece];
+    _pDest[i]._iTarget = pRatings[pieceStart]._iTarget;
+
+    const TPqaId pieceLim = pPieceLimits[curPiece];
+    assert(pieceStart + 1 <= pieceLim);
+    if (pieceStart + 1 == pieceLim) {
+      // This piece has been exhausted
+      std::pop_heap(pHeadHeap, pHeadHeap + nHhItems);
+      nHhItems--;
+      // Can be here for consistency, but currently never used further.
+      // pPieceLimits[curPiece]--;
+      continue;
+    }
+
+    std::pop_heap(pRatings + pieceStart, pRatings + pieceLim);
+    pPieceLimits[curPiece]--; // pieceLim is no longer valid after this point
+
+    pHeadHeap[0]._prob = pRatings[pieceStart]._prob;
+    SRHeapHelper::Down(pHeadHeap, pHeadHeap + nHhItems);
+  }
+
+  return _maxCount;
 }
 
 template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunRadixSortBased() {
+  //TODO: radix sort's temporary array of ratings, and buckets here
   _err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     SR_FILE_LINE "RadixSort-based top targets selection")));
   return cInvalidPqaId;

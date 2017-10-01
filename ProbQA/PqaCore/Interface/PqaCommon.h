@@ -53,6 +53,10 @@ struct AnsweredQuestion {
 struct RatedTarget {
   TPqaId _iTarget;
   TPqaAmount _prob; // probability that this target is what the user needs
+
+  bool operator<(const RatedTarget& fellow) const {
+    return _prob < fellow._prob;
+  }
 };
 
 struct CompactionResult {

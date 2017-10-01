@@ -234,6 +234,7 @@
     <ClInclude Include="Interface\SRFastArray.h" />
     <ClInclude Include="Interface\SRFastManualResetEvent.h" />
     <ClInclude Include="Interface\SRFinally.h" />
+    <ClInclude Include="Interface\SRHeap.h" />
     <ClInclude Include="Interface\SRLambdaSubtask.h" />
     <ClInclude Include="Interface\SRLock.h" />
     <ClInclude Include="Interface\ISRLogger.h" />

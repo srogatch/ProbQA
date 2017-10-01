@@ -55,6 +55,7 @@
 #include "../SRPlatform/Interface/SRFastArray.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRFinally.h"
+#include "../SRPlatform/Interface/SRHeap.h"
 #include "../SRPlatform/Interface/SRLambdaSubtask.h"
 #include "../SRPlatform/Interface/SRLock.h"
 #include "../SRPlatform/Interface/SRLogStream.h"

@@ -64,10 +64,17 @@ public: // types
   struct Split {
     // The first subtask starts at 0, the last subtask ends at the last bound. The other bounds are both the start of
     //   the next subtask and the limit of the previous subtask.
-    const size_t *const _pBounds;
+    size_t *const _pBounds;
     const SRThreadCount _nSubtasks;
 
-    Split(const size_t *const pBounds, const SRThreadCount nSubtasks) : _pBounds(pBounds), _nSubtasks(nSubtasks) { }
+    Split(size_t *const pBounds, const SRThreadCount nSubtasks) : _pBounds(pBounds), _nSubtasks(nSubtasks) { }
+    void RecalcToStarts() {
+      //TODO: vectorize, can't copy because regions overlap
+      for (SRThreadCount i = _nSubtasks - 1; i >= 1; i--) {
+        _pBounds[i] = _pBounds[i - 1];
+      }
+      _pBounds[0] = 0;
+    }
   };
 
 private: // variables
