@@ -154,8 +154,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   CETrainTask<taNumber> trainTask(*this, nWorkers, iTarget, pAQs);
   //TODO: these are slow because threads share a cache line. It's not clear yet how to workaround this: the data is not
   //  per-source thread, but rather per target thread (after distribution).
-  trainTask._prev = SRCast::Ptr<TPqaId>(commonBuf.Get() + miTtPrev._offs);
-  trainTask._last = SRCast::Ptr<std::atomic<TPqaId>>(commonBuf.Get() + miTtLast._offs);
+  trainTask._prev = miTtPrev.ToPtr<TPqaId>(commonBuf);
+  trainTask._last = miTtLast.ToPtr<std::atomic<TPqaId>>(commonBuf);
   InitTrainTaskNumSpec(trainTask._numSpec, amount);
   //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
@@ -190,7 +190,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
         "Target index is not in KB (but rather at a gap)."));
     }
 
-    SRPoolRunner pr(_tpWorkers, commonBuf.Get() + miSubtasks._offs);
+    SRPoolRunner pr(_tpWorkers, miSubtasks.BytePtr(commonBuf));
 
     //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
     pr.SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(trainTask, nQuestions, trainTask.GetWorkerCount(),
@@ -452,17 +452,16 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   const size_t totalBytes = std::max(mtEval._nBytes, mtDichotomy._nBytes);
   SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
 
-  SRPoolRunner pr(_tpWorkers, commonBuf.Get() + miSubtasks._offs);
+  SRPoolRunner pr(_tpWorkers, miSubtasks.BytePtr(commonBuf));
 
   TPqaId selQuestion;
   do {
     CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps(),
-      commonBuf.Get() + miBuckets._offs, SRCast::Ptr<taNumber>(commonBuf.Get() + miRunLength._offs),
-      commonBuf.Get() + miPosteriors._offs, threadPosteriorBytes, commonBuf.Get() + miAnswerMetrics._offs,
-      threadAnswerMetricsBytes);
+      miBuckets.BytePtr(commonBuf), miRunLength.ToPtr<taNumber>(commonBuf), miPosteriors.BytePtr(commonBuf),
+      threadPosteriorBytes, miAnswerMetrics.BytePtr(commonBuf), threadAnswerMetricsBytes);
     // Although there are no more subtasks which would use this split, it will be used for run-length analysis.
-    const SRPoolRunner::Split questionSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + miSplit._offs,
-      _dims._nQuestions, nWorkers);
+    const SRPoolRunner::Split questionSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _dims._nQuestions,
+      nWorkers);
     {
       SRRWLock<false> rwl(_rws);
       SRPoolRunner::Keeper<CEEvalQsSubtaskConsider<taNumber>> kp = pr.RunPreSplit<CEEvalQsSubtaskConsider<taNumber>>(
@@ -470,7 +469,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     }
     SRAccumulator<taNumber> accTotG(taNumber(0.0));
     const taNumber *const PTR_RESTRICT pRunLength = evalQsTask.GetRunLength();
-    taNumber *const PTR_RESTRICT pGrandTotals = SRCast::Ptr<taNumber>(commonBuf.Get() + miGrandTotals._offs);
+    taNumber *const PTR_RESTRICT pGrandTotals = SRCast::Ptr<taNumber>(miGrandTotals.BytePtr(commonBuf));
     for (SRThreadCount i = 0; i < questionSplit._nSubtasks; i++) {
       const taNumber curGT = pRunLength[questionSplit._pBounds[i] - 1];
       accTotG.Add(curGT);

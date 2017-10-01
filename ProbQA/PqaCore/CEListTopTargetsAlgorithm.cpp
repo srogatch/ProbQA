@@ -36,10 +36,10 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   //TODO: radix sort temporary array of ratings, and buckets here
 
   SRSmartMPP<uint8_t> commonBuf(_pEngine->GetMemPool(), mtCommon._nBytes);
-  SRPoolRunner pr(_pEngine->GetWorkers(), commonBuf.Get() + miSubtasks._offs);
+  SRPoolRunner pr(_pEngine->GetWorkers(), miSubtasks.BytePtr(commonBuf));
 
-  CEHeapifyPriorsTask<taNumber> hpTask(*_pEngine, *_pQuiz, SRCast::Ptr<RatedTarget>(commonBuf.Get() + miRatings._offs),
-    SRCast::Ptr<PqaRange>(commonBuf.Get() + miSourceInfos._offs));
+  CEHeapifyPriorsTask<taNumber> hpTask(*_pEngine, *_pQuiz, miRatings.ToPtr<RatedTarget>(commonBuf),
+    miSourceInfos.ToPtr<PqaRange>(commonBuf));
   //TODO: implement, assuming normalized priors
 
   _err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(

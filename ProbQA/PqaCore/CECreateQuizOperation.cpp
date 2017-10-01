@@ -37,12 +37,11 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
     mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
-  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + miSubtasks._offs);
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + miBuckets._offs);
+  SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
+  SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
-  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + miSplit._offs, nTargetVects,
-    nWorkers);
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
 
   CESetPriorsTask<taNumber> spTask(engine, quiz, bsp);
   {
@@ -73,12 +72,11 @@ template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods
     mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
-  SRPoolRunner pr(engine.GetWorkers(), commonBuf.Get() + miSubtasks._offs);
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, commonBuf.Get() + miBuckets._offs);
+  SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
+  SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
-  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(commonBuf.Get() + miSplit._offs, nTargetVects,
-    nWorkers);
+  const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
   {
     CEUpdatePriorsTask<taNumber> task(engine, quiz, _nAnswered, _pAQs, CalcVectsInCache());
     SRRWLock<false> rwl(engine.GetRws());

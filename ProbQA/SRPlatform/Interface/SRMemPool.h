@@ -232,6 +232,12 @@ struct SRMemItem {
     const size_t newTotal = _offs + nBytes;
     mt._nBytes = ((u8pad & uint8_t(SRMemPadding::Right)) ? SRSimd::GetPaddedBytes(newTotal) : newTotal);
   }
+  ATTR_NOALIAS uint8_t* BytePtr(const SRSmartMPP<uint8_t> &PTR_RESTRICT smpp) const {
+    return smpp.Get() + _offs;
+  }
+  template<typename taPointed> ATTR_NOALIAS taPointed* ToPtr(const SRSmartMPP<uint8_t> &PTR_RESTRICT smpp) const {
+    return SRCast::Ptr<taPointed>(smpp.Get() + _offs);
+  }
 };
 
 template<typename taValue, typename taMemPool> struct SRCompressedMP;
