@@ -19,9 +19,9 @@ template<typename taNumber> void CEHeapifyPriorsSubtaskMake<taNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
   const CEQuiz<taNumber> &PTR_RESTRICT quiz = task.GetQuiz();
-  auto const *PTR_RESTRICT pPriors = quiz.GetPriorMants();
+  auto const *const PTR_RESTRICT pPriors = quiz.GetPriorMants();
   const GapTracker<TPqaId> &PTR_RESTRICT gt = engine.GetTargetGaps();
-  RatedTarget *PTR_RESTRICT pRatings = task.ModRatings();
+  RatedTarget *const PTR_RESTRICT pRatings = task.ModRatings();
 
   TPqaId iSelLim = _iFirst;
   for (TPqaId i = _iFirst; i < _iLimit; i++) {

@@ -8,6 +8,7 @@ namespace SRPlat {
 
 class SRHeapHelper {
 public:
+  // After update of its key, let the former heap top item find its place down the heap.
   template<typename taItem> inline static void Down(taItem *pFirst, taItem *pLimit);
 };
 

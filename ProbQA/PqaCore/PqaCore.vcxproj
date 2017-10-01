@@ -215,6 +215,8 @@
     <ClInclude Include="CEQuiz.fwd.h" />
     <ClInclude Include="CEQuiz.decl.h" />
     <ClInclude Include="CEQuiz.h" />
+    <ClInclude Include="CERadixSortRatingsSubtaskSort.h" />
+    <ClInclude Include="CERadixSortRatingsTask.h" />
     <ClInclude Include="CERecordAnswerSubtaskMul.h" />
     <ClInclude Include="CERecordAnswerTask.fwd.h" />
     <ClInclude Include="CERecordAnswerTask.h" />
@@ -262,6 +264,7 @@
     <ClCompile Include="CEListTopTargetsAlgorithm.cpp" />
     <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp" />
     <ClCompile Include="CENormPriorsSubtaskMax.cpp" />
+    <ClCompile Include="CERadixSortRatingsSubtaskSort.cpp" />
     <ClCompile Include="CERecordAnswerSubtaskMul.cpp" />
     <ClCompile Include="CESetPriorsSubtaskSum.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />

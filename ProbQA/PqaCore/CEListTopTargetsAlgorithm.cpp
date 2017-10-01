@@ -9,6 +9,8 @@
 #include "../PqaCore/RatingsHeap.h"
 #include "../PqaCore/CEHeapifyPriorsTask.h"
 #include "../PqaCore/CEHeapifyPriorsSubtaskMake.h"
+#include "../PqaCore/CERadixSortRatingsTask.h"
+#include "../PqaCore/CERadixSortRatingsSubtaskSort.h"
 
 using namespace SRPlat;
 
@@ -28,8 +30,8 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   // This algorithm is optimized for small number of top targets to list. A separate branch is needed if substantial
   //   part of all targets is to be listed. That branch could use radix sort in separate threads, then heap merge.
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(_nWorkers * SRMaxSizeof</*TODO: make_heap subtask here*/>::value,
-    SRMemPadding::None, mtCommon);
+  const SRMemItem miSubtasks(_nWorkers * SRMaxSizeof<CEHeapifyPriorsSubtaskMake<taNumber>>::value, SRMemPadding::None,
+    mtCommon);
   const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(_nWorkers), SRMemPadding::None, mtCommon);
   const SRMemItem miPieceLimits(_nWorkers * sizeof(TPqaId), SRMemPadding::None, mtCommon);
   const SRMemItem miHeadHeap(_nWorkers * sizeof(RatingsHeapItem), SRMemPadding::None, mtCommon);
@@ -39,8 +41,8 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   SRPoolRunner pr(_pEngine->GetWorkers(), miSubtasks.BytePtr(commonBuf));
 
   SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _nTargets, _nWorkers);
-  TPqaId *PTR_RESTRICT pPieceLimits = miPieceLimits.ToPtr<TPqaId>(commonBuf);
-  RatedTarget *PTR_RESTRICT pRatings = miRatings.ToPtr<RatedTarget>(commonBuf);
+  TPqaId *const PTR_RESTRICT pPieceLimits = miPieceLimits.ToPtr<TPqaId>(commonBuf);
+  RatedTarget *const PTR_RESTRICT pRatings = miRatings.ToPtr<RatedTarget>(commonBuf);
   {
     CEHeapifyPriorsTask<taNumber> hpTask(*_pEngine, *_pQuiz, pRatings, pPieceLimits);
     pr.RunPreSplit<CEHeapifyPriorsSubtaskMake<taNumber>>(hpTask, targSplit);
@@ -49,7 +51,7 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   //NOTE: after this, the split is no more valid for launching subtasks
   targSplit.RecalcToStarts();
   const size_t *const PTR_RESTRICT pStarts = targSplit._pBounds;
-  RatingsHeapItem *PTR_RESTRICT pHeadHeap = miHeadHeap.ToPtr<RatingsHeapItem>(commonBuf);
+  RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.ToPtr<RatingsHeapItem>(commonBuf);
   SRThreadCount nHhItems = 0;
   for (SRThreadCount i = 0; i < targSplit._nSubtasks; i++) {
     const TPqaId curFirst = pStarts[i];
@@ -94,10 +96,77 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
 }
 
 template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunRadixSortBased() {
-  //TODO: radix sort's temporary array of ratings, and buckets here
-  _err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    SR_FILE_LINE "RadixSort-based top targets selection")));
-  return cInvalidPqaId;
+  // This algorithm is good when the requested number of targets is large enough w.r.t. the total number of targets.
+  SRMemTotal mtCommon;
+  const SRMemItem miSubtasks(_nWorkers * SRMaxSizeof<CERadixSortRatingsSubtaskSort<taNumber>>::value,
+    SRMemPadding::None, mtCommon);
+  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(_nWorkers), SRMemPadding::None, mtCommon);
+  const SRMemItem miHeadHeap(_nWorkers * sizeof(RatingsHeapItem), SRMemPadding::None, mtCommon);
+
+  // Each piece must have a room for a sentinel item denoting end of the piece.
+  const size_t ratingsSize = (_nTargets + _nWorkers) * sizeof(RatedTarget);
+  const SRMemItem miRatings(ratingsSize, SRMemPadding::Both, mtCommon);
+  const SRMemItem miTempRatings(ratingsSize, SRMemPadding::Both, mtCommon);
+
+  static_assert(_cnRadixSortBuckets * sizeof(TPqaId) % SRSimd::_cNBytes == 0 , "Assumed no need for padding.");
+  const size_t bucketsBytes = _nWorkers * _cnRadixSortBuckets * sizeof(TPqaId);
+  const SRMemItem miCounters(bucketsBytes, SRMemPadding::Both, mtCommon);
+  const SRMemItem miOffsets(bucketsBytes, SRMemPadding::Both, mtCommon);
+
+  SRSmartMPP<uint8_t> commonBuf(_pEngine->GetMemPool(), mtCommon._nBytes);
+  SRPoolRunner pr(_pEngine->GetWorkers(), miSubtasks.BytePtr(commonBuf));
+
+  SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _nTargets, _nWorkers);
+  const RatedTarget *PTR_RESTRICT pcRatings;
+  {
+    RatedTarget *const PTR_RESTRICT pRatings = miRatings.ToPtr<RatedTarget>(commonBuf);
+    pcRatings = pRatings;
+
+    CERadixSortRatingsTask<taNumber> rsrTask(*_pEngine, *_pQuiz, pRatings, miTempRatings.ToPtr<RatedTarget>(commonBuf),
+      miCounters.ToPtr<TPqaId>(commonBuf), miOffsets.ToPtr<TPqaId>(commonBuf));
+    pr.RunPreSplit<CERadixSortRatingsSubtaskSort<taNumber>>(rsrTask, targSplit);
+  }
+
+  //NOTE: after this, the split is no more valid for launching subtasks
+  targSplit.RecalcToStarts();
+  const size_t *const PTR_RESTRICT pStarts = targSplit._pBounds;
+  RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.ToPtr<RatingsHeapItem>(commonBuf);
+  SRThreadCount nHhItems = 0;
+  for (SRThreadCount i = 0; i < targSplit._nSubtasks; i++) {
+    const TPqaId curFirst = pStarts[i] + i;
+    const TPqaAmount curProb = pcRatings[curFirst]._prob;
+    if (curProb <= 0) { // sentinel item
+      continue;
+    }
+    pHeadHeap[nHhItems]._iSource = curFirst;
+    pHeadHeap[nHhItems]._prob = curProb;
+    nHhItems++;
+  }
+  std::make_heap(pHeadHeap, pHeadHeap + nHhItems);
+  
+  for (TPqaId i = 0; i < _maxCount; i++) {
+    assert(nHhItems >= 0);
+    if (nHhItems == 0) {
+      return i; // the number of targets actually listed
+    }
+    _pDest[i]._prob = pHeadHeap[0]._prob;
+    _pDest[i]._iTarget = pcRatings[pHeadHeap[0]._iSource]._iTarget;
+    
+    const TPqaId nextSource = ++pHeadHeap[0]._iSource;
+    const TPqaAmount nextProb = pcRatings[nextSource]._prob;
+
+    if (nextProb <= 0) {
+      // This piece has been exhausted
+      std::pop_heap(pHeadHeap, pHeadHeap + nHhItems);
+      nHhItems--;
+      continue;
+    }
+
+    pHeadHeap[0]._prob = nextProb;
+    SRHeapHelper::Down(pHeadHeap, pHeadHeap + nHhItems);
+  }
+
+  return _maxCount;
 }
 
 } // namespace ProbQA

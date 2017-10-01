@@ -559,19 +559,21 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
   
   //TODO: experiment to determine operation weights (comparison vs memory operations).
   const uint64_t nTargPerThread = SRMath::PosDivideRoundUp<uint64_t>(ltta._nTargets, ltta._nWorkers);
+  // This estimate is for algorithm that radix-sorts pieces, then uses a head heap to merge the pieces. However, there
+  //   is also an much less cache friendly option to apply parallel radix sort to the whole array.
   const uint64_t nRadixSortOps = 9 * std::max<uint64_t>(nTargPerThread, ltta._cnRadixSortBuckets)
     + uint64_t(maxCount) * std::max(SRMath::CeilLog2(ltta._nWorkers), 1ui8);
-  const uint64_t nHeapOps = 3 * nTargPerThread + uint64_t(maxCount) * SRMath::CeilLog2(ltta._nTargets);
+  const uint64_t nHeapifyOps = 3 * nTargPerThread + uint64_t(maxCount) * SRMath::CeilLog2(ltta._nTargets);
   
   // Currently holds if maxCount > 6 * a / log2(a), where a=nTargets/nWorkers and a>=nRadixSortBuckets
-  if (nRadixSortOps < nHeapOps) {
-    //TODO: implement and take radix sort branch here
-    CELOG(Warning) << "For " << ltta._nWorkers << " workers requested to list " << maxCount << " targets out of "
-      << ltta._nTargets << ", which is a large enough part to prefer radix sort (" << nRadixSortOps << " Ops) over"
-      " heap (" << nHeapOps << " Ops) approach.";
+  if (nRadixSortOps < nHeapifyOps) {
+    return ltta.RunRadixSortBased();
+    //CELOG(Warning) << "For " << ltta._nWorkers << " workers requested to list " << maxCount << " targets out of "
+    //  << ltta._nTargets << ", which is a large enough part to prefer radix sort (" << nRadixSortOps << " Ops) over"
+    //  " heapify (" << nHeapifyOps << " Ops) approach.";
+  } else {
+    return ltta.RunHeapifyBased();
   }
-
-  return ltta.RunHeapifyBased();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget,
