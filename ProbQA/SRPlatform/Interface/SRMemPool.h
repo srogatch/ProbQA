@@ -226,7 +226,7 @@ enum class SRMemPadding : uint8_t {
 
 struct SRMemItem {
   size_t _offs;
-  ATTR_NOALIAS SRMemItem(const size_t nBytes, const SRMemPadding pad, SRMemTotal &mt) {
+  ATTR_NOALIAS SRMemItem(const size_t nBytes, const SRMemPadding pad, SRMemTotal &PTR_RESTRICT mt) {
     const uint8_t u8pad = static_cast<uint8_t>(pad);
     _offs = ((u8pad & uint8_t(SRMemPadding::Left)) ? SRSimd::GetPaddedBytes(mt._nBytes) : mt._nBytes);
     const size_t newTotal = _offs + nBytes;

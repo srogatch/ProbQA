@@ -24,7 +24,6 @@ template<typename taNumber> class CEEvalQsTask : public CEBaseTask {
   size_t _threadPosteriorBytes;
   size_t _threadAnswerMetricsBytes;
   const TPqaId _nValidTargets;
-public: // variables
 
 public: // methods
   explicit inline CEEvalQsTask(CpuEngine<taNumber> &engine, const CEQuiz<taNumber> &quiz, const TPqaId nValidTargets,

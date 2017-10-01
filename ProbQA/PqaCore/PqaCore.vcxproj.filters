@@ -210,6 +210,15 @@
     <ClInclude Include="RatingsHeap.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CEHeapifyPriorsTask.h">
+      <Filter>Header Files\CPU Engine\Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="PqaRange.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CEListTopTargetsAlgorithm.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -267,6 +276,9 @@
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CESetPriorsSubtaskSum.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CEListTopTargetsAlgorithm.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

@@ -15,7 +15,7 @@
 #include "../PqaCore/CECreateQuizOperation.h"
 #include "../PqaCore/CEEvalQsTask.h"
 #include "../PqaCore/CEEvalQsSubtaskConsider.h"
-#include "../PqaCore/RatingsHeap.h"
+#include "../PqaCore/CEListTopTargetsAlgorithm.h"
 
 using namespace SRPlat;
 
@@ -556,44 +556,23 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
     return cInvalidPqaId;
   }
 
-  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
-  const TPqaId nTargets = _dims._nTargets;
+  CEListTopTargetsAlgorithm<taNumber> ltta(err, *this, *pQuiz, maxCount, pDest);
   
-  //TODO: move this constant to radix sort implementation
-  constexpr uint64_t nRadixSortBuckets = 256;
   //TODO: experiment to determine operation weights (comparison vs memory operations).
-  const uint64_t nTargPerThread = SRMath::PosDivideRoundUp<uint64_t>(nTargets, nWorkers);
-  const uint64_t nRadixSortOps = 9 * std::max<uint64_t>(nTargPerThread, nRadixSortBuckets)
-    + uint64_t(maxCount) * std::max(SRMath::CeilLog2(nWorkers), 1ui8);
-  const uint64_t nHeapOps = 3 * nTargPerThread + uint64_t(maxCount) * SRMath::CeilLog2(nTargets);
+  const uint64_t nTargPerThread = SRMath::PosDivideRoundUp<uint64_t>(ltta._nTargets, ltta._nWorkers);
+  const uint64_t nRadixSortOps = 9 * std::max<uint64_t>(nTargPerThread, ltta._cnRadixSortBuckets)
+    + uint64_t(maxCount) * std::max(SRMath::CeilLog2(ltta._nWorkers), 1ui8);
+  const uint64_t nHeapOps = 3 * nTargPerThread + uint64_t(maxCount) * SRMath::CeilLog2(ltta._nTargets);
   
   // Currently holds if maxCount > 6 * a / log2(a), where a=nTargets/nWorkers and a>=nRadixSortBuckets
   if (nRadixSortOps < nHeapOps) {
     //TODO: implement and take radix sort branch here
-    CELOG(Warning) << "Requested to list " << maxCount << " targets out of " << nTargets << ", which is a large"
-      " enough part to prefer radix sort (" << nRadixSortOps << " Ops) over heap (" << nHeapOps << " Ops) approach.";
+    CELOG(Warning) << "For " << ltta._nWorkers << " workers requested to list " << maxCount << " targets out of "
+      << ltta._nTargets << ", which is a large enough part to prefer radix sort (" << nRadixSortOps << " Ops) over"
+      " heap (" << nHeapOps << " Ops) approach.";
   }
 
-  // This algorithm is optimized for small number of top targets to list. A separate branch is needed if substantial
-  //   part of all targets is to be listed. That branch could use radix sort in separate threads, then heap merge.
-  SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(nWorkers * SRMaxSizeof</*TODO: make_heap subtask here*/>::value,
-    SRMemPadding::None, mtCommon);
-  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRMemItem miRatings(nTargets * sizeof(RatedTarget), SRMemPadding::Both, mtCommon);
-  const SRMemItem miHeadHeap(nWorkers * sizeof(RatingsHeapItem), SRMemPadding::None, mtCommon);
-  const SRMemItem miSourceInfos(nWorkers * sizeof(RatingsSourceInfo), SRMemPadding::None, mtCommon);
-  //TODO: radix sort temporary array of ratings, and buckets here
-
-  SRSmartMPP<uint8_t> commonBuf(_memPool, mtCommon._nBytes);
-  SRPoolRunner pr(_tpWorkers, commonBuf.Get() + miSubtasks._offs);
-
-  //TODO: implement, assuming normalized priors
-
-  //TODO: remove when implemented
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::ListTopTargets")));
-  return cInvalidPqaId;
+  return ltta.RunHeapifyBased();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget,

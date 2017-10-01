@@ -205,6 +205,8 @@
     <ClInclude Include="CEEvalQsSubtaskConsider.h" />
     <ClInclude Include="CEEvalQsTask.fwd.h" />
     <ClInclude Include="CEEvalQsTask.h" />
+    <ClInclude Include="CEHeapifyPriorsTask.h" />
+    <ClInclude Include="CEListTopTargetsAlgorithm.h" />
     <ClInclude Include="CENormPriorsSubtaskCorrSum.h" />
     <ClInclude Include="CENormPriorsSubtaskMax.h" />
     <ClInclude Include="CENormPriorsTask.fwd.h" />
@@ -245,6 +247,7 @@
     <ClInclude Include="MaintenanceSwitch.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="PqaException.h" />
+    <ClInclude Include="PqaRange.h" />
     <ClInclude Include="RatingsHeap.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -254,6 +257,7 @@
     <ClCompile Include="BaseCpuEngine.cpp" />
     <ClCompile Include="CECreateQuizOperation.cpp" />
     <ClCompile Include="CEEvalQsSubtaskConsider.cpp" />
+    <ClCompile Include="CEListTopTargetsAlgorithm.cpp" />
     <ClCompile Include="CENormPriorsSubtaskCorrSum.cpp" />
     <ClCompile Include="CENormPriorsSubtaskMax.cpp" />
     <ClCompile Include="CERecordAnswerSubtaskMul.cpp" />
