@@ -136,7 +136,8 @@ public: // methods
   }
 
   // Optimized method for sizeof(__m256i) == sizeof(taItem)
-  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) == sizeof(taItem)> __vectorcall
+  // https://stackoverflow.com/questions/30953248/why-doesnt-sfinae-enable-if-work-for-member-functions-of-a-class-template
+  template<bool taCache, typename T = taItem> typename std::enable_if_t<sizeof(__m256i) == sizeof(T)> __vectorcall
   Fill(size_t iStart, size_t iLim, const taItem item) {
     assert(iStart <= iLim);
     size_t nVects = iLim - iStart;
@@ -150,7 +151,8 @@ public: // methods
     }
   }
 
-  template<bool taCache> typename std::enable_if_t<sizeof(__m256i) % sizeof(taItem) == 0> __vectorcall
+  // https://stackoverflow.com/questions/30953248/why-doesnt-sfinae-enable-if-work-for-member-functions-of-a-class-template
+  template<bool taCache, typename T = taItem> typename std::enable_if_t<sizeof(__m256i) % sizeof(T) == 0> __vectorcall
   FillAll(const taItem item) {
     size_t nVects = GetNVects(_count);
     __m256i *p = SRCast::Ptr<__m256i>(_pItems);

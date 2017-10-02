@@ -53,24 +53,16 @@ template<typename taNumber> struct CEHeapifyPriorsSubtaskMake<taNumber>::Context
   }
 };
 
-
-
 template<typename taNumber> void CEHeapifyPriorsSubtaskMake<taNumber>::Run() {
   Context ctx(GetTask(), this);
 
   constexpr uint32_t nBytesAhead = (SRCpuInfo::_cacheLineBytes << 1);
   
 #define UNROLL(varOffset, varThreshold) \
-  __pragma(warning(push)) \
-  __pragma(warning(disable:4127)) /* conditional expression is constant */ \
-    if(sizeof(taNumber) > (varThreshold)) { \
-  __pragma(warning(pop)) \
+    if constexpr (sizeof(taNumber) > (varThreshold)) { \
       _mm_prefetch(SRCast::CPtr<char>(ctx._pPriors + i + (varOffset)) + nBytesAhead, _MM_HINT_NTA); \
     } \
     ctx.Regard(i+varThreshold);
-
-  //if constexpr(sizeof(taNumber) <= 8) {
-  //}
 
   TPqaId i = _iFirst;
   for (const TPqaId iEn=_iLimit-7; i < iEn; i+=8) {

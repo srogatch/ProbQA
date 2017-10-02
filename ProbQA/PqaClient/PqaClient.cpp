@@ -329,7 +329,7 @@ void MultibenchMemory() {
 void BenchmarkStdFunctionMemPool() {
   const int64_t nItems = 32 * 1024 * 1024;
   typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, 1 << 10> TMemPool;
-  typedef SRPlat::SRMPAllocator<char, TMemPool> TAllocator;
+  typedef SRPlat::SRMPAllocator<std::function<void()>, TMemPool> TAllocator;
   TMemPool memPool;
   TAllocator alloc(memPool);
 

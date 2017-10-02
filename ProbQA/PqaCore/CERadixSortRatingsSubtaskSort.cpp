@@ -124,6 +124,7 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
   sentinel._rt._iTarget = cInvalidPqaId;
   sentinel._rt._prob = 0;
   _mm_stream_si128(SRCast::Ptr<__m128i>(pTempRatings + iSelLim), sentinel._sse);
+  _mm_sfence();
 }
 
 } // namespace ProbQA

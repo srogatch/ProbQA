@@ -22,11 +22,8 @@ template<typename taNumber> inline CECreateQuizResume<taNumber>::CECreateQuizRes
 template<typename taNumber> inline std::enable_if_t<SRPlat::SRSimd::_cNBytes % sizeof(taNumber) == 0, uint32_t>
 CECreateQuizResume<taNumber>::CalcVectsInCache()
 {
-#pragma warning( push )
-#pragma warning( disable : 4127 ) // conditional expression is constant
-  if (SRPlat::SRCpuInfo::_l1DataCachePerPhysCoreBytes <= 
+  if constexpr (SRPlat::SRCpuInfo::_l1DataCachePerPhysCoreBytes <= 
     _cScalarCacheUsageBytes * SRPlat::SRCpuInfo::_nLogicalCoresPerPhysCore)
-#pragma warning( pop )
   {
     return 0;
   }
