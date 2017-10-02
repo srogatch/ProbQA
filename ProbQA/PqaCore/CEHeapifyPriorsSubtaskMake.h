@@ -9,6 +9,8 @@
 namespace ProbQA {
 
 template<typename taNumber> class CEHeapifyPriorsSubtaskMake : public SRPlat::SRStandardSubtask {
+  struct Context;
+
 public: // types
   typedef CEHeapifyPriorsTask<taNumber> TTask;
 

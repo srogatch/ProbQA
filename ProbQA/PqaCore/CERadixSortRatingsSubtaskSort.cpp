@@ -16,6 +16,14 @@ namespace ProbQA {
 //  template arguments here, move the implementation to fwd/decl/h header-only idiom.
 template class CERadixSortRatingsSubtaskSort<SRDoubleNumber>;
 
+namespace {
+  static_assert(sizeof(RatedTarget) == sizeof(__m128i), "For SSE streaming below.");
+  union SseRatedTarget {
+    RatedTarget _rt;
+    __m128i _sse;
+  };
+} // anonymous namespace
+
 static_assert(std::is_same<TPqaAmount, double>::value, "The methods below are for double only.");
 template<typename taNumber> TPqaAmount CERadixSortRatingsSubtaskSort<taNumber>::Flip(TPqaAmount x) {
   const uint64_t iX = SRCast::U64FromF64(x);
@@ -39,9 +47,14 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
   constexpr size_t cnBuckets = CEListTopTargetsAlgorithm<taNumber>::_cnRadixSortBuckets;
   static_assert(cnBuckets == 256, "Relied on in masks below.");
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
-  auto &PTR_RESTRICT engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
   const CEQuiz<taNumber> &PTR_RESTRICT quiz = task.GetQuiz();
-  auto const *const PTR_RESTRICT pPriors = quiz.GetPriorMants();
+  const taNumber* const PTR_RESTRICT pPriors = quiz.GetPriorMants();
+  {
+    const char *PTR_RESTRICT pCacheLine = SRCast::CPtr<char>(pPriors + _iFirst);
+    _mm_prefetch(pCacheLine, _MM_HINT_NTA);
+    _mm_prefetch(pCacheLine + SRCpuInfo::_cacheLineBytes, _MM_HINT_NTA);
+  }
+  auto &PTR_RESTRICT engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
   const GapTracker<TPqaId> &PTR_RESTRICT gt = engine.GetTargetGaps();
   RatedTarget *PTR_RESTRICT pRatings = task.ModRatings() + _iWorker;
   RatedTarget *PTR_RESTRICT pTempRatings = task.ModTempRatings() + _iWorker;
@@ -53,8 +66,12 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
   ZeroCounters();
   TPqaId iSelLim = _iFirst;
 
+  constexpr uint32_t nBytesAhead = (SRCpuInfo::_cacheLineBytes << 1);
+
   // pass 0 with flipping
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
+    //TODO: unroll, then prefetch once in several priors depending on sizeof(taNumber)
+    _mm_prefetch(SRCast::CPtr<char>(pPriors + i) + nBytesAhead, _MM_HINT_NTA);
     if (gt.IsGap(i)) {
       continue;
     }
@@ -63,8 +80,10 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
       continue;
     }
     const TPqaAmount flipped = Flip(prob);
-    pRatings[iSelLim]._iTarget = i;
-    pRatings[iSelLim]._prob = flipped;
+    SseRatedTarget srt;
+    srt._rt._iTarget = i;
+    srt._rt._prob = flipped;
+    _mm_stream_si128(SRCast::Ptr<__m128i>(pRatings + iSelLim), srt._sse);
     iSelLim++;
     _pCounters[SRCast::U64FromF64(flipped) & 0xff]++;
   }
@@ -77,27 +96,34 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
     }
     ZeroCounters();
     for (TPqaId j = _iFirst; j < iSelLim; j++) {
-      const uint64_t iProb = SRCast::U64FromF64(pRatings[j]._prob);
-      pTempRatings[pOffsets[(iProb >> ((i - 1) << 3)) & 0xff]] = pRatings[j];
+      SseRatedTarget srt;
+      srt._sse = _mm_stream_load_si128(SRCast::CPtr<__m128i>(pRatings + j));
+      const uint64_t iProb = SRCast::U64FromF64(srt._rt._prob);
+      _mm_stream_si128(SRCast::Ptr<__m128i>(pTempRatings + pOffsets[(iProb >> ((i - 1) << 3)) & 0xff]), srt._sse);
       _pCounters[(iProb >> (i << 3)) & 0xff]++;
     }
     std::swap(pRatings, pTempRatings);
   }
 
-  // pass 9 with unflipping
+  //NOTE: pRatings and pTempRatings are swapped by pass 7 above, so current pRatings correspond to original pTempRatings
+  // pass 8 with unflipping
   pOffsets[0] = 0;
   for (size_t j = 1; j < cnBuckets; j++) {
     pOffsets[j] = pOffsets[j - 1] + _pCounters[j - 1];
   }
   for (TPqaId j = _iFirst; j < iSelLim; j++) {
-    const uint64_t iProb = SRCast::U64FromF64(pRatings[j]._prob);
-    RatedTarget &dest = pTempRatings[pOffsets[(iProb >> 56) & 0xff]];
-    dest._iTarget = pRatings[j]._iTarget;
-    dest._prob = Unflip(pRatings[j]._prob);
+    SseRatedTarget srt;
+    srt._sse = _mm_stream_load_si128(SRCast::CPtr<__m128i>(pRatings + j));
+    const uint64_t iProb = SRCast::U64FromF64(srt._rt._prob);
+    srt._rt._prob = Unflip(srt._rt._prob);
+    _mm_stream_si128(SRCast::Ptr<__m128i>(pTempRatings + pOffsets[iProb >> 56]), srt._sse);
   }
 
   // Put sentinel item
-  pTempRatings[iSelLim]._prob = 0;
+  SseRatedTarget sentinel;
+  sentinel._rt._iTarget = cInvalidPqaId;
+  sentinel._rt._prob = 0;
+  _mm_stream_si128(SRCast::Ptr<__m128i>(pTempRatings + iSelLim), sentinel._sse);
 }
 
 } // namespace ProbQA

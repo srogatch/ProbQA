@@ -156,11 +156,13 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunRadix
     const TPqaAmount nextProb = pcRatings[nextSource]._prob;
 
     if (nextProb <= 0) {
+      assert(pcRatings[nextSource]._iTarget == cInvalidPqaId);
       // This piece has been exhausted
       std::pop_heap(pHeadHeap, pHeadHeap + nHhItems);
       nHhItems--;
       continue;
     }
+    assert(pcRatings[nextSource]._iTarget >= 0);
 
     pHeadHeap[0]._prob = nextProb;
     SRHeapHelper::Down(pHeadHeap, pHeadHeap + nHhItems);
