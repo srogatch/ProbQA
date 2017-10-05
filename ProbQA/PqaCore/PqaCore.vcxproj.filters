@@ -228,6 +228,9 @@
     <ClInclude Include="CERadixSortRatingsSubtaskSort.h">
       <Filter>Header Files\CPU Engine\Subtasks</Filter>
     </ClInclude>
+    <ClInclude Include="CETrainOperation.h">
+      <Filter>Header Files\CPU Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -294,6 +297,9 @@
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
     <ClCompile Include="CERadixSortRatingsSubtaskSort.cpp">
+      <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CETrainOperation.cpp">
       <Filter>Source Files\CPU Engine</Filter>
     </ClCompile>
   </ItemGroup>

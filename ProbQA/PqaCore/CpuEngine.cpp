@@ -16,6 +16,7 @@
 #include "../PqaCore/CEEvalQsTask.h"
 #include "../PqaCore/CEEvalQsSubtaskConsider.h"
 #include "../PqaCore/CEListTopTargetsAlgorithm.h"
+#include "../PqaCore/CETrainOperation.h"
 
 using namespace SRPlat;
 
@@ -137,7 +138,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   }
   if (amount <= 0) {
     return PqaError(PqaErrorCode::NonPositiveAmount, new NonPositiveAmountErrorParams(amount), SRString::MakeUnowned(
-      "|amount| must be positive."));
+      SR_FILE_LINE "|amount| must be positive."));
   }
 
   PqaError resErr;
@@ -239,8 +240,9 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
 
     constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
     if (!_maintSwitch.TryEnterSpecific<msMode>()) {
-      op._err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
-        " operation (Start/Resume quiz) because current mode is not regular (but maintenance/shutdown?)."));
+      op._err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform"
+        " regular-only mode operation (Start/Resume quiz) because current mode is not regular"
+        " (but maintenance/shutdown?)."));
       return cInvalidPqaId;
     }
     MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
@@ -415,8 +417,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz
 template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& err, const TPqaId iQuiz) {
   constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
   if (!_maintSwitch.TryEnterSpecific<msMode>()) {
-    err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
-      " operation (compute next question) because current mode is not regular (but maintenance/shutdown?)."));
+    err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
+      " mode operation (compute next question) because current mode is not regular (but maintenance/shutdown?)."));
     return cInvalidPqaId;
   }
   MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
@@ -514,8 +516,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) {
   constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
   if (!_maintSwitch.TryEnterSpecific<msMode>()) {
-    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
-      " operation (record an answer) because current mode is not regular (but maintenance/shutdown?)."));
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
+      " mode operation (record an answer) because current mode is not regular (but maintenance/shutdown?)."));
   }
   MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
 
@@ -543,8 +545,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
 {
   constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
   if (!_maintSwitch.TryEnterSpecific<msMode>()) {
-    err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned("Can't perform regular-only mode"
-      " operation (compute next question) because current mode is not regular (but maintenance/shutdown?)."));
+    err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
+      " mode operation (compute next question) because current mode is not regular (but maintenance/shutdown?)."));
     return cInvalidPqaId;
   }
   MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
@@ -579,9 +581,46 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError&
 template<typename taNumber> PqaError CpuEngine<taNumber>::RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget,
   const TPqaAmount amount) 
 {
-  (void)iQuiz; (void)iTarget; (void)amount; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::RecordQuizTarget")));
+  if (amount <= 0) {
+    return PqaError(PqaErrorCode::NonPositiveAmount, new NonPositiveAmountErrorParams(amount), SRString::MakeUnowned(
+      SR_FILE_LINE "|amount| must be positive."));
+  }
+
+  constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
+      " mode operation (record quiz target) because current mode is not regular (but maintenance/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+  if (iTarget < 0 || iTarget >= _dims._nTargets) {
+    const TPqaId nKB = _dims._nTargets;
+    mssl.EarlyRelease();
+    return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iTarget, 0, nKB - 1),
+      SRString::MakeUnowned(SR_FILE_LINE "Target index is not in KB range."));
+  }
+
+  if (_targetGaps.IsGap(iTarget)) {
+    mssl.EarlyRelease();
+    return PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iTarget), SRString::MakeUnowned(SR_FILE_LINE
+      "Target index is not in KB (but rather at a gap)."));
+  }
+
+  CEQuiz<taNumber> *pQuiz;
+  {
+    PqaError err;
+    pQuiz = UseQuiz(err, iQuiz);
+    if (pQuiz == nullptr) {
+      assert(!err.IsOk());
+      return err;
+    }
+  }
+
+  const std::vector<AnsweredQuestion>& answers = pQuiz->GetAnswers();
+  CETrainOperation<taNumber> trainOp(*this, answers.size(), answers.data(), iTarget, amount);
+  trainOp.Perform();
+
+  return PqaError();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqaId iQuiz) {

@@ -44,6 +44,7 @@ public: // methods
   TExponent* GetTlhExps() const { return _pTlhExps; }
   __m256i* GetQAsked() const { return _isQAsked; }
   std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
+  const std::vector<AnsweredQuestion>& GetAnswers() const { return _answers; }
   SRPlat::SRFastRandom& Random() { return _fr; }
   void SetActiveQuestion(TPqaId iQuestion) { _activeQuestion = iQuestion; }
 };

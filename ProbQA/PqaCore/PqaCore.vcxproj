@@ -230,6 +230,7 @@
     <ClInclude Include="CETask.fwd.h" />
     <ClInclude Include="CETask.decl.h" />
     <ClInclude Include="CETask.h" />
+    <ClInclude Include="CETrainOperation.h" />
     <ClInclude Include="CETrainSubtaskAdd.h" />
     <ClInclude Include="CETrainSubtaskDistrib.decl.h" />
     <ClInclude Include="CETrainSubtaskDistrib.fwd.h" />
@@ -271,6 +272,7 @@
     <ClCompile Include="CERadixSortRatingsSubtaskSort.cpp" />
     <ClCompile Include="CERecordAnswerSubtaskMul.cpp" />
     <ClCompile Include="CESetPriorsSubtaskSum.cpp" />
+    <ClCompile Include="CETrainOperation.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp" />
     <ClCompile Include="CpuEngine.cpp" />

@@ -68,6 +68,9 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
 
   constexpr uint32_t nBytesAhead = (SRCpuInfo::_cacheLineBytes << 1);
 
+  //NOTE: vectorization of 4 amounts at once would require conflict detection for the counters to increment, therefore
+  //  I do not expect it to give a performance benifit.
+
   // pass 0 with flipping
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     //TODO: unroll, then prefetch once in several priors depending on sizeof(taNumber)
@@ -90,7 +93,7 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
 
   // passes 1 to 7 without flipping or unflipping
   for (uint8_t i = 1; i<=7; i++) {
-    pOffsets[0] = 0;
+    pOffsets[0] = _iFirst;
     for (size_t j = 1; j < cnBuckets; j++) {
       pOffsets[j] = pOffsets[j - 1] + _pCounters[j - 1];
     }
@@ -107,7 +110,7 @@ template<typename taNumber> void CERadixSortRatingsSubtaskSort<taNumber>::Run() 
 
   //NOTE: pRatings and pTempRatings are swapped by pass 7 above, so current pRatings correspond to original pTempRatings
   // pass 8 with unflipping
-  pOffsets[0] = 0;
+  pOffsets[0] = _iFirst;
   for (size_t j = 1; j < cnBuckets; j++) {
     pOffsets[j] = pOffsets[j - 1] + _pCounters[j - 1];
   }
