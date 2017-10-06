@@ -78,7 +78,7 @@ public:
   // Supports unsigned types. Signed may give a warning.
   template<typename T> T Generate(const T lim) {
     assert(lim > 0);
-    if (_remaining < lim-1) {
+    if (_remaining < uint64_t(lim-1)) {
       _remaining = _fr.Generate<uint64_t>();
     }
     const T answer = _remaining % lim;

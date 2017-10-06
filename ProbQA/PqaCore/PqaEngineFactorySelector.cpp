@@ -10,7 +10,7 @@ namespace ProbQA {
 
 PqaEngineBaseFactory gPqaEbf;
 
-extern "C" PQACORE_API IPqaEngineFactory& GetPqaEngineFactory() {
+extern "C" PQACORE_API IPqaEngineFactory& PqaGetEngineFactory() {
   return gPqaEbf;
 }
 

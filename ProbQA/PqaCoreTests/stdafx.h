@@ -25,6 +25,7 @@
 #include <atomic>
 #include <cassert>
 #include <chrono>
+#include <cinttypes>
 #include <cstdio>
 #include <functional>
 #include <iostream>
@@ -37,9 +38,10 @@
 #pragma warning( pop )
 
 // SRPlatform library includes
+#include "../SRPlatform/Interface/ISRLogger.h"
 #include "../SRPlatform/Interface/SRBasicTypes.h"
 #include "../SRPlatform/Interface/SRException.h"
-#include "../SRPlatform/Interface/ISRLogger.h"
+#include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRString.h"
 
 // PqaCore library includes

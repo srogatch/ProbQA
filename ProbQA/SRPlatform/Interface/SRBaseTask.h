@@ -19,9 +19,9 @@ class SRPLATFORM_API SRBaseTask {
   friend class SRThreadPool;
 
 private: // variables
-  SRSubtaskCount _nToDo; // guarded by the critical section of the thread pool
+  SRSubtaskCount _nToDo = 0; // guarded by the critical section of the thread pool
   // It can be a little more than the number of subtasks, if failures happen in the task code too.
-  std::atomic<SRSubtaskCount> _nFailures;
+  std::atomic<SRSubtaskCount> _nFailures = 0;
   SRConditionVariable _isComplete;
 
 public: // methods

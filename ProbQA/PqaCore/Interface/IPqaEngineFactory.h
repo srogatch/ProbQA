@@ -21,6 +21,6 @@ public:
   virtual IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) = 0;
 };
 
-extern "C" PQACORE_API IPqaEngineFactory& GetPqaEngineFactory();
+extern "C" PQACORE_API IPqaEngineFactory& PqaGetEngineFactory();
 
 } // namespace ProbQA

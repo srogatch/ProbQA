@@ -624,9 +624,38 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RecordQuizTarget(const
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqaId iQuiz) {
-  (void)iQuiz; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::ReleaseQuiz")));
+  constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
+      " mode operation (release quiz) because current mode is not regular (but maintenance/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+  CEQuiz<taNumber> *pQuiz;
+  {
+    SRLock<SRCriticalSection> csl(_csQuizReg);
+    const TPqaId nQuizzes = _quizzes.size();
+    if (iQuiz < 0 || iQuiz >= nQuizzes) {
+      csl.EarlyRelease();
+      // For nQuizzes == 0, this may return [0;-1] range: we can't otherwise return an empty range because we return
+      //   the range with both bounds inclusive.
+      return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuiz, 0, nQuizzes - 1),
+        SRString::MakeUnowned(SR_FILE_LINE "Quiz index is not in quiz registry range."));
+    }
+    if (_quizGaps.IsGap(iQuiz)) {
+      csl.EarlyRelease();
+      return PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iQuiz), SRString::MakeUnowned(
+        SR_FILE_LINE "Quiz index is not in the registry (but rather at a gap)."));
+    }
+
+    pQuiz = _quizzes[iQuiz];
+
+    _quizGaps.Release(iQuiz);
+  }
+
+  SRCheckingRelease(_memPool, pQuiz);
+
+  return PqaError();
 }
 
 

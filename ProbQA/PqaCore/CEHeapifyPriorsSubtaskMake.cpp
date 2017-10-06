@@ -83,7 +83,7 @@ template<typename taNumber> void CEHeapifyPriorsSubtaskMake<taNumber>::Run() {
   }
 
   ctx._pTask->ModPieceLimits()[_iWorker] = ctx._iSelLim;
-  std::make_heap(ctx._pRatings, ctx._pRatings + ctx._iSelLim);
+  std::make_heap(ctx._pRatings + _iFirst, ctx._pRatings + ctx._iSelLim);
 }
 
 } // namespace ProbQA
