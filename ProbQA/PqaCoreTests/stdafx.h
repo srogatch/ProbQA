@@ -40,6 +40,7 @@
 // SRPlatform library includes
 #include "../SRPlatform/Interface/ISRLogger.h"
 #include "../SRPlatform/Interface/SRBasicTypes.h"
+#include "../SRPlatform/Interface/SRDefaultLogger.h"
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRString.h"

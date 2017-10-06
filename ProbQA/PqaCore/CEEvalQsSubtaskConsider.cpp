@@ -67,7 +67,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
     const double totW = accTotW.Get().GetValue();
     if (std::fabs(totW - 1.0) > 1e-9) {
-      LOCLOG(Warning) << SR_FILE_LINE "The sum of answer weights is" << totW;
+      LOCLOG(Warning) << SR_FILE_LINE "The sum of answer weights is " << totW;
     }
     SRAccumulator<SRDoubleNumber> accAvgH(SRDoubleNumber(0.0));
     const TPqaId nAnswerVects = engine.GetDims()._nAnswers >> SRSimd::_cLogNComps64;

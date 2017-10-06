@@ -269,6 +269,7 @@
     <ClInclude Include="Interface\SRSmartHandle.h" />
     <ClInclude Include="Interface\SRBaseSubtask.h" />
     <ClInclude Include="Interface\SRBaseTask.h" />
+    <ClInclude Include="Interface\SRStringUtils.h" />
     <ClInclude Include="Interface\SRTaskWaiter.h" />
     <ClInclude Include="Interface\SRThreadPool.h" />
     <ClInclude Include="Interface\SRUtils.h" />

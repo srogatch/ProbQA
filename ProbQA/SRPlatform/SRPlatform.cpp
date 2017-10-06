@@ -3,6 +3,7 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
+#include "../SRPlatform/Interface/SRStringUtils.h"
 #include "../SRPlatform/Interface/SRAccumulator.h"
 #include "../SRPlatform/Interface/SRVectMath.h"
 #include "../SRPlatform/Interface/SRBucketSummatorSeq.h"
