@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PqaClient", "PqaClient\PqaClient.vcxproj", "{F72DCA08-CADC-4264-9C1A-89E7B9A5199E}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -17,6 +17,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRPlatform", "SRPlatform\SRPlatform.vcxproj", "{66EBBC7D-97C5-4A7E-84D8-623DA032F3D3}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRPlatformTests", "SRPlatformTests\SRPlatformTests.vcxproj", "{336B4CB4-C1CE-4383-BF26-48172B273CFD}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PqaCoreTests", "PqaCoreTests\PqaCoreTests.vcxproj", "{BFA65490-9CA9-4845-875E-5155047FD238}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,8 +60,19 @@ Global
 		{336B4CB4-C1CE-4383-BF26-48172B273CFD}.Release|x64.Build.0 = Release|x64
 		{336B4CB4-C1CE-4383-BF26-48172B273CFD}.Release|x86.ActiveCfg = Release|Win32
 		{336B4CB4-C1CE-4383-BF26-48172B273CFD}.Release|x86.Build.0 = Release|Win32
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Debug|x64.ActiveCfg = Debug|x64
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Debug|x64.Build.0 = Debug|x64
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Debug|x86.ActiveCfg = Debug|Win32
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Debug|x86.Build.0 = Debug|Win32
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Release|x64.ActiveCfg = Release|x64
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Release|x64.Build.0 = Release|x64
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Release|x86.ActiveCfg = Release|Win32
+		{BFA65490-9CA9-4845-875E-5155047FD238}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E37D297F-B578-4021-9B15-DE8BFA4265B9}
 	EndGlobalSection
 EndGlobal
