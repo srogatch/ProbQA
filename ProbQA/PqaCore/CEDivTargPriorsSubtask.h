@@ -16,7 +16,7 @@ template<> inline void __vectorcall CEBaseDivTargPriorsSubtask<SRPlat::SRDoubleN
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     const __m256d original = SRPlat::SRSimd::Load<false>(pMants + i);
     const __m256d normalized = _mm256_div_pd(original, sumPriors._comps);
-    SRPlat::SRSimd::Store<false>(pMants + i, original);
+    SRPlat::SRSimd::Store<false>(pMants + i, normalized);
   }
   _mm_sfence();
 }

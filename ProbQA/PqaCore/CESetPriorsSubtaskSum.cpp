@@ -27,6 +27,7 @@ template<> void CESetPriorsSubtaskSum<SRDoubleNumber>::Run() {
   auto *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
   auto *PTR_RESTRICT pvB = SRCast::CPtr<__m256d>(&(engine.GetB(0)));
 
+  bsp.ZeroBuckets(_iWorker);
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     const __m256d allMants = SRSimd::Load<false>(pvB + i);
     const uint8_t gaps = targGaps.GetQuad(i);

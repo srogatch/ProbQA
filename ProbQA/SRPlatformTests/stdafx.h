@@ -38,6 +38,8 @@
 
 // SRPlatform library includes
 #include "../SRPlatform/Interface/SRBitArray.h"
+#include "../SRPlatform/Interface/SRBucketSummatorPar.h"
+#include "../SRPlatform/Interface/SRBucketSummatorSeq.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRHeap.h"
 #include "../SRPlatform/Interface/SRVectMath.h"
