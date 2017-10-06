@@ -46,10 +46,15 @@ public:
     _value += fellow._value;
     return *this;
   }
-  SRDoubleNumber operator*(const int64_t fellow) {
+  SRDoubleNumber operator*(const int64_t fellow) const {
     SRDoubleNumber answer;
     answer._value = _value * fellow;
     return answer; 
+  }
+  SRDoubleNumber operator-(const SRDoubleNumber& fellow) const {
+    SRDoubleNumber answer;
+    answer._value = _value - fellow._value;
+    return answer;
   }
   SRDoubleNumber& operator+=(const SRAmount amount) {
     _value += SRCast::ToDouble(amount);

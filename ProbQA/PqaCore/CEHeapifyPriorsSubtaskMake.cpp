@@ -62,7 +62,7 @@ template<typename taNumber> void CEHeapifyPriorsSubtaskMake<taNumber>::Run() {
     if constexpr (sizeof(taNumber) > (varThreshold)) { \
       _mm_prefetch(SRCast::CPtr<char>(ctx._pPriors + i + (varOffset)) + nBytesAhead, _MM_HINT_NTA); \
     } \
-    ctx.Regard(i+varThreshold);
+    ctx.Regard(i+varOffset);
 
   TPqaId i = _iFirst;
   for (const TPqaId iEn=_iLimit-7; i < iEn; i+=8) {

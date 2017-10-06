@@ -488,15 +488,18 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       selQuestion = _dims._nQuestions - 1;
       break;
     }
+
+    const taNumber inWorkerRunLen = selRunLen - ((iWorker == 0) ? SRDoubleNumber(0.0) : pGrandTotals[iWorker-1]);
     const TPqaId iFirst = ((iWorker == 0) ? 0 : questionSplit._pBounds[iWorker - 1]);
     const TPqaId iLimit = questionSplit._pBounds[iWorker];
-    selQuestion = std::upper_bound(pRunLength + iFirst, pRunLength + iLimit, selRunLen) - pRunLength;
+    selQuestion = std::upper_bound(pRunLength + iFirst, pRunLength + iLimit, inWorkerRunLen) - pRunLength;
     if (selQuestion >= iLimit) {
       assert(selQuestion == iLimit);
       CELOG(Warning) << SR_FILE_LINE "Hopefully due to a rounding error, within-worker run length binary search hasn't"
         " found a strictly greater value, while the binary search over grand totals pointed to this worker's piece."
-        " Random selection: " << selRunLen.ToAmount() << ", worker index " << iWorker << ", grand total "
-        << pGrandTotals[iWorker].ToAmount() << ", worker max run length " << pRunLength[iLimit-1].ToAmount();
+        " Random selection: " << selRunLen.ToAmount() << ", in-worker run length " << inWorkerRunLen.ToAmount()
+        << ", worker index " << iWorker << ", grand total " << pGrandTotals[iWorker].ToAmount() << ", worker max run"
+        " length " << pRunLength[iLimit-1].ToAmount();
       selQuestion = iLimit - 1;
     }
   } WHILE_FALSE;

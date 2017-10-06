@@ -23,6 +23,7 @@ template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
   static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
     " 64-bit integer.");
 
+  bsp.ZeroBuckets(_iWorker);
   const AnsweredQuestion &PTR_RESTRICT aq = task.GetAQ();
   const __m256d *PTR_RESTRICT pAdjMuls = SRCast::CPtr<__m256d>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));
   const __m256d *PTR_RESTRICT pAdjDivs = SRCast::CPtr<__m256d>(&engine.GetD(aq._iQuestion, 0));
