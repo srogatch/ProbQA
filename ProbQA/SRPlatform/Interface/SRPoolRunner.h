@@ -162,6 +162,7 @@ public:
 template<typename taSubtask, typename taCallback> inline SRPoolRunner::Keeper<taSubtask> SRPoolRunner::RunPreSplit(
   typename taSubtask::TTask& task, const Split& split, const taCallback &subtaskInit)
 {
+  task.Reset();
   Keeper<taSubtask> kp(_pSubtasksMem, task);
   size_t curStart = 0;
   while(kp._nSubtasks < split._nSubtasks) {
@@ -182,6 +183,7 @@ template<typename taSubtask, typename taCallback> inline
   SRPoolRunner::Keeper<taSubtask> SRPoolRunner::SplitAndRunSubtasks(
   typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit)
 {
+  task.Reset();
   Keeper<taSubtask> kp(_pSubtasksMem, task);
 
   size_t nextStart = 0;
@@ -206,6 +208,7 @@ template<typename taSubtask, typename taCallback> inline
   SRPoolRunner::Keeper<taSubtask> SRPoolRunner::RunPerWorkerSubtasks(
   typename taSubtask::TTask& task, const SRThreadCount nWorkers, const taCallback &subtaskInit)
 {
+  task.Reset();
   Keeper<taSubtask> kp(_pSubtasksMem, task);
 
   while (kp._nSubtasks < nWorkers) {

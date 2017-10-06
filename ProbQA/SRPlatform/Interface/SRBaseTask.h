@@ -19,9 +19,9 @@ class SRPLATFORM_API SRBaseTask {
   friend class SRThreadPool;
 
 private: // variables
-  SRSubtaskCount _nToDo = 0; // guarded by the critical section of the thread pool
+  SRSubtaskCount _nToDo; // guarded by the critical section of the thread pool
   // It can be a little more than the number of subtasks, if failures happen in the task code too.
-  std::atomic<SRSubtaskCount> _nFailures = 0;
+  std::atomic<SRSubtaskCount> _nFailures;
   SRConditionVariable _isComplete;
 
 public: // methods
@@ -29,6 +29,8 @@ public: // methods
   //  the derived object is already destructed, as well as may some satellite objects handling On*() events. Client
   //  code must ensure WaitComplete() is called before destructing a task that has subtasks running.
   virtual ~SRBaseTask() { }
+
+  void Reset();
 
   void FinalizeSubtask(SRBaseSubtask *pSubtask);
   // A hook for derived classes to e.g. release the subtask to a memory pool

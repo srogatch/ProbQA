@@ -47,4 +47,9 @@ void SRBaseTask::WaitComplete() {
   }
 }
 
+void SRBaseTask::Reset() {
+  _nFailures.store(0, std::memory_order_relaxed);
+  _nToDo = 0;
+}
+
 } // namespace SRPlat

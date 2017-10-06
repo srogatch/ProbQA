@@ -28,6 +28,9 @@ TEST(DichotomyTest, Main) {
   constexpr int64_t cnTopRated = 10;
 
   for (int64_t i = 0; i < cnTrainings + cnTrials; i++) {
+    if ((i & 255) == 0) {
+      printf("*");
+    }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     const TPqaId iQuiz = pEngine->StartQuiz(err);
     ASSERT_TRUE(err.IsOk());
