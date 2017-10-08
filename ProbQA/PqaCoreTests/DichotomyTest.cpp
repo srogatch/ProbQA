@@ -74,6 +74,7 @@ TEST(DichotomyTest, Main) {
         }
       }
       if (posInTop != cInvalidPqaId) {
+        printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop), int64_t(j));
         break;
       }
       if (i >= cnTrainings && j >= cMaxTrialLen) {

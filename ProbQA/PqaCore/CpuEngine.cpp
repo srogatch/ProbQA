@@ -297,12 +297,12 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
         answers.insert(answers.end(), resumeOp._pAQs, resumeOp._pAQs + resumeOp._nAnswered);
       });
 
-      SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
-      if(op.IsResume()) {
+      if (op.IsResume()) {
+        SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
         _tpWorkers.Enqueue({&lstSetQAsked, &lstAddAnswers}, tNoSrw);
       } else {
-        //TODO: run in the current thread instead
-        _tpWorkers.Enqueue(&lstSetQAsked);
+        // run in the current thread instead
+        lstSetQAsked.Run();
       }
     }
     op._err = tNoSrw.TakeAggregateError();
