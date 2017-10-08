@@ -15,9 +15,12 @@ TEST(SRBucketSummator, Sequential) {
     const __m256d nums = _mm256_set_pd(double(i), double(i) / cnItems, i / std::pow(cnItems, 2), i / pow(cnItems, 3));
     bss.CalcAdd(nums);
   }
+  const __m256d neg = _mm256_set_pd(-1, -2, -3, -4);
+  bss.CalcAdd(neg);
+
   const SRDoubleNumber sum = bss.ComputeSum();
   const double progression = 0.5 * (cnItems - 1.0) * cnItems;
   const double expected = progression / pow(cnItems, 3) + progression / std::pow(cnItems, 2) + progression / cnItems
-    + progression;
+    + progression - 10;
   ASSERT_NEAR(sum.GetValue(), expected, 1);
 }

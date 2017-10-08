@@ -13,6 +13,7 @@ namespace SRPlat {
 #define BTLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetThreadPool().GetLogger())
 
 void SRBaseTask::FinalizeSubtask(SRBaseSubtask *pSubtask) {
+  OnSubtaskComplete(pSubtask);
   SRSubtaskCount nNew;
   {
     SRLock<SRCriticalSection> csl(GetThreadPool().GetCS());
@@ -26,7 +27,6 @@ void SRBaseTask::FinalizeSubtask(SRBaseSubtask *pSubtask) {
     }
     _isComplete.WakeAll();
   }
-  OnSubtaskComplete(pSubtask);
 }
 
 void SRBaseTask::HandleSubtaskFailure(SRException &&ex, SRBaseSubtask* pSubtask) {

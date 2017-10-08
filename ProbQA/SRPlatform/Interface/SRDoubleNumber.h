@@ -22,6 +22,8 @@ private: // variables
   double _value;
 
 public:
+  static __m128i MulBySize(const __m128i a);
+
   explicit SRDoubleNumber() { }
   explicit SRDoubleNumber(SRAmount init) : _value(SRCast::ToDouble(init)) { }
 

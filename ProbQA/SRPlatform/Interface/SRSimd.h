@@ -159,7 +159,7 @@ public:
     const __m128i high32 = _mm_castps_si128(_mm_shuffle_ps(loLane, hiLane, _MM_SHUFFLE(3, 1, 3, 1)));
     const __m128i exps = _mm_and_si128(_cDoubleExpMaskDown32,
       _mm_srli_epi32(high32, SRNumTraits<double>::_cExponentOffs - 32));
-    if (!taNorm0) {
+    if constexpr (!taNorm0) {
       return exps;
     }
     return _mm_sub_epi32(exps, _cDoubleExp0Down32);

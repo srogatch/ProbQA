@@ -38,7 +38,7 @@ template<typename taNumber> inline SRBucketSummatorSeq<taNumber>::SRBucketSummat
 template<typename taNumber> inline __m128i __vectorcall SRBucketSummatorSeq<taNumber>::OffsetsFrom4Exps(
   const __m128i exps32)
 {
-  const __m128i scaled = _mm_mul_epi32(exps32, taNumber::_cSizeBytes128_32);
+  const __m128i scaled = _mm_mullo_epi32(exps32, taNumber::_cSizeBytes128_32);
   return scaled;
 }
 
