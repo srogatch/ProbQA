@@ -18,14 +18,18 @@ void SRBaseTask::FinalizeSubtask(SRBaseSubtask *pSubtask) {
   {
     SRLock<SRCriticalSection> csl(GetThreadPool().GetCS());
     nNew = --_nToDo;
-  }
-  if (nNew <= 0) {
-    if (nNew < 0) {
-      auto mb = SRMessageBuilder("A task got a negative number of remaining subtasks to do: ")(nNew);
-      GetThreadPool().GetLogger()->Log(ISRLogger::Severity::Critical, mb.GetUnownedSRString());
-      HandleTaskFailure(SRException(mb.GetOwnedSRString()));
+
+    if (nNew <= 0) {
+      if (nNew < 0) {
+        csl.EarlyRelease();
+        auto mb = SRMessageBuilder("A task got a negative number of remaining subtasks to do: ")(nNew);
+        GetThreadPool().GetLogger()->Log(ISRLogger::Severity::Critical, mb.GetUnownedSRString());
+        HandleTaskFailure(SRException(mb.GetOwnedSRString()));
+        return;
+      }
+      //This must be executed while locked, otherwise the condition variable may be destructed concurrently.
+      _isComplete.WakeAll();
     }
-    _isComplete.WakeAll();
   }
 }
 
@@ -48,8 +52,8 @@ void SRBaseTask::WaitComplete() {
 }
 
 void SRBaseTask::Reset() {
-  _nFailures.store(0, std::memory_order_relaxed);
   _nToDo = 0;
+  _nFailures.store(0, std::memory_order_release);
 }
 
 } // namespace SRPlat

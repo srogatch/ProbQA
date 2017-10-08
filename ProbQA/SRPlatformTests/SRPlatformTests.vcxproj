@@ -201,6 +201,7 @@
     <ClCompile Include="SRBucketSummatorTest.cpp" />
     <ClCompile Include="SRHeapTest.cpp" />
     <ClCompile Include="SRPlatformTestsMain.cpp" />
+    <ClCompile Include="SRQueueTest.cpp" />
     <ClCompile Include="SRVectMathTest.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -42,6 +42,7 @@
 #include "../SRPlatform/Interface/SRBucketSummatorSeq.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRHeap.h"
+#include "../SRPlatform/Interface/SRQueue.h"
 #include "../SRPlatform/Interface/SRVectMath.h"
 
 // Google Test Framework includes

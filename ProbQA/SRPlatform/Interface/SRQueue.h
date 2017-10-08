@@ -11,7 +11,7 @@ namespace SRPlat {
 
 // Items must be trivially copyable, constructible and copy-constructible. There can be non-trivial counterparts of the
 //   above operations, but items must stay consistent after trivial operations executed by SRQueue.
-template<typename taItem> class SRPLATFORM_API SRQueue {
+template<typename taItem> class SRQueue {
 private: // variables
   uint64_t _nItems : 56;
   uint64_t _logCapacity : 8; // Don't compress/decompress capacity here because it's frequently used
@@ -87,12 +87,12 @@ public: // methods
     _nItems += nSrc;
   }
   taItem __vectorcall PopGet() {
-    assert(_nItems >= 1);
     const size_t iRet = _iFirst;
     Pop();
     return _pItems[iRet];
   }
   void Pop() {
+    assert(_nItems >= 1);
     _iFirst = (_iFirst + 1) & ((1 << _logCapacity) - 1);
     _nItems--;
   }

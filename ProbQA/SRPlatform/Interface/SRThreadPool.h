@@ -9,11 +9,13 @@
 #include "../SRPlatform/Interface/ISRLogCustomizable.h"
 #include "../SRPlatform/Interface/SRQueue.h"
 #include "../SRPlatform/Interface/SRBasicTypes.h"
+#include "../SRPlatform/Interface/SRLock.h"
 
 namespace SRPlat {
 
 class SRBaseSubtask;
 class SRBaseTask;
+template class SRPLATFORM_API SRQueue<SRBaseSubtask*>;
 
 class SRPLATFORM_API SRThreadPool : public ISRLogCustomizable {
   struct RareData; // cache-insensitive piece of thread pool data

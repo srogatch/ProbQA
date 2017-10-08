@@ -15,6 +15,12 @@ class SRPLATFORM_API SRBaseSubtask {
 
 public:
   explicit SRBaseSubtask(SRBaseTask *pTask) : _pTask(pTask) { }
+  
+  SRBaseSubtask(const SRBaseSubtask&) = delete;
+  SRBaseSubtask& operator=(const SRBaseSubtask&) = delete;
+  SRBaseSubtask(SRBaseSubtask&&) = delete;
+  SRBaseSubtask& operator=(SRBaseSubtask&&) = delete;
+
   virtual ~SRBaseSubtask() { }
 
   SRBaseTask *GetTask() const { return _pTask; }

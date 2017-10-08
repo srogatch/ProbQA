@@ -30,7 +30,7 @@ private: // methods
   inline const SRNumPack<taNumber>& GetVect(const SRThreadCount iWorker, const uint32_t iVect) const;
 
 public: // methods
-  static inline size_t GetMemoryRequirementBytes(const SRThreadCount nWorkers);
+  constexpr static inline size_t GetMemoryRequirementBytes(const SRThreadCount nWorkers);
   explicit inline SRBucketSummatorPar(const SRThreadCount nWorkers, void* pMem);
 
   // Let each worker zero its buckets, so that they lay into L1/L2 cache of this worker.
@@ -54,12 +54,10 @@ template<typename taNumber> inline taNumber* SRBucketSummatorPar<taNumber>::GetW
   return SRCast::Ptr<taNumber>(SRCast::Ptr<uint8_t>(_pBuckets) + iWorker * WorkerRowLengthBytes());
 }
 
-template<typename taNumber> inline size_t SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(
+template<typename taNumber> constexpr inline size_t SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(
   const SRThreadCount nWorkers)
 {
-  const size_t ans = size_t(nWorkers) * WorkerRowLengthBytes() + SRSimd::GetPaddedBytes(nWorkers * sizeof(taNumber));
-  assert(ans < std::numeric_limits<int32_t>::max());
-  return ans;
+  return size_t(nWorkers) * WorkerRowLengthBytes() + SRSimd::GetPaddedBytes(nWorkers * sizeof(taNumber));
 }
 
 template<typename taNumber> inline SRBucketSummatorPar<taNumber>::SRBucketSummatorPar(

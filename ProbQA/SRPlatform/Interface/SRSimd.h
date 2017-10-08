@@ -350,7 +350,7 @@ template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(const double
     SR_UNREACHABLE;
   }
 
-  const __m256d *vp = SRCast::CPtr<__m256d>(p);
+  const __m256d *PTR_RESTRICT vp = SRCast::CPtr<__m256d>(p);
   __m256d sum;
   switch (nVects) {
   case 0:
@@ -360,10 +360,10 @@ template<bool taCache> ATTR_NOALIAS inline double SRSimd::StableSum(const double
     break;
   default: {
     sum = Load<taCache>(vp);
-    for (size_t i = 1; i + 1 < nVects; i++) {
-      sum = HorizAddStraight(sum, vp[i]);
+    for (size_t i = 1, iEn=nVects-1; i < iEn; i++) {
+      sum = HorizAddStraight(sum, Load<taCache>(vp + i));
     }
-    sum = _mm256_hadd_pd(sum, vp[nVects - 1]);
+    sum = _mm256_hadd_pd(sum, Load<taCache>(vp + nVects - 1));
     break;
   } }
 

@@ -104,6 +104,7 @@ public:
       pBounds[nSubtasks] = nextStart;
       nSubtasks++;
     }
+    assert(nextStart == nItems);
     return {pBounds, nSubtasks};
   }
 
@@ -197,6 +198,7 @@ template<typename taSubtask, typename taCallback> inline
     // For finalization, it's important to increment subtask counter right after another subtask has been constructed.
     kp._nSubtasks++;
   }
+  assert(nextStart == nItems);
   _pTp->EnqueueAdjacent(kp._pSubtasks, kp._nSubtasks, task);
 
   kp._pTask = nullptr; // Don't call again SRBaseTask::WaitComplete() if it throws here.
