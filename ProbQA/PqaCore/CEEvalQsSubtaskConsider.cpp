@@ -20,7 +20,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
   auto *PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
-  SRBucketSummatorSeq<SRDoubleNumber> bss(
+  //TODO: later implement a switch between BucketSummator and Accumulator, depending on what's faster
+  SRBucketSummatorSeq<SRDoubleNumber> bssUnused(
     task._pBSes + SRBucketSummatorSeq<SRDoubleNumber>::GetMemoryRequirementBytes() * _iWorker);
   __m256d *PTR_RESTRICT pPosteriors = SRCast::Ptr<__m256d>(task._pPosteriors + task._threadPosteriorBytes * _iWorker);
   double *PTR_RESTRICT pAnswerWeigths = SRCast::Ptr<double>(task._pAnswerMetrics
@@ -38,7 +39,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
     SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
     for (TPqaId k = 0; k < engine.GetDims()._nAnswers; k++) {
-      bss.ZeroBuckets();
+      //bss.ZeroBuckets();
+      SRAccumVectDbl accVect;
       const __m256d *psAik = SRCast::CPtr<__m256d>(&engine.GetA(i, k, 0));
       const __m256d *pmDi = SRCast::CPtr<__m256d>(&engine.GetD(i, 0));
       for (TPqaId j = 0; j < nTargVects; j++) {
@@ -47,10 +49,13 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256i gapMask = SRSimd::SetToBitQuadHot(engine.GetTargetGaps().GetQuad(j));
         const __m256d maskedLH = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), likelihood);
         SRSimd::Store<false>(pPosteriors + j, maskedLH);
-        bss.CalcAdd(maskedLH);
+        //bss.CalcAdd(maskedLH);
+        accVect.Add(maskedLH);
       }
-      const double Wk = bss.ComputeSum().GetValue();
-      bss.ZeroBuckets();
+      //const double Wk = bss.ComputeSum().GetValue();
+      const double Wk = accVect.GetFullSum();
+      //bss.ZeroBuckets();
+      accVect.Reset();
       accTotW.Add(SRDoubleNumber(Wk));
       pAnswerWeigths[k] = Wk;
       const __m256d vWk = _mm256_set1_pd(Wk);
@@ -60,9 +65,11 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256d Hikj = _mm256_mul_pd(targProb, SRVectMath::Log2Hot(targProb));
         const __m256i gapMask = SRSimd::SetToBitQuadHot(engine.GetTargetGaps().GetQuad(j));
         const __m256d maskedHikj = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), Hikj);
-        bss.CalcAdd(maskedHikj);
+        //bss.CalcAdd(maskedHikj);
+        accVect.Add(maskedHikj);
       }
-      const double entropyHik = -bss.ComputeSum().GetValue();
+      //const double entropyHik = -bss.ComputeSum().GetValue();
+      const double entropyHik = -accVect.GetFullSum();
       pAnswerEntropies[k] = entropyHik;
     }
     const double totW = accTotW.Get().GetValue();

@@ -222,6 +222,7 @@
     <ClInclude Include="Interface\Exceptions\SRStdException.h" />
     <ClInclude Include="Interface\ISRLogCustomizable.h" />
     <ClInclude Include="Interface\SRAccumulator.h" />
+    <ClInclude Include="Interface\SRAccumVectDbl.h" />
     <ClInclude Include="Interface\SRAlignedAllocator.h" />
     <ClInclude Include="Interface\SRAlignedDeleter.h" />
     <ClInclude Include="Interface\SRBasicTypes.h" />

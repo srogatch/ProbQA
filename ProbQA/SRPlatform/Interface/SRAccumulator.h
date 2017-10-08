@@ -16,7 +16,7 @@ template<> class SRAccumulator<SRDoubleNumber> {
   double _corr;
 
 public:
-  SRAccumulator() { }
+  //SRAccumulator() { }
   explicit SRAccumulator(const SRDoubleNumber value) : _sum(value.GetValue()), _corr(0) { }
   inline SRDoubleNumber Get();
   inline SRAccumulator& Add(const SRDoubleNumber value);

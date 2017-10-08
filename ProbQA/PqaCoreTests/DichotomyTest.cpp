@@ -27,9 +27,9 @@ TEST(DichotomyTest, Main) {
   constexpr int64_t cMaxTrialLen = 30;
   constexpr int64_t cnTopRated = 10;
 
-  for (int64_t i = 0; i < cnTrainings + cnTrials; i++) {
+  for (int64_t i = 1; i <= cnTrainings + cnTrials; i++) {
     if ((i & 255) == 0) {
-      printf("*");
+      printf("\n*");
     }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     const TPqaId iQuiz = pEngine->StartQuiz(err);
@@ -77,7 +77,7 @@ TEST(DichotomyTest, Main) {
         printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop), int64_t(j));
         break;
       }
-      if (i >= cnTrainings && j >= cMaxTrialLen) {
+      if (i > cnTrainings && j >= cMaxTrialLen) {
         for (TPqaId k = 0; k < cnTopRated; k++) {
           printf(" [%g; %" PRId64 "] ", rts[k]._prob, rts[k]._iTarget);
         }

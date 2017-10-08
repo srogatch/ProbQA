@@ -301,7 +301,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
         SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
         _tpWorkers.Enqueue({&lstSetQAsked, &lstAddAnswers}, tNoSrw);
       } else {
-        // run in the current thread instead
+        // Run in the current thread
         lstSetQAsked.Run();
       }
     }
