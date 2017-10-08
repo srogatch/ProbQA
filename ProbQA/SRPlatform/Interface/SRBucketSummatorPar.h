@@ -78,7 +78,7 @@ template<typename taNumber> inline taNumber& SRBucketSummatorPar<taNumber>::ModB
 template<typename taNumber> inline __m128i __vectorcall SRBucketSummatorPar<taNumber>::OffsetsFrom4Exps(
   const SRThreadCount iWorker, const __m128i exps32)
 {
-  const __m128i scaled = _mm_mullo_epi32(exps32, taNumber::_cSizeBytes128_32);
+  const __m128i scaled = taNumber::ScaleBySizeBytesU32(exps32);
   const __m128i offsets = _mm_add_epi32(scaled, _mm_set1_epi32(iWorker * WorkerRowLengthBytes()));
   return offsets;
 }

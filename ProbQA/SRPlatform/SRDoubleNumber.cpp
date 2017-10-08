@@ -7,7 +7,11 @@
 
 namespace SRPlat {
 
-const __m128i SRDoubleNumber::_cSizeBytes128_32 = _mm_set1_epi32(sizeof(SRDoubleNumber));
-const SRPacked64 SRDoubleNumber::_cSizeBytes64_32 = SRPacked64::Set1U32(sizeof(SRDoubleNumber));
+__m128i __vectorcall SRDoubleNumber::ScaleBySizeBytesU32(const __m128i a) {
+  static_assert(sizeof(SRDoubleNumber) == (1 << 3), "Hard-coded below");
+  // When the size is not a power of 2, _mm_mullo_epi32() can be used.
+  const __m128i ans = _mm_slli_epi32(a, 3);
+  return ans;
+}
 
 } // namespace SRPlat

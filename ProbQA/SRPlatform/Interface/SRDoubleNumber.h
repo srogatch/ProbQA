@@ -13,8 +13,6 @@ namespace SRPlat {
 
 class SRPLATFORM_API SRDoubleNumber : public SRRealNumber {
 public: // constants
-  static const __m128i _cSizeBytes128_32;
-  static const SRPacked64 _cSizeBytes64_32;
   static const int64_t _cMaxExp = 1023;
   static const int64_t _cExpOffs = 1023;
 
@@ -22,7 +20,7 @@ private: // variables
   double _value;
 
 public:
-  static __m128i MulBySize(const __m128i a);
+  static __m128i __vectorcall ScaleBySizeBytesU32(const __m128i a);
 
   explicit SRDoubleNumber() { }
   explicit SRDoubleNumber(SRAmount init) : _value(SRCast::ToDouble(init)) { }
