@@ -24,7 +24,10 @@ private: // methods
       _s[i >> 3].m256i_u32[i & 7] = rd();
     }
   }
+
 public: // methods
+  static SRFastRandom& ThreadLocal();
+
   explicit SRFastRandom() {
     for (uint8_t i = 0; i < sizeof(_s) / sizeof(uint64_t); i++) {
       if (!_rdrand64_step(_s[i>>2].m256i_u64 + (i&3))) {

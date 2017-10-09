@@ -13,6 +13,7 @@ TEST(DichotomyTest, Main) {
   ed._dims._nAnswers = 5;
   ed._dims._nQuestions = 1000;
   ed._dims._nTargets = 1000;
+  ed._initAmount = 0.1;
   ed._prec._type = TPqaPrecisionType::Double;
   IPqaEngine *pEngine = PqaGetEngineFactory().CreateCpuEngine(err, ed);
   ASSERT_TRUE(err.IsOk());
@@ -35,7 +36,8 @@ TEST(DichotomyTest, Main) {
     const TPqaId iQuiz = pEngine->StartQuiz(err);
     ASSERT_TRUE(err.IsOk());
     ASSERT_TRUE(iQuiz != cInvalidPqaId);
-    for (int64_t j = 0; j < cMaxQuizLen; j++) {
+    int64_t j = 0;
+    for (; j < cMaxQuizLen; j++) {
       const TPqaId iQuestion = pEngine->NextQuestion(err, iQuiz);
       ASSERT_TRUE(err.IsOk());
       ASSERT_TRUE(iQuestion != cInvalidPqaId);
@@ -84,6 +86,9 @@ TEST(DichotomyTest, Main) {
         printf("\n");
         FAIL() << "guess=" << guess;
       }
+    }
+    if (j >= cMaxQuizLen) {
+      printf("-");
     }
     err = pEngine->RecordQuizTarget(iQuiz, guess);
     ASSERT_TRUE(err.IsOk());

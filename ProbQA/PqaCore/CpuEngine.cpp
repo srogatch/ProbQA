@@ -480,7 +480,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       pGrandTotals[i] = accTotG.Get();
     }
     const taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
-    const taNumber selRunLen = taNumber::MakeRandom(totG, pQuiz->Random());
+    const taNumber selRunLen = taNumber::MakeRandom(totG, SRFastRandom::ThreadLocal());
     const SRThreadCount iWorker = static_cast<SRThreadCount>(
       std::upper_bound(pGrandTotals, pGrandTotals + questionSplit._nSubtasks, selRunLen) - pGrandTotals);
     if (iWorker >= questionSplit._nSubtasks) {

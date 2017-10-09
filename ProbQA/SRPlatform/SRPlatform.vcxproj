@@ -303,6 +303,7 @@
     <ClCompile Include="SRDefaultLogger.cpp" />
     <ClCompile Include="SRDoubleNumber.cpp" />
     <ClCompile Include="SRException.cpp" />
+    <ClCompile Include="SRFastRandom.cpp" />
     <ClCompile Include="SRGenericException.cpp" />
     <ClCompile Include="SRLoggerFactory.cpp" />
     <ClCompile Include="SRMemPool.cpp" />

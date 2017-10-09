@@ -19,9 +19,6 @@ public: // types
 protected: // types
   typedef BaseCpuEngine::TMemPool TMemPool;
 
-private: // variables
-  SRPlat::SRFastRandom _fr;
-
 protected:
   std::vector<AnsweredQuestion> _answers;
 
@@ -45,7 +42,6 @@ public: // methods
   __m256i* GetQAsked() const { return _isQAsked; }
   std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
   const std::vector<AnsweredQuestion>& GetAnswers() const { return _answers; }
-  SRPlat::SRFastRandom& Random() { return _fr; }
   void SetActiveQuestion(TPqaId iQuestion) { _activeQuestion = iQuestion; }
 };
 
