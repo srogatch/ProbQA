@@ -15,33 +15,35 @@ namespace ProbQA {
 //////////////////////////////// CEBaseQuiz implementation /////////////////////////////////////////////////////////////
 
 inline CEBaseQuiz::CEBaseQuiz(BaseCpuEngine *pEngine) : _pEngine(pEngine) {
+  using namespace SRPlat;
   const EngineDimensions& dims = _pEngine->GetDims();
   const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
-  auto& memPool = _pEngine->GetMemPool();
 
-  //SRPlat::SRMemTotal mtCommon;
-  //SRMemItem miIsQAsked(sizeof(__m256i) * SRPlat::SRSimd::VectsFromBits(nQuestions), SRPlat::SRMemPadding::Both,
-  //  mtCommon);
-  //TODO: reimplement to a single allocation
+  SRMemTotal mtCommon;
+  SRMemItem<__m256i> miIsQAsked(SRPlat::SRSimd::VectsFromBits(nQuestions), SRPlat::SRMemPadding::Both, mtCommon);
+  SRMemItem<TExponent> miExponents(nTargets, SRPlat::SRMemPadding::Both, mtCommon);
   // First allocate all the memory so to revert if anything fails.
-  SRPlat::SRSmartMPP<__m256i> smppIsQAsked(memPool, SRPlat::SRSimd::VectsFromBits(nQuestions));
-  SRPlat::SRSmartMPP<TExponent> smppExponents(memPool, nTargets);
-
+  SRSmartMPP<uint8_t> commonBuf(_pEngine->GetMemPool(), mtCommon._nBytes);
+  // Must be the first memory block, because it's used for releasing the memory
+  _isQAsked = miIsQAsked.Ptr(commonBuf);
+  _pTlhExps = miExponents.Ptr(commonBuf);
   // As all the memory is allocated, safely proceed with finishing construction of CEBaseQuiz object.
-  _pTlhExps = smppExponents.Detach();
-  _isQAsked = smppIsQAsked.Detach();
+  commonBuf.Detach();
 }
 
 inline CEBaseQuiz::~CEBaseQuiz() {
-  const EngineDimensions& dims = GetBaseEngine()->GetDims();
-  const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
-  const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
-  auto& memPool = GetBaseEngine()->GetMemPool();
+  using namespace SRPlat;
   //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
   //  of targets and questions.
-  memPool.ReleaseMem(_pTlhExps, sizeof(*_pTlhExps) * nTargets);
-  memPool.ReleaseMem(_isQAsked, SRPlat::SRBitHelper::GetAlignedSizeBytes(nQuestions));
+  const EngineDimensions& dims = _pEngine->GetDims();
+  const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
+  const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
+
+  SRMemTotal mtCommon;
+  SRMemItem<__m256i> miIsQAsked(SRPlat::SRSimd::VectsFromBits(nQuestions), SRPlat::SRMemPadding::Both, mtCommon);
+  SRMemItem<TExponent> miExponents(nTargets, SRPlat::SRMemPadding::Both, mtCommon);
+  _pEngine->GetMemPool().ReleaseMem(_isQAsked, mtCommon._nBytes);
 }
 
 //////////////////////////////// CEQuiz implementation /////////////////////////////////////////////////////////////////
