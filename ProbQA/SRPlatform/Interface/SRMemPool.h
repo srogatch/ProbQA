@@ -224,9 +224,9 @@ enum class SRMemPadding : uint8_t {
   Both = 3
 };
 
-struct SRMemItem {
+struct SRByteMem {
   size_t _offs;
-  ATTR_NOALIAS SRMemItem(const size_t nBytes, const SRMemPadding pad, SRMemTotal &PTR_RESTRICT mt) {
+  ATTR_NOALIAS SRByteMem(const size_t nBytes, const SRMemPadding pad, SRMemTotal &PTR_RESTRICT mt) {
     const uint8_t u8pad = static_cast<uint8_t>(pad);
     _offs = ((u8pad & uint8_t(SRMemPadding::Left)) ? SRSimd::GetPaddedBytes(mt._nBytes) : mt._nBytes);
     const size_t newTotal = _offs + nBytes;
@@ -237,6 +237,17 @@ struct SRMemItem {
   }
   template<typename taPointed> ATTR_NOALIAS taPointed* ToPtr(const SRSmartMPP<uint8_t> &PTR_RESTRICT smpp) const {
     return SRCast::Ptr<taPointed>(smpp.Get() + _offs);
+  }
+};
+
+template<typename T> struct SRMemItem : public SRByteMem {
+  ATTR_NOALIAS SRMemItem(const SRMemPadding pad, SRMemTotal &PTR_RESTRICT mt) : SRMemItem(1, pad, mt) { }
+
+  ATTR_NOALIAS SRMemItem(const size_t nItems, const SRMemPadding pad, SRMemTotal &PTR_RESTRICT mt)
+    : SRByteMem(nItems * sizeof(T), pad, mt) { }
+
+  ATTR_NOALIAS T* Ptr(const SRSmartMPP<uint8_t> &PTR_RESTRICT smpp) const {
+    return ToPtr<T>(smpp);
   }
 };
 

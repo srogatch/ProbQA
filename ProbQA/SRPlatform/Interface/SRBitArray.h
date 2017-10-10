@@ -73,7 +73,7 @@ private:
     assert((capBits & SRSimd::_cBitMask) == 0);
     const uint64_t oldNBits = _nBits;
     if (newNBits <= capBits) {
-      if(taOppVal) {
+      if constexpr (taOppVal) {
         AssignRange(!_defaultVal, oldNBits, newNBits);
       } // otherwise the bits must be already initialized to default value
       _nBits = newNBits;
@@ -95,7 +95,7 @@ private:
     _comprCap = newComprCap;
     _nBits = newNBits;
 
-    if(taOppVal) {
+    if constexpr (taOppVal) {
       const uint64_t newCapBits = uint64_t(newCapVects) << SRSimd::_cLogNBits;
       //AssignRange(!_defaultVal, oldNBits, newNBits);
       //AssignRange(_defaultVal, newNBits, newCapVects << SRSimd::_cLogNBits);
@@ -136,7 +136,7 @@ public:
     GrowInternal<false>(targNBits);
   }
   void GrowTo(const uint64_t targNBits, const bool value) {
-    (value == _defaultVal) ? GrowInternal<false>(targNBits) : GrowInternal<true>(targNBits);
+    (value == bool(_defaultVal)) ? GrowInternal<false>(targNBits) : GrowInternal<true>(targNBits);
   }
 
   // Remove tail bits

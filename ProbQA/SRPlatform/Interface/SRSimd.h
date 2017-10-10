@@ -41,7 +41,7 @@ public:
   static size_t VectsFromBytes(const size_t nBytes) {
     return SRMath::RShiftRoundUp(nBytes, _cLogNBytes);
   }
-  static size_t VectsFromBits(const size_t nBits) {
+  static size_t VectsFromBits(const uint64_t nBits) {
     return SRMath::RShiftRoundUp(nBits, _cLogNBits);
   }
 

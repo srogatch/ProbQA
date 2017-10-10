@@ -29,11 +29,11 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(nWorkers * std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
+  const SRByteMem miSubtasks(nWorkers * std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
     SRMaxSizeof<CESetPriorsSubtaskSum<taNumber>, CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>::value),
     SRMemPadding::None, mtCommon);
-  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRMemItem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
+  const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
+  const SRByteMem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
     mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
@@ -65,10 +65,10 @@ template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(nWorkers * std::max(CpuEngine<taNumber>::_cNormPriorsMemReqPerSubtask,
+  const SRByteMem miSubtasks(nWorkers * std::max(CpuEngine<taNumber>::_cNormPriorsMemReqPerSubtask,
     SRMaxSizeof<CEUpdatePriorsSubtaskMul<taNumber>>::value), SRMemPadding::None, mtCommon);
-  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRMemItem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
+  const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
+  const SRByteMem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
     mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);

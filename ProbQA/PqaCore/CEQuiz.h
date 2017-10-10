@@ -20,6 +20,10 @@ inline CEBaseQuiz::CEBaseQuiz(BaseCpuEngine *pEngine) : _pEngine(pEngine) {
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
   auto& memPool = _pEngine->GetMemPool();
 
+  //SRPlat::SRMemTotal mtCommon;
+  //SRMemItem miIsQAsked(sizeof(__m256i) * SRPlat::SRSimd::VectsFromBits(nQuestions), SRPlat::SRMemPadding::Both,
+  //  mtCommon);
+  //TODO: reimplement to a single allocation
   // First allocate all the memory so to revert if anything fails.
   SRPlat::SRSmartMPP<__m256i> smppIsQAsked(memPool, SRPlat::SRSimd::VectsFromBits(nQuestions));
   SRPlat::SRSmartMPP<TExponent> smppExponents(memPool, nTargets);
@@ -82,11 +86,11 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(nWorkers *std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
+  const SRByteMem miSubtasks(nWorkers *std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
     SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>, CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>::value
   ), SRMemPadding::None, mtCommon);
-  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRMemItem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
+  const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
+  const SRByteMem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
     SRMemPadding::Both, mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);

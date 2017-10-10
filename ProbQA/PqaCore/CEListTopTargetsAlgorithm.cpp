@@ -30,19 +30,19 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   // This algorithm is optimized for small number of top targets to list. A separate branch is needed if substantial
   //   part of all targets is to be listed. That branch could use radix sort in separate threads, then heap merge.
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(_nWorkers * SRMaxSizeof<CEHeapifyPriorsSubtaskMake<taNumber>>::value, SRMemPadding::None,
+  const SRByteMem miSubtasks(_nWorkers * SRMaxSizeof<CEHeapifyPriorsSubtaskMake<taNumber>>::value, SRMemPadding::None,
     mtCommon);
-  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(_nWorkers), SRMemPadding::None, mtCommon);
-  const SRMemItem miPieceLimits(_nWorkers * sizeof(TPqaId), SRMemPadding::None, mtCommon);
-  const SRMemItem miHeadHeap(_nWorkers * sizeof(RatingsHeapItem), SRMemPadding::None, mtCommon);
-  const SRMemItem miRatings(_nTargets * sizeof(RatedTarget), SRMemPadding::Both, mtCommon);
+  const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(_nWorkers), SRMemPadding::None, mtCommon);
+  const SRMemItem<TPqaId> miPieceLimits(_nWorkers, SRMemPadding::None, mtCommon);
+  const SRMemItem<RatingsHeapItem> miHeadHeap(_nWorkers, SRMemPadding::None, mtCommon);
+  const SRMemItem<RatedTarget> miRatings(_nTargets, SRMemPadding::Both, mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(_pEngine->GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(_pEngine->GetWorkers(), miSubtasks.BytePtr(commonBuf));
 
   SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _nTargets, _nWorkers);
-  TPqaId *const PTR_RESTRICT pPieceLimits = miPieceLimits.ToPtr<TPqaId>(commonBuf);
-  RatedTarget *const PTR_RESTRICT pRatings = miRatings.ToPtr<RatedTarget>(commonBuf);
+  TPqaId *const PTR_RESTRICT pPieceLimits = miPieceLimits.Ptr(commonBuf);
+  RatedTarget *const PTR_RESTRICT pRatings = miRatings.Ptr(commonBuf);
   {
     CEHeapifyPriorsTask<taNumber> hpTask(*_pEngine, *_pQuiz, pRatings, pPieceLimits);
     pr.RunPreSplit<CEHeapifyPriorsSubtaskMake<taNumber>>(hpTask, targSplit);
@@ -51,7 +51,7 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   //NOTE: after this, the split is no more valid for launching subtasks
   targSplit.RecalcToStarts();
   const size_t *const PTR_RESTRICT pStarts = targSplit._pBounds;
-  RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.ToPtr<RatingsHeapItem>(commonBuf);
+  RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.Ptr(commonBuf);
   SRThreadCount nHhItems = 0;
   for (SRThreadCount i = 0; i < targSplit._nSubtasks; i++) {
     const TPqaId curFirst = pStarts[i];
@@ -98,20 +98,20 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
 template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunRadixSortBased() {
   // This algorithm is good when the requested number of targets is large enough w.r.t. the total number of targets.
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(_nWorkers * SRMaxSizeof<CERadixSortRatingsSubtaskSort<taNumber>>::value,
+  const SRByteMem miSubtasks(_nWorkers * SRMaxSizeof<CERadixSortRatingsSubtaskSort<taNumber>>::value,
     SRMemPadding::None, mtCommon);
-  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(_nWorkers), SRMemPadding::None, mtCommon);
-  const SRMemItem miHeadHeap(_nWorkers * sizeof(RatingsHeapItem), SRMemPadding::None, mtCommon);
+  const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(_nWorkers), SRMemPadding::None, mtCommon);
+  const SRMemItem<RatingsHeapItem> miHeadHeap(_nWorkers, SRMemPadding::None, mtCommon);
 
   // Each piece must have a room for a sentinel item denoting end of the piece.
-  const size_t ratingsSize = (_nTargets + _nWorkers) * sizeof(RatedTarget);
-  const SRMemItem miRatings(ratingsSize, SRMemPadding::Both, mtCommon);
-  const SRMemItem miTempRatings(ratingsSize, SRMemPadding::Both, mtCommon);
+  const size_t ratingsBytes = (_nTargets + _nWorkers) * sizeof(RatedTarget);
+  const SRByteMem miRatings(ratingsBytes, SRMemPadding::Both, mtCommon);
+  const SRByteMem miTempRatings(ratingsBytes, SRMemPadding::Both, mtCommon);
 
   static_assert(_cnRadixSortBuckets * sizeof(TPqaId) % SRSimd::_cNBytes == 0 , "Assumed no need for padding.");
   const size_t bucketsBytes = _nWorkers * _cnRadixSortBuckets * sizeof(TPqaId);
-  const SRMemItem miCounters(bucketsBytes, SRMemPadding::Both, mtCommon);
-  const SRMemItem miOffsets(bucketsBytes, SRMemPadding::Both, mtCommon);
+  const SRByteMem miCounters(bucketsBytes, SRMemPadding::Both, mtCommon);
+  const SRByteMem miOffsets(bucketsBytes, SRMemPadding::Both, mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(_pEngine->GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(_pEngine->GetWorkers(), miSubtasks.BytePtr(commonBuf));
@@ -130,7 +130,7 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunRadix
   //NOTE: after this, the split is no more valid for launching subtasks
   targSplit.RecalcToStarts();
   const size_t *const PTR_RESTRICT pStarts = targSplit._pBounds;
-  RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.ToPtr<RatingsHeapItem>(commonBuf);
+  RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.Ptr(commonBuf);
   SRThreadCount nHhItems = 0;
   for (SRThreadCount i = 0; i < targSplit._nSubtasks; i++) {
     const TPqaId curFirst = pStarts[i] + i;

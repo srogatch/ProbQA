@@ -43,7 +43,7 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   }
 
   //// Init matrix D: D[q][t] is the sum of weigths over all answers for question |q| for target |t|. In the other
-  ////   words, D[q][t] is A[0][q][t] + A[1][q][t] + ... + A[K-1][q][t], where K is the number of answer options.
+  ////   words, D[q][t] is A[q][0][t] + A[q][1][t] + ... + A[q][K-1][t], where K is the number of answer options.
   //// Note that D is subject to summation errors, thus its regular recomputation is desired.
   taNumber initMD = initAmount * _dims._nAnswers;
   _mD.resize(size_t(_dims._nQuestions));
@@ -146,17 +146,17 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   //// Do a single allocation for all needs. Allocate memory out of locks.
   // For proper alignment, the data must be laid out in the decreasing order of item alignments.
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(nWorkers * SRMaxSizeof<CETrainSubtaskDistrib<taNumber>,
+  const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CETrainSubtaskDistrib<taNumber>,
     CETrainSubtaskAdd<taNumber> >::value, SRMemPadding::None, mtCommon);
-  const SRMemItem miTtLast(sizeof(std::atomic<TPqaId>) * nWorkers, SRMemPadding::None, mtCommon);
-  const SRMemItem miTtPrev(sizeof(TPqaId) * SRCast::ToSizeT(nQuestions), SRMemPadding::None, mtCommon);
+  const SRMemItem<std::atomic<TPqaId>> miTtLast(nWorkers, SRMemPadding::None, mtCommon);
+  const SRMemItem<TPqaId> miTtPrev(SRCast::ToSizeT(nQuestions), SRMemPadding::None, mtCommon);
   SRSmartMPP<uint8_t> commonBuf(_memPool, mtCommon._nBytes);
 
   CETrainTask<taNumber> trainTask(*this, nWorkers, iTarget, pAQs);
   //TODO: these are slow because threads share a cache line. It's not clear yet how to workaround this: the data is not
   //  per-source thread, but rather per target thread (after distribution).
-  trainTask._prev = miTtPrev.ToPtr<TPqaId>(commonBuf);
-  trainTask._last = miTtLast.ToPtr<std::atomic<TPqaId>>(commonBuf);
+  trainTask._prev = miTtPrev.Ptr(commonBuf);
+  trainTask._last = miTtLast.Ptr(commonBuf);
   InitTrainTaskNumSpec(trainTask._numSpec, amount);
   //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
@@ -433,25 +433,25 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   SRMemTotal mtCommon;
-  const SRMemItem miSubtasks(nWorkers * SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value, SRMemPadding::None,
+  const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value, SRMemPadding::None,
     mtCommon);
-  const SRMemItem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRMemItem miBuckets(
+  const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
+  const SRByteMem miBuckets(
     // Here we rely that SRBucketSummatorSeq::GetMemoryRequirementBytes() returns SIMD-aligned number of bytes,
     //   so that for each worker its bucket summator is aligned&padded.
     SRBucketSummatorSeq<taNumber>::GetMemoryRequirementBytes() * nWorkers, SRMemPadding::Both, mtCommon);
-  const SRMemItem miRunLength(sizeof(taNumber) * _dims._nQuestions, SRMemPadding::Both, mtCommon);
+  const SRMemItem<taNumber> miRunLength(_dims._nQuestions, SRMemPadding::Both, mtCommon);
 
   // The shared block for CEEvalQsSubtaskConsider
   SRMemTotal mtEval(mtCommon);
   const size_t threadPosteriorBytes = SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nTargets);
-  const SRMemItem miPosteriors(nWorkers * threadPosteriorBytes, SRMemPadding::Both, mtEval);
+  const SRByteMem miPosteriors(nWorkers * threadPosteriorBytes, SRMemPadding::Both, mtEval);
   const size_t threadAnswerMetricsBytes = 2 * SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nAnswers);
-  const SRMemItem miAnswerMetrics(nWorkers * threadAnswerMetricsBytes, SRMemPadding::Both, mtEval);
+  const SRByteMem miAnswerMetrics(nWorkers * threadAnswerMetricsBytes, SRMemPadding::Both, mtEval);
 
   // The shared block for binary search over the run length.
   SRMemTotal mtDichotomy(mtCommon);
-  const SRMemItem miGrandTotals(sizeof(taNumber) * nWorkers, SRMemPadding::Both, mtDichotomy);
+  const SRMemItem<taNumber> miGrandTotals(nWorkers, SRMemPadding::Both, mtDichotomy);
 
   const size_t totalBytes = std::max(mtEval._nBytes, mtDichotomy._nBytes);
   SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
@@ -461,7 +461,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   TPqaId selQuestion;
   do {
     CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps(),
-      miBuckets.BytePtr(commonBuf), miRunLength.ToPtr<taNumber>(commonBuf), miPosteriors.BytePtr(commonBuf),
+      miBuckets.BytePtr(commonBuf), miRunLength.Ptr(commonBuf), miPosteriors.BytePtr(commonBuf),
       threadPosteriorBytes, miAnswerMetrics.BytePtr(commonBuf), threadAnswerMetricsBytes);
     // Although there are no more subtasks which would use this split, it will be used for run-length analysis.
     const SRPoolRunner::Split questionSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _dims._nQuestions,
@@ -473,7 +473,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     }
     SRAccumulator<taNumber> accTotG(taNumber(0.0));
     const taNumber *const PTR_RESTRICT pRunLength = evalQsTask.GetRunLength();
-    taNumber *const PTR_RESTRICT pGrandTotals = SRCast::Ptr<taNumber>(miGrandTotals.BytePtr(commonBuf));
+    taNumber *const PTR_RESTRICT pGrandTotals = miGrandTotals.Ptr(commonBuf);
     for (SRThreadCount i = 0; i < questionSplit._nSubtasks; i++) {
       const taNumber curGT = pRunLength[questionSplit._pBounds[i] - 1];
       accTotG.Add(curGT);
