@@ -46,7 +46,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       for (TPqaId j = 0; j < nTargVects; j++) {
         const __m256d Pr_Qi_eq_k_given_Tj = _mm256_div_pd(SRSimd::Load<false>(psAik+j), SRSimd::Load<false>(pmDi+j));
         const __m256d likelihood = _mm256_mul_pd(Pr_Qi_eq_k_given_Tj, SRSimd::Load<false>(pPriors + j));
-        const __m256i gapMask = SRSimd::SetToBitQuadHot(engine.GetTargetGaps().GetQuad(j));
+        const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
+        const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
         const __m256d maskedLH = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), likelihood);
         SRSimd::Store<false>(pPosteriors + j, maskedLH);
         //bss.CalcAdd(maskedLH);
@@ -63,7 +64,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256d targProb = _mm256_div_pd(SRSimd::Load<false>(pPosteriors + j), vWk);
         // Calculate negated entropy component: negated self-information multiplied by probability of its event.
         const __m256d Hikj = _mm256_mul_pd(targProb, SRVectMath::Log2Hot(targProb));
-        const __m256i gapMask = SRSimd::SetToBitQuadHot(engine.GetTargetGaps().GetQuad(j));
+        const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
+        const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
         const __m256d maskedHikj = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), Hikj);
         //bss.CalcAdd(maskedHikj);
         accVect.Add(maskedHikj);

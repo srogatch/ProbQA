@@ -9,6 +9,7 @@
 
 namespace SRPlat {
 
+// Kahan summator
 template <typename taNumber> class SRAccumulator;
 
 template<> class SRAccumulator<SRDoubleNumber> {

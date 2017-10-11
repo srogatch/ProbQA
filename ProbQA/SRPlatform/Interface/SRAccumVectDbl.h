@@ -9,6 +9,7 @@
 
 namespace SRPlat {
 
+// Vector of Kahan summators
 class SRAccumVectDbl {
   __m256d _sum;
   __m256d _corr;

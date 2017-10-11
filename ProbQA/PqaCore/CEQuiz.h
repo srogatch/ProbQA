@@ -92,6 +92,7 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
     SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>, CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>::value
   ), SRMemPadding::None, mtCommon);
   const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
+  //TODO: refactor to Kahan summation
   const SRByteMem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
     SRMemPadding::Both, mtCommon);
 

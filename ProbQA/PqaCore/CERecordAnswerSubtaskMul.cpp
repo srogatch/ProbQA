@@ -20,8 +20,6 @@ template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
   const GapTracker<TPqaId>& targGaps = engine.GetTargetGaps();
 
   __m256d *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
-  static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
-    " 64-bit integer.");
 
   bsp.ZeroBuckets(_iWorker);
   const AnsweredQuestion &PTR_RESTRICT aq = task.GetAQ();

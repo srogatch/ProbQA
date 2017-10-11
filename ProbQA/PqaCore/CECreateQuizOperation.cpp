@@ -38,6 +38,7 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
+  //TODO: replace with Kahan summation
   SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
@@ -73,6 +74,7 @@ template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
+  //TODO: replace with Kahan summation
   SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
