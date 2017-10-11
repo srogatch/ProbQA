@@ -75,7 +75,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       pAnswerEntropies[k] = entropyHik;
     }
     const double totW = accTotW.Get().GetValue();
-    if (std::fabs(totW - 1.0) > 1e-1) {
+    //TODO: investigate why this happens
+    if (std::fabs(totW - 1.0) > 1e-3) {
       LOCLOG(Warning) << SR_FILE_LINE "The sum of answer weights is " << totW;
     }
     SRAccumulator<SRDoubleNumber> accAvgH(SRDoubleNumber(0.0));
@@ -104,7 +105,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     else {
       priority = 1 + cutoff;
     }
-    prevRunLength += priority;
+    prevRunLength += priority * priority;
     task._pRunLength[i].SetValue(prevRunLength);
   }
 }

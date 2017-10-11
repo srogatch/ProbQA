@@ -80,6 +80,7 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
         "question"));
   }
   _answers.emplace_back(_activeQuestion, iAnswer);
+  SRBitHelper::Set(GetQAsked(), _activeQuestion);
   _activeQuestion = cInvalidPqaId;
 
   // Update prior probabilities in the quiz
