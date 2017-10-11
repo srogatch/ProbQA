@@ -19,7 +19,7 @@ template<> void CESetPriorsSubtaskSum<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
   SRBucketSummatorPar<SRDoubleNumber> &PTR_RESTRICT bsp = task.GetBSP();
-  const GapTracker<TPqaId>& targGaps = engine.GetTargetGaps();
+  const GapTracker<TPqaId> &PTR_RESTRICT targGaps = engine.GetTargetGaps();
 
   static_assert(std::is_same<int64_t, CEQuiz<SRDoubleNumber>::TExponent>::value, "The code below assumes TExponent is"
     " 64-bit integer.");

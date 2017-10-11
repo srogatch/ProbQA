@@ -40,7 +40,7 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
   SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
-  const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
+  const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
   const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
 
   CESetPriorsTask<taNumber> spTask(engine, quiz, bsp);
@@ -75,7 +75,7 @@ template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
   SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
-  const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
+  const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
   const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
   {
     CEUpdatePriorsTask<taNumber> task(engine, quiz, _nAnswered, _pAQs, CalcVectsInCache());

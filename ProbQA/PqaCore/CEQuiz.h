@@ -99,7 +99,7 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
   SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
-  const TPqaId nTargetVects = SRSimd::VectsFromComps<double>(dims._nTargets);
+  const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
   const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
 
   CERecordAnswerTask<taNumber> raTask(engine, *this, _answers.back(), bsp);

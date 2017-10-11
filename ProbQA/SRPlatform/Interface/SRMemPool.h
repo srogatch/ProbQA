@@ -202,7 +202,7 @@ public:
   }
   taClass* Detach() {
     taClass *answer = _pObj;
-    _pObj = 0;
+    _pObj = nullptr;
     return answer;
   }
   // If taClass destructor throws, we don't call it again from smart pointer destructor.

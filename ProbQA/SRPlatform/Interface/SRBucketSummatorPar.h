@@ -65,6 +65,7 @@ template<typename taNumber> inline SRBucketSummatorPar<taNumber>::SRBucketSummat
 {
   assert((uintptr_t(pMem) & SRSimd::_cByteMask) == 0);
   _pWorkerSums = SRCast::Ptr<taNumber>(GetWorkerRow(nWorkers));
+  assert((uintptr_t(_pWorkerSums) & SRSimd::_cByteMask) == 0);
 }
 
 template<typename taNumber> inline taNumber& SRBucketSummatorPar<taNumber>::ModBucket(
@@ -94,7 +95,7 @@ template<typename taNumber> taNumber SRBucketSummatorPar<taNumber>::ComputeSum(S
 template<typename taNumber> inline const SRNumPack<taNumber>& SRBucketSummatorPar<taNumber>::GetVect(
   const SRThreadCount iWorker, const uint32_t iVect) const
 {
-  return SRCast::Ptr<SRNumPack<taNumber>>(GetWorkerRow(iWorker))[iVect];
+  return SRCast::CPtr<SRNumPack<taNumber>>(GetWorkerRow(iWorker))[iVect];
 }
 
 ///////////////////////////////// SRBucketSummatorPar<SRDoubleNumber> implementation ///////////////////////////////////

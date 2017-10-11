@@ -23,7 +23,7 @@ void SRString::setSameData(const char *PTR_RESTRICT const pData) {
   }
 }
 
-SRString::SRString() : _pData(nullptr), _bOwned(false), _length(0) {
+SRString::SRString() : _pData(nullptr), _bOwned(0), _length(0) {
 }
 
 SRString::SRString(const char *PTR_RESTRICT const pData, const bool bOwned, const size_t length)
@@ -56,17 +56,20 @@ SRString& SRString::operator=(const SRString& fellow) {
 
 SRString::SRString(SRString&& fellow) : _pData(fellow._pData), _bOwned(fellow._bOwned), _length(fellow._length) {
   fellow._pData = nullptr;
-  fellow._bOwned = false;
+  fellow._bOwned = 0;
   fellow._length = 0;
 }
 
 SRString& SRString::operator=(SRString&& fellow) {
   if (this != &fellow) {
+    if (_bOwned) {
+      delete _pData;
+    }
     this->_pData = fellow._pData;
     this->_bOwned = fellow._bOwned;
     this->_length = fellow._length;
     fellow._pData = nullptr;
-    fellow._bOwned = false;
+    fellow._bOwned = 0;
     fellow._length = 0;
   }
   return *this;
