@@ -38,10 +38,18 @@
 #pragma warning( pop )
 
 // SRPlatform library includes
+#include "../SRPlatform/Interface/ISRLogger.h"
+#include "../SRPlatform/Interface/SRBasicTypes.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRCast.h"
+#include "../SRPlatform/Interface/SRDefaultLogger.h"
+#include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRFinally.h"
 #include "../SRPlatform/Interface/SRFastRandom.h"
 #include "../SRPlatform/Interface/SRMath.h"
 #include "../SRPlatform/Interface/SRMemPool.h"
 #include "../SRPlatform/Interface/SRMPAllocator.h"
+#include "../SRPlatform/Interface/SRString.h"
+
+// PqaCore library includes
+#include "../PqaCore/Interface/IPqaEngineFactory.h"

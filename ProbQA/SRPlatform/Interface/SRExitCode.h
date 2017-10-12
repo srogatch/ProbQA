@@ -8,7 +8,8 @@ namespace SRPlat {
 
 enum class SRExitCode : int {
   Success = 0,
-  ThreadPoolCritical = 1
+  ThreadPoolCritical = 1,
+  UnspecifiedError = 2
 };
 
 } // namespace SRPlat

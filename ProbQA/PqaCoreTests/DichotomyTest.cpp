@@ -22,19 +22,21 @@ TEST(DichotomyTest, Main) {
   SRFastRandom fr;
   SREntropyAdapter ea(fr);
 
-  constexpr int64_t cnTrainings = 1000 * 1000;
-  constexpr int64_t cnTrials = 3333;
+  constexpr int64_t cnTrials = 10 * 1000;
   constexpr int64_t cMaxQuizLen = 100;
-  constexpr int64_t cMaxTrialLen = 30;
   constexpr int64_t cnTopRated = 10;
 
   int64_t nCorrect = 0;
-  for (int64_t i = 1; i <= cnTrainings + cnTrials; i++) {
-    if ((i & 255) == 0) {
-      printf("\n*%" PRId64 ";%.2lf%%*", pEngine->GetTotalQuestionsAsked(err), nCorrect * 100.0 / 256);
-      ASSERT_TRUE(err.IsOk());
-      nCorrect = 0;
+  int64_t nTrials = 0;
+  for (int64_t i = 1; ; i++) {
+    const uint64_t totQAsked = pEngine->GetTotalQuestionsAsked(err);
+    if (totQAsked > 3 * 1000 * 1000) {
+      if (nTrials >= cnTrials) {
+        break;
+      }
+      nTrials++;
     }
+    ASSERT_TRUE(err.IsOk());
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     const TPqaId iQuiz = pEngine->StartQuiz(err);
     ASSERT_TRUE(err.IsOk());
@@ -79,23 +81,20 @@ TEST(DichotomyTest, Main) {
         }
       }
       if (posInTop != cInvalidPqaId) {
-        nCorrect++;
-        printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop), int64_t(j));
-        break;
-      }
-      if (i > cnTrainings && j >= cMaxTrialLen) {
-        for (TPqaId k = 0; k < cnTopRated; k++) {
-          printf(" [%g; %" PRId64 "] ", rts[k]._prob, rts[k]._iTarget);
+        if (nTrials > 0) {
+          nCorrect++;
         }
-        printf("\n");
-        FAIL() << "guess=" << guess;
+        putchar('+');
+        break;
       }
     }
     if (j >= cMaxQuizLen) {
-      printf("-");
+      putchar('-');
     }
     err = pEngine->RecordQuizTarget(iQuiz, guess);
     ASSERT_TRUE(err.IsOk());
-    pEngine->ReleaseQuiz(iQuiz);
+    err = pEngine->ReleaseQuiz(iQuiz);
+    ASSERT_TRUE(err.IsOk());
   }
+  ASSERT_GE(nCorrect, nTrials * 0.98);
 }
