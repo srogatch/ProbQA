@@ -30,7 +30,7 @@ TEST(DichotomyTest, Main) {
 
   for (int64_t i = 1; i <= cnTrainings + cnTrials; i++) {
     if ((i & 255) == 0) {
-      printf("\n*");
+      printf("\n*%" PRId64 "*", i);
     }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     const TPqaId iQuiz = pEngine->StartQuiz(err);

@@ -30,11 +30,11 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     + task._threadAnswerMetricsBytes * _iWorker + (task._threadAnswerMetricsBytes>>1));
 
   const TPqaId nTargVects = SRMath::RShiftRoundUp(engine.GetDims()._nTargets, SRSimd::_cLogNComps64);
-  double prevRunLength = 0;
+  SRAccumulator<SRDoubleNumber> accRunLength(SRDoubleNumber(0.0));
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     if (engine.GetQuestionGaps().IsGap(i) || SRBitHelper::Test(quiz.GetQAsked(), i)) {
       // Set 0 probability to this question
-      task._pRunLength[i].SetValue(prevRunLength);
+      task._pRunLength[i] = accRunLength.Get();
       continue;
     }
     SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
@@ -95,18 +95,21 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     // The average entropy over all answers for this question
     const double avgH = accAvgH.Get().GetValue() / totW;
     const double nExpectedTargets = std::exp2(avgH);
-    const double cutoff = task._nValidTargets - nExpectedTargets;
-    double priority;
-    if (cutoff  < -1e-9) {
-      LOCLOG(Warning) << SR_FILE_LINE "The expected number of targets (according to entropy) is " << nExpectedTargets
-        << ", while the actual number of valid targets is " << task._nValidTargets;
-      priority = 1.0;
-    }
-    else {
-      priority = 1 + cutoff;
-    }
-    prevRunLength += priority * priority;
-    task._pRunLength[i].SetValue(prevRunLength);
+    //const double cutoff = task._nValidTargets - nExpectedTargets;
+    //double priority;
+    //if (cutoff  < -1e-9) {
+    //  LOCLOG(Warning) << SR_FILE_LINE "The expected number of targets (according to entropy) is " << nExpectedTargets
+    //    << ", while the actual number of valid targets is " << task._nValidTargets;
+    //  priority = 1.0;
+    //}
+    //else {
+    //  priority = 1 + cutoff;
+    //}
+    //prevRunLength += priority * priority * priority;
+    const double eps = 1e-9;
+    const double priority = task._nValidTargets / ((nExpectedTargets <= eps) ? eps : nExpectedTargets);
+    accRunLength.Add(SRDoubleNumber(priority * priority * priority));
+    task._pRunLength[i] = accRunLength.Get();
   }
 }
 
