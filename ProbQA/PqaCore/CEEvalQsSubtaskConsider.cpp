@@ -108,7 +108,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     //prevRunLength += priority * priority * priority;
     const double eps = 1e-9;
     const double priority = task._nValidTargets / ((nExpectedTargets <= eps) ? eps : nExpectedTargets);
-    accRunLength.Add(SRDoubleNumber(priority * priority * priority));
+    accRunLength.Add(SRDoubleNumber(priority));
     task._pRunLength[i] = accRunLength.Get();
   }
 }

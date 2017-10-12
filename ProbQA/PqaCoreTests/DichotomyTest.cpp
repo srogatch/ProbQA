@@ -28,9 +28,12 @@ TEST(DichotomyTest, Main) {
   constexpr int64_t cMaxTrialLen = 30;
   constexpr int64_t cnTopRated = 10;
 
+  int64_t nCorrect = 0;
   for (int64_t i = 1; i <= cnTrainings + cnTrials; i++) {
     if ((i & 255) == 0) {
-      printf("\n*%" PRId64 "*", i);
+      printf("\n*%" PRId64 ";%.2lf%%*", pEngine->GetTotalQuestionsAsked(err), nCorrect * 100.0 / 256);
+      ASSERT_TRUE(err.IsOk());
+      nCorrect = 0;
     }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     const TPqaId iQuiz = pEngine->StartQuiz(err);
@@ -76,6 +79,7 @@ TEST(DichotomyTest, Main) {
         }
       }
       if (posInTop != cInvalidPqaId) {
+        nCorrect++;
         printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop), int64_t(j));
         break;
       }
