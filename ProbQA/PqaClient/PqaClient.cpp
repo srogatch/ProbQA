@@ -41,7 +41,7 @@ int __cdecl main() {
   constexpr int64_t cnTopRated = 10;
 
   int64_t nCorrect = 0;
-  for (int64_t i = 0; i <= cnTrainings; i++) {
+  for (int64_t i = 0; i < cnTrainings; i++) {
     if (((i & 255) == 0) && (i != 0)) {
       const uint64_t totQAsked = pEngine->GetTotalQuestionsAsked(err);
       if (!err.IsOk()) {
