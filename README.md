@@ -10,3 +10,6 @@ In terms of Applied AI goals, it's an expert system. Specifically, it's a probab
 The AGI goal is to achieve the processing power of a single neuron of a human brain on a single PC. Interactions with billions of other computers should achieve human-level intelligence (AGI). You can join the effort in designing how one neuron would answer the questions of another neuron, and how their collective intelligence rises from cooperation.
 
 To avoid confusion with the current Artificial Neural Network terminology, we may have to call these units "artificial super-neurons".
+
+Below is the learning curve of the program. X-axis contains the number of questions asked&answered (up to 5 015 913). Y-axis contains for each successive 256 quizzes the percentage of times the program correctly listed the guessed target among top 10 most probable targets. Note that testing is always on novel data: we first choose a random number, then let the program guess it by asking questions and getting answers from us, then either after the program has guessed correctly or asked more than 100 questions (meaning a failure), we teach the program, revealing it our selected random number.
+![A diagram of training progress: precision over the number of questions asked&answered](https://raw.githubusercontent.com/srogatch/ProbQA/master/ProbQA/Notes/Metrics/TrainingProgress/LinearPriority.jpg)
