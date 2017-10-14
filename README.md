@@ -11,7 +11,7 @@ The AGI goal is to achieve the processing power of a single neuron of a human br
 
 To avoid confusion with the current Artificial Neural Network terminology, we may have to call these units "artificial super-neurons".
 
-Below is the learning curve of the program for matrix size 5 000 000: it's 1000 questions times 5 answer options for each question, times 1000 targets.
+Below is the learning curve of the program for matrix size 5 000 000: it's 1000 questions times 5 answer options for each question, times 1000 targets. In this experiment we train the program for binary search: the range of targets Tj is 0 to 999, and each question Qi is "How does your guess compare to Qi?". The answer options are 0 - "The guess is much lower than Qi", 1 - "The guess is a bit lower than Qi", 2 - "The guess exactly equals Qi", 3 - "The guess is a bit higher than Qi" and 4 - "The guess is much higher than Qi".
 
 X-axis contains the number of questions asked&answered (up to 5 015 913). Y-axis contains for each 256 quizzes in a row the percentage of times the program correctly listed the guessed target among top 10 most probable targets. Note that testing is always on novel data: we first choose a random number, then let the program guess it by asking questions and getting answers from us, then either after the program has guessed correctly or asked more than 100 questions (meaning a failure), we teach the program, revealing it our selected random number.
 ![A diagram of training progress: precision over the number of questions asked&answered](https://raw.githubusercontent.com/srogatch/ProbQA/master/ProbQA/Notes/Metrics/TrainingProgress/LinearPriority.jpg)
