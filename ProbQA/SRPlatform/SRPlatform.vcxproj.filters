@@ -222,7 +222,7 @@
     <ClInclude Include="Interface\SRStringUtils.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\SRAccumVectDbl.h">
+    <ClInclude Include="Interface\SRAccumVectDbl256.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
   </ItemGroup>

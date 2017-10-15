@@ -260,6 +260,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="CETrainTaskNumSpec.h" />
+    <ClInclude Include="AnswerMetrics.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BaseCpuEngine.cpp" />

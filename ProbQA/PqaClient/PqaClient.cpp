@@ -114,7 +114,8 @@ int __cdecl main() {
       }
       if (posInTop != cInvalidPqaId) {
         nCorrect++;
-        printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop), int64_t(j));
+        printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop),
+          int64_t(j+1));
         break;
       }
     }

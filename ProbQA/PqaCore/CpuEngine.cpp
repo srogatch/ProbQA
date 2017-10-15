@@ -436,18 +436,13 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value, SRMemPadding::None,
     mtCommon);
   const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRByteMem miBuckets(
-    // Here we rely that SRBucketSummatorSeq::GetMemoryRequirementBytes() returns SIMD-aligned number of bytes,
-    //   so that for each worker its bucket summator is aligned&padded.
-    SRBucketSummatorSeq<taNumber>::GetMemoryRequirementBytes() * nWorkers, SRMemPadding::Both, mtCommon);
   const SRMemItem<taNumber> miRunLength(_dims._nQuestions, SRMemPadding::Both, mtCommon);
 
   // The shared block for CEEvalQsSubtaskConsider
   SRMemTotal mtEval(mtCommon);
   const size_t threadPosteriorBytes = SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nTargets);
   const SRByteMem miPosteriors(nWorkers * threadPosteriorBytes, SRMemPadding::Both, mtEval);
-  const size_t threadAnswerMetricsBytes = 2 * SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nAnswers);
-  const SRByteMem miAnswerMetrics(nWorkers * threadAnswerMetricsBytes, SRMemPadding::Both, mtEval);
+  const SRMemItem<AnswerMetrics<taNumber>> miAnswerMetrics(nWorkers * _dims._nAnswers, SRMemPadding::None, mtEval);
 
   // The shared block for binary search over the run length.
   SRMemTotal mtDichotomy(mtCommon);
@@ -461,8 +456,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
   TPqaId selQuestion;
   do {
     CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps(),
-      miBuckets.BytePtr(commonBuf), miRunLength.Ptr(commonBuf), miPosteriors.BytePtr(commonBuf),
-      threadPosteriorBytes, miAnswerMetrics.BytePtr(commonBuf), threadAnswerMetricsBytes);
+      miRunLength.Ptr(commonBuf), miPosteriors.BytePtr(commonBuf), threadPosteriorBytes, miAnswerMetrics.Ptr(commonBuf)
+    );
     // Although there are no more subtasks which would use this split, it will be used for run-length analysis.
     const SRPoolRunner::Split questionSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _dims._nQuestions,
       nWorkers);
