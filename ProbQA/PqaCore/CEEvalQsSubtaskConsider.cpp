@@ -60,40 +60,51 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       accTotW.Add(SRDoubleNumber(Wk));
       pAnswerWeigths[k] = Wk;
       const __m256d vWk = _mm256_set1_pd(Wk);
+
+      SRAccumVectDbl accDist;
       for (TPqaId j = 0; j < nTargVects; j++) {
-        const __m256d targProb = _mm256_div_pd(SRSimd::Load<false>(pPosteriors + j), vWk);
-        // Calculate negated entropy component: negated self-information multiplied by probability of its event.
-        const __m256d Hikj = _mm256_mul_pd(targProb, SRVectMath::Log2Hot(targProb));
+        const __m256d posteriors = _mm256_div_pd(SRSimd::Load<false>(pPosteriors + j), vWk);
+        const __m256d priors = SRSimd::Load<false>(pPriors + j);
+
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
+
+        // Calculate negated entropy component: negated self-information multiplied by probability of its event.
+        const __m256d Hikj = _mm256_mul_pd(posteriors, SRVectMath::Log2Hot(posteriors));
         const __m256d maskedHikj = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), Hikj);
         //bss.CalcAdd(maskedHikj);
         accVect.Add(maskedHikj);
+
+        const __m256d diff = _mm256_sub_pd(posteriors, priors);
+        const __m256d square = _mm256_mul_pd(diff, diff);
+        const __m256d maskedSquare = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), square);
+        accDist.Add(maskedSquare);
       }
       //const double entropyHik = -bss.ComputeSum().GetValue();
       const double entropyHik = -accVect.GetFullSum();
       pAnswerEntropies[k] = entropyHik;
+      //TODO: store accDist
     }
     const double totW = accTotW.Get().GetValue();
     //TODO: investigate why this happens
     if (std::fabs(totW - 1.0) > 1e-3) {
       LOCLOG(Warning) << SR_FILE_LINE "The sum of answer weights is " << totW;
     }
-    SRAccumulator<SRDoubleNumber> accAvgH(SRDoubleNumber(0.0));
+    SRAccumVectDbl accAvgH;
     const TPqaId nAnswerVects = engine.GetDims()._nAnswers >> SRSimd::_cLogNComps64;
     for (TPqaId vk = 0; vk < nAnswerVects; vk++) {
       const __m256d curW = SRSimd::Load<true>(SRCast::CPtr<__m256d>(pAnswerWeigths) + vk);
       const __m256d curH = SRSimd::Load<true>(SRCast::CPtr<__m256d>(pAnswerEntropies) + vk);
       const __m256d product = _mm256_mul_pd(curW, curH);
-      accAvgH.Add(SRDoubleNumber(product.m256d_f64[0])).Add(SRDoubleNumber(product.m256d_f64[1]))
-        .Add(SRDoubleNumber(product.m256d_f64[2])).Add(SRDoubleNumber(product.m256d_f64[3]));
+      accAvgH.Add(product);
     }
-    for (TPqaId k = (nAnswerVects << SRSimd::_cLogNComps64); k < engine.GetDims()._nAnswers; k++) {
-      accAvgH.Add(SRDoubleNumber(pAnswerWeigths[k] * pAnswerEntropies[k]));
+    const TPqaId nVectorized = (nAnswerVects << SRSimd::_cLogNComps64);
+    for (TPqaId k = nVectorized; k < engine.GetDims()._nAnswers; k++) {
+      accAvgH.Add(SRVectCompCount(k-nVectorized), pAnswerWeigths[k] * pAnswerEntropies[k]);
     }
 
     // The average entropy over all answers for this question
-    const double avgH = accAvgH.Get().GetValue() / totW;
+    const double avgH = accAvgH.GetFullSum() / totW;
     const double nExpectedTargets = std::exp2(avgH);
     //const double cutoff = task._nValidTargets - nExpectedTargets;
     //double priority;

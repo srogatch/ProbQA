@@ -21,6 +21,7 @@ public:
     _corr = _mm256_setzero_pd();
   }
   inline SRAccumVectDbl& __vectorcall Add(const __m256d value);
+  inline SRAccumVectDbl& __vectorcall Add(SRVectCompCount at, const double value);
   inline double __vectorcall GetFullSum();
 };
 
@@ -32,10 +33,17 @@ inline SRAccumVectDbl& __vectorcall SRAccumVectDbl::Add(const __m256d value) {
   _sum = t;
   return *this;
 }
+inline SRAccumVectDbl& __vectorcall SRAccumVectDbl::Add(SRVectCompCount at, const double value) {
+  const double y = value - _corr.m256d_f64[at];
+  const double t = _sum.m256d_f64[at] + y;
+  _corr.m256d_f64[at] = (t - _sum.m256d_f64[at]) - y;
+  _sum.m256d_f64[at] = t;
+  return *this;
+}
 inline double __vectorcall SRAccumVectDbl::GetFullSum() {
   const __m256d interleaved = _mm256_hadd_pd(_corr, _sum);
   const __m128d corrSum = _mm_add_pd(_mm256_extractf128_pd(interleaved, 1), _mm256_castpd256_pd128(interleaved));
-  return corrSum.m128d_f64[0] + corrSum.m128d_f64[1];
+  return corrSum.m128d_f64[1] - corrSum.m128d_f64[0];
 }
 FLOAT_PRECISE_END
 
