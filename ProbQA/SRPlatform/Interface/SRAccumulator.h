@@ -19,8 +19,9 @@ template<> class SRAccumulator<SRDoubleNumber> {
 public:
   //SRAccumulator() { }
   explicit SRAccumulator(const SRDoubleNumber value) : _sum(value.GetValue()), _corr(0) { }
-  inline SRDoubleNumber Get();
+  inline SRDoubleNumber Get() const;
   inline SRAccumulator& Add(const SRDoubleNumber value);
+  inline SRAccumulator& Neg() { _sum = -_sum; _corr = -_corr; return *this; }
 };
 
 FLOAT_PRECISE_BEGIN
@@ -33,8 +34,8 @@ inline SRAccumulator<SRDoubleNumber>& SRAccumulator<SRDoubleNumber>::Add(const S
 }
 FLOAT_PRECISE_END
 
-inline SRDoubleNumber SRAccumulator<SRDoubleNumber>::Get() {
-  return SRDoubleNumber(_sum - _corr);
+inline SRDoubleNumber SRAccumulator<SRDoubleNumber>::Get() const {
+  return SRDoubleNumber::FromDouble(_sum - _corr);
 }
 
 } // namespace SRPlat

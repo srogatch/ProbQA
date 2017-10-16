@@ -6,6 +6,7 @@
 
 #include "../SRPlatform/Interface/SRSimd.h"
 #include "../SRPlatform/Interface/SRMacros.h"
+#include "../SRPlatform/Interface/SRAccumulator.h"
 
 namespace SRPlat {
 
@@ -27,7 +28,7 @@ public:
   inline double __vectorcall PreciseSum() const;
   //TODO: sum all components in this and fellow separately in AVX2, return the sum of this, and set fellowSum to the
   //  sum of fellow.
-  //inline double __vectorcall PairSum(const SRAccumVectDbl256& fellow, double& fellowSum) const;
+  inline double __vectorcall PairSum(const SRAccumVectDbl256& fellow, double& fellowSum) const;
 };
 
 FLOAT_PRECISE_BEGIN
@@ -53,7 +54,8 @@ inline double __vectorcall SRAccumVectDbl256::GetFullSum() const {
   return corrSum.m128d_f64[1] - corrSum.m128d_f64[0];
 }
 
-//inline double __vectorcall SRAccumVectDbl256::PreciseSum() const {
+inline double __vectorcall SRAccumVectDbl256::PreciseSum() const {
+// This is too complex for me at the moment w.r.t. the priorities.
 //  __m128d sseSum, sseCorr;
 //  {
 //#define EASY_SET(atVar) _mm_set_pd(_sum.m256d_f64[atVar], _corr.m256d_f64[atVar])
@@ -73,9 +75,19 @@ inline double __vectorcall SRAccumVectDbl256::GetFullSum() const {
 //  double scalSum, scalCorr;
 //  scalSum = sseCorr.m128d_f64[0];
 //  double y = -sseCorr.m128d_f64[1];
-//}
+  SRAccumulator<SRDoubleNumber> ans(SRDoubleNumber::FromDouble(_corr.m256d_f64[3]));
+  for (int i = 2; i >= 0; i--) {
+    ans.Add(SRDoubleNumber::FromDouble(_corr.m256d_f64[i]));
+  }
+  ans.Neg();
+  for (int i = 3; i >= 0; i--) {
+    ans.Add(SRDoubleNumber::FromDouble(_sum.m256d_f64[i]));
+  }
+  return ans.Get().GetValue();
+}
 
-//inline double __vectorcall SRAccumVectDbl256::PairSum(const SRAccumVectDbl256& fellow, double& fellowSum) const {
+inline double __vectorcall SRAccumVectDbl256::PairSum(const SRAccumVectDbl256& fellow, double& fellowSum) const {
+  // This is too complex for me at the moment w.r.t. the priorities.
 //  __m256d avxSum, avxCorr;
 //  {
 //#define EASY_SET(atVar) _mm256_set_pd(fellow._sum.m256d_f64[atVar], _sum.m256d_f64[atVar], \
@@ -95,7 +107,25 @@ inline double __vectorcall SRAccumVectDbl256::GetFullSum() const {
 //  }
 //  __m128d sseSum, sseCorr;
 //  sseSum = _mm256_castpd256_pd128(avxCorr);
-//}
+  __m128d sum = _mm_set_pd(fellow._corr.m256d_f64[3], _corr.m256d_f64[3]);
+  __m128d corr = _mm_setzero_pd();
+  for (int i = 2; i >= 0; i--) {
+    const __m128d y = _mm_sub_pd(_mm_set_pd(fellow._corr.m256d_f64[i], _corr.m256d_f64[i]), corr);
+    const __m128d t = _mm_add_pd(sum, y);
+    corr = _mm_sub_pd(_mm_sub_pd(t, sum), y);
+    sum = t;
+  }
+  sum = _mm_xor_pd(sum, SRSimd::_cDoubleSign128);
+  corr = _mm_xor_pd(corr, SRSimd::_cDoubleSign128);
+  for (int i = 3; i >= 0; i--) {
+    const __m128d y = _mm_sub_pd(_mm_set_pd(fellow._sum.m256d_f64[i], _sum.m256d_f64[i]), corr);
+    const __m128d t = _mm_add_pd(sum, y);
+    corr = _mm_sub_pd(_mm_sub_pd(t, sum), y);
+    sum = t;
+  }
+  fellowSum = sum.m128d_f64[1] - corr.m128d_f64[1];
+  return sum.m128d_f64[0] - corr.m128d_f64[0];
+}
 FLOAT_PRECISE_END
 
 } // namespace SRPlat

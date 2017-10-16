@@ -47,7 +47,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         //bss.CalcAdd(maskedLH);
         accVect.Add(maskedLH);
       }
-      const double Wk = accVect.GetFullSum();
+      const double Wk = accVect.PreciseSum();
       accTotW.Add(SRDoubleNumber::FromDouble(Wk));
       pAnsMet[k]._weight.SetValue(Wk);
       const __m256d vWk = _mm256_set1_pd(Wk);
@@ -72,10 +72,11 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256d square = _mm256_mul_pd(maskedDiff, maskedDiff);
         accDist.Add(square);
       }
-      const double entropyHik = -accVect.GetFullSum();
+      double sumDist2;
+      const double entropyHik = -accVect.PairSum(accDist, sumDist2);
       pAnsMet[k]._entropy.SetValue(entropyHik);
       //Store without computing the square root, therefore it's a square of distance
-      pAnsMet[k]._distance.SetValue(accDist.GetFullSum());
+      pAnsMet[k]._distance.SetValue(sumDist2);
     }
     const double totW = accTotW.Get().GetValue();
     //TODO: investigate why this happens
@@ -92,7 +93,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   pAnsMet[baseVar+2].metricVar.GetValue(), pAnsMet[baseVar + 1].metricVar.GetValue(), \
   pAnsMet[baseVar].metricVar.GetValue())
 
-    for (TPqaId k = 0; k < nVectorized; k += SRSimd::_cLogNComps64) {
+    for (TPqaId k = 0; k < nVectorized; k += SRSimd::_cNComps64) {
       const __m256d curD2 = EASY_SET(_distance, k);
       const __m256d curW = EASY_SET(_weight, k);
       const __m256d curH = EASY_SET(_entropy, k);
@@ -116,12 +117,17 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       accAvgD.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[1]);
     }
 
+    __m128d averages;
+    averages.m128d_f64[0] = accAvgH.PairSum(accAvgD, averages.m128d_f64[1]);
+    const __m128d vTotW = _mm_set1_pd(totW);
+    averages = _mm_div_pd(averages, vTotW);
+
     // The average entropy over all answers for this question
-    const double avgH = accAvgH.GetFullSum() / totW; //TODO: refactor to precise sum in pair with avgD
+    const double avgH = averages.m128d_f64[0];
     const double nExpectedTargets = std::exp2(avgH);
 
     // The average of the square of distance over all answers for this question.
-    const double avgD = accAvgD.GetFullSum() / totW; //TODO: refactor to precise sum in pair with avgH
+    const double avgD = averages.m128d_f64[1];
     const double scaledDist = avgD * 1e20;
     constexpr double epsD = 1e-20;
     const double stableDist = ((scaledDist <= epsD) ? epsD : scaledDist);
@@ -130,6 +136,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     constexpr double epsET = 1e-9;
     const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
 
+    //FIXME: growth of distance polynom degree has the opposite effects for D<1 and D>1.
+    //TODO: devise a function which has consistent effects
     const double priority = squareDist * squareDist / stableET;
     accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
     task._pRunLength[i] = accRunLength.Get();

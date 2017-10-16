@@ -19,6 +19,7 @@ public:
   static constexpr uint8_t _cLogNBits = 8; //AVX2, 256 bits, log2(256)=8
   static constexpr uint8_t _cLogNBytes = _cLogNBits - 3;
   static constexpr uint8_t _cLogNComps64 = _cLogNBytes - 3;
+  static constexpr SRVectCompCount _cNComps64 = (1 << _cLogNComps64);
   static constexpr size_t _cNBits = 1 << _cLogNBits;
   static constexpr size_t _cNBytes = 1 << _cLogNBytes;
 
@@ -31,6 +32,7 @@ public:
   static const __m256i _cDoubleExp0Down;
   static const __m128i _cDoubleExpMaskDown32;
   static const __m128i _cDoubleExp0Down32;
+  static const __m128d _cDoubleSign128;
 private:
   static const __m256i _cSet1MsbOffs;
   static const __m256i _cSet1LsbOffs;

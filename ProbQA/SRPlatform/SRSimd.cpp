@@ -15,6 +15,7 @@ const __m256i SRSimd::_cDoubleExp0Down = _mm256_set1_epi64x(SRNumTraits<double>:
 
 const __m128i SRSimd::_cDoubleExpMaskDown32 = _mm_set1_epi32(SRNumTraits<double>::_cExponentMaskDown);
 const __m128i SRSimd::_cDoubleExp0Down32 = _mm_set1_epi32(SRNumTraits<double>::_cExponent0Down);
+const __m128d SRSimd::_cDoubleSign128 = _mm_set1_pd(-0.0);
 
 const uint32_t SRSimd::_cStbqTable[_cnStbqEntries] = {
   0, 0xff, 0xff00, 0xffff, 0xff0000, 0xff00ff, 0xffff00, 0xffffff,
