@@ -25,6 +25,12 @@ public:
   explicit SRDoubleNumber() { }
   explicit SRDoubleNumber(const SRAmount init) : _value(SRCast::ToDouble(init)) { }
 
+  static SRDoubleNumber FromDouble(const double value) {
+    SRDoubleNumber ans;
+    ans._value = value;
+    return ans;
+  }
+
   // Set to random number between 0 and |upper| inclusively. 
   static SRDoubleNumber MakeRandom(const SRDoubleNumber upper, SRFastRandom& fr) {
     SRDoubleNumber ans;

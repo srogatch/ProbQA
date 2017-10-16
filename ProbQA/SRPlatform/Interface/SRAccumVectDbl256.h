@@ -23,10 +23,11 @@ public:
   inline SRAccumVectDbl256& __vectorcall Add(const __m256d value);
   inline SRAccumVectDbl256& __vectorcall Add(SRVectCompCount at, const double value);
   //Note: this method is not at maximum precision.
-  inline double __vectorcall GetFullSum();
+  inline double __vectorcall GetFullSum() const;
+  inline double __vectorcall PreciseSum() const;
   //TODO: sum all components in this and fellow separately in AVX2, return the sum of this, and set fellowSum to the
   //  sum of fellow.
-  inline double __vectorcall PairSum(const SRAccumVectDbl256& fellow, double& fellowSum);
+  //inline double __vectorcall PairSum(const SRAccumVectDbl256& fellow, double& fellowSum) const;
 };
 
 FLOAT_PRECISE_BEGIN
@@ -37,6 +38,7 @@ inline SRAccumVectDbl256& __vectorcall SRAccumVectDbl256::Add(const __m256d valu
   _sum = t;
   return *this;
 }
+
 inline SRAccumVectDbl256& __vectorcall SRAccumVectDbl256::Add(SRVectCompCount at, const double value) {
   const double y = value - _corr.m256d_f64[at];
   const double t = _sum.m256d_f64[at] + y;
@@ -44,11 +46,56 @@ inline SRAccumVectDbl256& __vectorcall SRAccumVectDbl256::Add(SRVectCompCount at
   _sum.m256d_f64[at] = t;
   return *this;
 }
-inline double __vectorcall SRAccumVectDbl256::GetFullSum() {
+
+inline double __vectorcall SRAccumVectDbl256::GetFullSum() const {
   const __m256d interleaved = _mm256_hadd_pd(_corr, _sum);
   const __m128d corrSum = _mm_add_pd(_mm256_extractf128_pd(interleaved, 1), _mm256_castpd256_pd128(interleaved));
   return corrSum.m128d_f64[1] - corrSum.m128d_f64[0];
 }
+
+//inline double __vectorcall SRAccumVectDbl256::PreciseSum() const {
+//  __m128d sseSum, sseCorr;
+//  {
+//#define EASY_SET(atVar) _mm_set_pd(_sum.m256d_f64[atVar], _corr.m256d_f64[atVar])
+//    sseSum = EASY_SET(0);
+//    __m128d y = EASY_SET(1);
+//    __m128d t = _mm_add_pd(sseSum, y);
+//    sseCorr = _mm_sub_pd(_mm_sub_pd(t, sseSum), y);
+//    sseSum = t;
+//    for (int i = 2; i <= 3; i++) {
+//      y = _mm_sub_pd(EASY_SET(i), sseCorr);
+//      t = _mm_add_pd(sseSum, y);
+//      sseCorr = _mm_sub_pd(_mm_sub_pd(t, sseSum), y);
+//      sseSum = t;
+//    }
+//#undef EASY_SET
+//  }
+//  double scalSum, scalCorr;
+//  scalSum = sseCorr.m128d_f64[0];
+//  double y = -sseCorr.m128d_f64[1];
+//}
+
+//inline double __vectorcall SRAccumVectDbl256::PairSum(const SRAccumVectDbl256& fellow, double& fellowSum) const {
+//  __m256d avxSum, avxCorr;
+//  {
+//#define EASY_SET(atVar) _mm256_set_pd(fellow._sum.m256d_f64[atVar], _sum.m256d_f64[atVar], \
+//  fellow._corr.m256d_f64[atVar], _corr.m256d_f64[atVar])
+//    avxSum = EASY_SET(0);
+//    __m256d y = EASY_SET(1);
+//    __m256d t = _mm256_add_pd(avxSum, y);
+//    avxCorr = _mm256_sub_pd(_mm256_sub_pd(t, avxSum), y);
+//    avxSum = t;
+//    for (int i = 2; i <= 3; i++) {
+//      y = _mm256_sub_pd(EASY_SET(i), avxCorr);
+//      t = _mm256_add_pd(avxSum, y);
+//      avxCorr = _mm256_sub_pd(_mm256_sub_pd(t, avxSum), y);
+//      avxSum = t;
+//    }
+//#undef EASY_SET
+//  }
+//  __m128d sseSum, sseCorr;
+//  sseSum = _mm256_castpd256_pd128(avxCorr);
+//}
 FLOAT_PRECISE_END
 
 } // namespace SRPlat

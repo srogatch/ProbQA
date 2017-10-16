@@ -48,7 +48,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         accVect.Add(maskedLH);
       }
       const double Wk = accVect.GetFullSum();
-      accTotW.Add(SRDoubleNumber(Wk));
+      accTotW.Add(SRDoubleNumber::FromDouble(Wk));
       pAnsMet[k]._weight.SetValue(Wk);
       const __m256d vWk = _mm256_set1_pd(Wk);
 
@@ -67,9 +67,10 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         accVect.Add(maskedHikj);
 
         const __m256d diff = _mm256_sub_pd(posteriors, priors);
-        const __m256d square = _mm256_mul_pd(diff, diff);
-        const __m256d maskedSquare = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), square);
-        accDist.Add(maskedSquare);
+        // Operations should be faster if components are zero, so zero them out early.
+        const __m256d maskedDiff = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), diff);
+        const __m256d square = _mm256_mul_pd(maskedDiff, maskedDiff);
+        accDist.Add(square);
       }
       const double entropyHik = -accVect.GetFullSum();
       pAnsMet[k]._entropy.SetValue(entropyHik);
@@ -130,7 +131,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
 
     const double priority = squareDist * squareDist / stableET;
-    accRunLength.Add(SRDoubleNumber(priority * priority * priority));
+    accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
     task._pRunLength[i] = accRunLength.Get();
   }
   //TODO: perhaps check task._pRunLength[_iLimit-1] for overflow/underflow instead of CpuEngine::NextQuestion()
