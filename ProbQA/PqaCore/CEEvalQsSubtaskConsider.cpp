@@ -81,46 +81,55 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     if (std::fabs(totW - 1.0) > 1e-3) {
       LOCLOG(Warning) << SR_FILE_LINE "The sum of answer weights is " << totW;
     }
+
     SRAccumVectDbl256 accAvgH; // average entropy over all answer options
     SRAccumVectDbl256 accAvgD;// average distance over all answer options
     const TPqaId nAnswerVects = nAnswers >> SRSimd::_cLogNComps64;
     const TPqaId nVectorized = (nAnswerVects << SRSimd::_cLogNComps64);
+
 #define EASY_SET(metricVar, baseVar) _mm256_set_pd(pAnsMet[baseVar+3].metricVar.GetValue(), \
   pAnsMet[baseVar+2].metricVar.GetValue(), pAnsMet[baseVar + 1].metricVar.GetValue(), \
   pAnsMet[baseVar].metricVar.GetValue())
+
     for (TPqaId k = 0; k < nVectorized; k += SRSimd::_cLogNComps64) {
+      const __m256d curD2 = EASY_SET(_distance, k);
       const __m256d curW = EASY_SET(_weight, k);
       const __m256d curH = EASY_SET(_entropy, k);
-      const __m256d curD = EASY_SET(_distance, k);
+      // Because pAnsMet[k]._distance contains the square distance, compute the square root here.
+      const __m256d curD = _mm256_sqrt_pd(curD2);
       const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
-      //TODO: it should be more precise if square root is computed here, and then taking to the best power
-      //  in the priority function.
       const __m256d weightedDistance = _mm256_mul_pd(curW, curD);
       accAvgH.Add(weightedEntropy);
       accAvgD.Add(weightedDistance);
     }
+
+#undef EASY_SET
+
     for (TPqaId k = nVectorized; k < nAnswers; k++) {
       const __m128d weight = _mm_set1_pd(pAnsMet[k]._weight.GetValue());
-      //TODO: compute square root of the square distance here too.
-      const __m128d metrics = _mm_set_pd(pAnsMet[k]._distance.GetValue(), pAnsMet[k]._entropy.GetValue());
+      // Because pAnsMet[k]._distance contains the square distance, compute the square root here.
+      const double distance = std::sqrt(pAnsMet[k]._distance.GetValue());
+      const __m128d metrics = _mm_set_pd(distance, pAnsMet[k]._entropy.GetValue());
       const __m128d product = _mm_mul_pd(weight, metrics);
       accAvgH.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[0]);
       accAvgD.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[1]);
     }
 
     // The average entropy over all answers for this question
-    const double avgH = accAvgH.GetFullSum() / totW;
+    const double avgH = accAvgH.GetFullSum() / totW; //TODO: refactor to precise sum in pair with avgD
     const double nExpectedTargets = std::exp2(avgH);
 
     // The average of the square of distance over all answers for this question.
-    const double avgD = accAvgD.GetFullSum() / totW;
-    constexpr double epsD = 1e-30;
-    const double stableDist = ((avgD <= epsD) ? epsD : avgD);
+    const double avgD = accAvgD.GetFullSum() / totW; //TODO: refactor to precise sum in pair with avgH
+    const double scaledDist = avgD * 1e20;
+    constexpr double epsD = 1e-20;
+    const double stableDist = ((scaledDist <= epsD) ? epsD : scaledDist);
+    const double squareDist = stableDist * stableDist;
 
-    const double epsET = 1e-9;
+    constexpr double epsET = 1e-9;
     const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
 
-    const double priority = stableDist * stableDist / stableET;
+    const double priority = squareDist * squareDist / stableET;
     accRunLength.Add(SRDoubleNumber(priority * priority * priority));
     task._pRunLength[i] = accRunLength.Get();
   }

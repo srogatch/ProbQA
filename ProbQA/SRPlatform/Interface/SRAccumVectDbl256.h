@@ -22,7 +22,11 @@ public:
   }
   inline SRAccumVectDbl256& __vectorcall Add(const __m256d value);
   inline SRAccumVectDbl256& __vectorcall Add(SRVectCompCount at, const double value);
+  //Note: this method is not at maximum precision.
   inline double __vectorcall GetFullSum();
+  //TODO: sum all components in this and fellow separately in AVX2, return the sum of this, and set fellowSum to the
+  //  sum of fellow.
+  inline double __vectorcall PairSum(const SRAccumVectDbl256& fellow, double& fellowSum);
 };
 
 FLOAT_PRECISE_BEGIN

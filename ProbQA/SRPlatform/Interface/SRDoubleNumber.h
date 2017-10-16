@@ -23,7 +23,7 @@ public:
   static __m128i __vectorcall ScaleBySizeBytesU32(const __m128i a);
 
   explicit SRDoubleNumber() { }
-  explicit SRDoubleNumber(SRAmount init) : _value(SRCast::ToDouble(init)) { }
+  explicit SRDoubleNumber(const SRAmount init) : _value(SRCast::ToDouble(init)) { }
 
   // Set to random number between 0 and |upper| inclusively. 
   static SRDoubleNumber MakeRandom(const SRDoubleNumber upper, SRFastRandom& fr) {
@@ -70,6 +70,9 @@ public:
 
   bool operator<(const SRDoubleNumber fellow) const {
     return _value < fellow._value;
+  }
+  bool operator<=(const SRAmount fellow) const {
+    return _value <= fellow;
   }
 };
 

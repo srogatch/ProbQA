@@ -479,8 +479,8 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       }
     }
     const taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
-    if (totG.IsZero()) {
-      CELOG(Warning) << SR_FILE_LINE << "Grand grand total is 0.";
+    if (totG <= SRAmount(0)) {
+      CELOG(Warning) << SR_FILE_LINE << "Grand grand total is " << totG.ToAmount();
     }
     const taNumber selRunLen = taNumber::MakeRandom(totG, SRFastRandom::ThreadLocal());
     const SRThreadCount iWorker = static_cast<SRThreadCount>(
