@@ -38,6 +38,9 @@ public:
   double& ModValue() { return _value; }
   void SetValue(const double value) { _value = value; }
 
+  bool IsFinite() const { return std::isfinite(_value); }
+  bool IsZero() const { return fabs(_value) == +0.0; }
+
   SRDoubleNumber& Mul(const SRDoubleNumber& fellow) { 
     _value *= fellow._value;
     return *this;

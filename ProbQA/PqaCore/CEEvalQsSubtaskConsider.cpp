@@ -93,12 +93,15 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const __m256d curH = EASY_SET(_entropy, k);
       const __m256d curD = EASY_SET(_distance, k);
       const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
+      //TODO: it should be more precise if square root is computed here, and then taking to the best power
+      //  in the priority function.
       const __m256d weightedDistance = _mm256_mul_pd(curW, curD);
       accAvgH.Add(weightedEntropy);
       accAvgD.Add(weightedDistance);
     }
     for (TPqaId k = nVectorized; k < nAnswers; k++) {
       const __m128d weight = _mm_set1_pd(pAnsMet[k]._weight.GetValue());
+      //TODO: compute square root of the square distance here too.
       const __m128d metrics = _mm_set_pd(pAnsMet[k]._distance.GetValue(), pAnsMet[k]._entropy.GetValue());
       const __m128d product = _mm_mul_pd(weight, metrics);
       accAvgH.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[0]);
@@ -111,12 +114,17 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     // The average of the square of distance over all answers for this question.
     const double avgD = accAvgD.GetFullSum() / totW;
+    constexpr double epsD = 1e-30;
+    const double stableDist = ((avgD <= epsD) ? epsD : avgD);
 
-    const double eps = 1e-9;
-    const double priority = avgD / ((nExpectedTargets <= eps) ? eps : nExpectedTargets);
+    const double epsET = 1e-9;
+    const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
+
+    const double priority = stableDist * stableDist / stableET;
     accRunLength.Add(SRDoubleNumber(priority * priority * priority));
     task._pRunLength[i] = accRunLength.Get();
   }
+  //TODO: perhaps check task._pRunLength[_iLimit-1] for overflow/underflow instead of CpuEngine::NextQuestion()
 }
 
 } // namespace ProbQA

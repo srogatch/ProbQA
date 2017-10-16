@@ -41,6 +41,7 @@ int __cdecl main() {
   constexpr int64_t cnTopRated = 10;
 
   int64_t nCorrect = 0;
+  int64_t sumQuizLens = 0;
   for (int64_t i = 0; i < cnTrainings; i++) {
     if (((i & 255) == 0) && (i != 0)) {
       const uint64_t totQAsked = pEngine->GetTotalQuestionsAsked(err);
@@ -50,9 +51,10 @@ int __cdecl main() {
       }
       const double precision = nCorrect * 100.0 / 256;
       printf("\n*%" PRIu64 ";%.2lf%%*", totQAsked, precision);
-      fprintf(fpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\n", i, totQAsked, precision);
+      fprintf(fpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\t%lf\n", i, totQAsked, precision, double(sumQuizLens)/nCorrect);
       fflush(fpProgress);
       nCorrect = 0;
+      sumQuizLens = 0;
     }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     const TPqaId iQuiz = pEngine->StartQuiz(err);
@@ -114,6 +116,7 @@ int __cdecl main() {
       }
       if (posInTop != cInvalidPqaId) {
         nCorrect++;
+        sumQuizLens += j + 1;
         printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop),
           int64_t(j+1));
         break;

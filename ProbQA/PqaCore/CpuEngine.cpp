@@ -473,8 +473,15 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       const taNumber curGT = pRunLength[questionSplit._pBounds[i] - 1];
       accTotG.Add(curGT);
       pGrandTotals[i] = accTotG.Get();
+      //TODO: for performance reasons this check should be moved to subtasks, but here it checks consistency better
+      if (!pGrandTotals[i].IsFinite()) {
+        CELOG(Error) << SR_FILE_LINE << "Overflow or underflow has happened in the question evaluation subtasks.";
+      }
     }
     const taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
+    if (totG.IsZero()) {
+      CELOG(Warning) << SR_FILE_LINE << "Grand grand total is 0.";
+    }
     const taNumber selRunLen = taNumber::MakeRandom(totG, SRFastRandom::ThreadLocal());
     const SRThreadCount iWorker = static_cast<SRThreadCount>(
       std::upper_bound(pGrandTotals, pGrandTotals + questionSplit._nSubtasks, selRunLen) - pGrandTotals);
