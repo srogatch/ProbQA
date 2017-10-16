@@ -431,7 +431,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     return cInvalidPqaId;
   }
 
-  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
+  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount() * 3;
   SRMemTotal mtCommon;
   const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value, SRMemPadding::None,
     mtCommon);

@@ -13,7 +13,8 @@ namespace ProbQA {
 SRThreadCount BaseCpuEngine::CalcCompThreads() {
   //TODO: experiment whether nCores-1 threads give better performance than nCores threads. In the former case the
   //  master thread may keep spinning till worker threads are all done.
-  return std::max(std::thread::hardware_concurrency()-1, 1u);
+  //return std::max(std::thread::hardware_concurrency()-1, 1u);
+  return std::thread::hardware_concurrency();
 }
 
 SRThreadCount BaseCpuEngine::CalcMemOpThreads() {
