@@ -35,7 +35,7 @@ int __cdecl main() {
   SRFastRandom fr;
   SREntropyAdapter ea(fr);
 
-  constexpr int64_t cnTrainings = 3; //1000 * 1000;
+  constexpr int64_t cnTrainings = 1000 * 1000;
   constexpr int64_t cMaxQuizLen = 100;
   constexpr int64_t cMaxTrialLen = 30;
   constexpr int64_t cnTopRated = 10;
