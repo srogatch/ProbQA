@@ -42,9 +42,9 @@ private: // variables
 
 private: // methods
   void FreeChunk(const size_t iSlot) {
-    void *p = _memChunks[iSlot].load(std::memory_order_relaxed);
+    void *PTR_RESTRICT p = _memChunks[iSlot].load(std::memory_order_relaxed);
     while (p != nullptr) {
-      void *next = *SRCast::CPtr<void*>(p); // note void* template argument here - that's to receive void**
+      void *PTR_RESTRICT next = *SRCast::CPtr<void*>(p); // note void* template argument here - that's to receive void**
       _mm_free(p);
       p = next;
     }
@@ -70,6 +70,7 @@ public:
   }
 
   virtual ~SRMemPool() override final {
+    std::atomic_thread_fence(std::memory_order_acquire);
     //TODO: vectorize/parallelize
     for (size_t i = 0; i < taNGranules; i++) {
       FreeChunk(i);
@@ -102,8 +103,8 @@ public:
       return nullptr;
     }
     std::atomic<void*>& head = _memChunks[iSlot];
-    void *next;
-    void* expected = head.load(std::memory_order_acquire);
+    void *PTR_RESTRICT next;
+    void *PTR_RESTRICT expected = head.load(std::memory_order_acquire);
     do {
       if (expected == nullptr) {
         _totalUnits.fetch_add(iSlot, std::memory_order_relaxed);

@@ -44,7 +44,6 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
         const __m256d maskedLH = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), likelihood);
         SRSimd::Store<false>(pPosteriors + j, maskedLH);
-        //bss.CalcAdd(maskedLH);
         accVect.Add(maskedLH);
       }
       const double Wk = accVect.PreciseSum();
@@ -86,7 +85,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     SRAccumVectDbl256 accAvgH; // average entropy over all answer options
     SRAccumVectDbl256 accAvgD;// average distance over all answer options
-    const TPqaId nAnswerVects = nAnswers >> SRSimd::_cLogNComps64;
+    const TPqaId nAnswerVects = (nAnswers >> SRSimd::_cLogNComps64);
     const TPqaId nVectorized = (nAnswerVects << SRSimd::_cLogNComps64);
 
 #define EASY_SET(metricVar, baseVar) _mm256_set_pd(pAnsMet[baseVar+3].metricVar.GetValue(), \
@@ -113,6 +112,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const double distance = std::sqrt(pAnsMet[k]._distance.GetValue());
       const __m128d metrics = _mm_set_pd(distance, pAnsMet[k]._entropy.GetValue());
       const __m128d product = _mm_mul_pd(weight, metrics);
+      //TODO: vectorize
       accAvgH.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[0]);
       accAvgD.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[1]);
     }
@@ -136,9 +136,9 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     constexpr double epsET = 1e-9;
     const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
 
-    //FIXME: growth of distance polynom degree has the opposite effects for D<1 and D>1.
+    //FIXME: growth of distance polynomial degree has the opposite effects for D<1 and D>1.
     //TODO: devise a function which has consistent effects
-    const double priority = squareDist * squareDist / stableET;
+    const double priority = squareDist * squareDist / stableET * stableET;
     accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
     task._pRunLength[i] = accRunLength.Get();
   }

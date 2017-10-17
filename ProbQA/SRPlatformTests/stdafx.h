@@ -37,6 +37,7 @@
 #pragma warning( pop )
 
 // SRPlatform library includes
+#include "../SRPlatform/Interface/SRAccumVectDbl256.h"
 #include "../SRPlatform/Interface/SRBitArray.h"
 #include "../SRPlatform/Interface/SRBucketSummatorPar.h"
 #include "../SRPlatform/Interface/SRBucketSummatorSeq.h"

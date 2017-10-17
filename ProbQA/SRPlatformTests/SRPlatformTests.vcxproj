@@ -197,6 +197,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="SRAccumulatorTest.cpp" />
     <ClCompile Include="SRBitArrayTest.cpp" />
     <ClCompile Include="SRBucketSummatorTest.cpp" />
     <ClCompile Include="SRHeapTest.cpp" />

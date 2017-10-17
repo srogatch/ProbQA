@@ -8,10 +8,15 @@
 #include "../SRPlatform/Interface/SRMacros.h"
 #include "../SRPlatform/Interface/SRAccumulator.h"
 
+namespace SRTest {
+  class SRAccumVectDbl256TestHelper;
+}
+
 namespace SRPlat {
 
 // 256-bit vector of Kahan summators for double precision scalars.
 class SRAccumVectDbl256 {
+  friend class ::SRTest::SRAccumVectDbl256TestHelper;
   __m256d _sum;
   __m256d _corr;
 

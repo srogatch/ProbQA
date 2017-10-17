@@ -101,6 +101,9 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
 
   //// Release quizzes
   for (size_t i = 0; i < _quizzes.size(); i++) {
+    if (_quizGaps.IsGap(i)) {
+      continue;
+    }
     SRCheckingRelease(_memPool, _quizzes[i]);
   }
   _quizzes.clear();
@@ -656,6 +659,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqa
     }
 
     pQuiz = _quizzes[iQuiz];
+    _quizzes[iQuiz] = nullptr; // avoid double-free problems
 
     _quizGaps.Release(iQuiz);
   }

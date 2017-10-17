@@ -97,4 +97,5 @@ TEST(DichotomyTest, Main) {
     ASSERT_TRUE(err.IsOk());
   }
   ASSERT_GE(nCorrect, nTrials * 0.98);
+  delete pEngine;
 }
