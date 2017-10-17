@@ -122,24 +122,37 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     const __m128d vTotW = _mm_set1_pd(totW);
     averages = _mm_div_pd(averages, vTotW);
 
+    constexpr double cMaxExp = 664; //Don't call exp(x) for x>cMaxExp
+    constexpr double cSqrt2 = 1.4142135623730950488016887242097;
+    // Divide by std::sqrt(2.0) if using first-degree distance.
+    constexpr double cExpMul = cMaxExp / cSqrt2;
+
     // The average entropy over all answers for this question
     const double avgH = averages.m128d_f64[0];
     const double nExpectedTargets = std::exp2(avgH);
+    constexpr double epsET = 1.0; // 1e-9
+    const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
 
     // The average of the square of distance over all answers for this question.
     const double avgD = averages.m128d_f64[1];
-    const double scaledDist = avgD * 1e20;
-    constexpr double epsD = 1e-20;
-    const double stableDist = ((scaledDist <= epsD) ? epsD : scaledDist);
-    const double squareDist = stableDist * stableDist;
-
-    constexpr double epsET = 1e-9;
-    const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
+    if (avgD > cSqrt2) {
+      LOCLOG(Warning) << SR_FILE_LINE "Got avgD=" << avgD;
+    }
+    constexpr double epsD = 1e-200;
+    const double stableDist = ((avgD <= epsD) ? epsD : avgD);
+    //const double scaledDist = avgD * 1e20;
+    //constexpr double epsD = 1e-20;
+    //const double stableDist = ((scaledDist <= epsD) ? epsD : scaledDist);
+    //const double squareDist = stableDist * stableDist;
 
     //FIXME: growth of distance polynomial degree has the opposite effects for D<1 and D>1.
     //TODO: devise a function which has consistent effects
-    const double priority = squareDist * squareDist / stableET * stableET;
-    accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
+    //const double priority = squareDist * squareDist / stableET * stableET;
+    //accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
+
+    const double priority = std::expm1(cExpMul * stableDist / stableET);
+    accRunLength.Add(SRDoubleNumber::FromDouble(priority));
+
     task._pRunLength[i] = accRunLength.Get();
   }
   //TODO: perhaps check task._pRunLength[_iLimit-1] for overflow/underflow instead of CpuEngine::NextQuestion()
