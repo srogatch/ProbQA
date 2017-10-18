@@ -123,9 +123,9 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     averages = _mm_div_pd(averages, vTotW);
 
     constexpr double cMaxExp = 664; //Don't call exp(x) for x>cMaxExp
-    constexpr double cSqrt2 = 1.4142135623730950488016887242097;
-    // Divide by std::sqrt(2.0) if using first-degree distance.
-    constexpr double cExpMul = cMaxExp / cSqrt2;
+    constexpr double cSqrt2 = 1.4142135623730950488016887242097; // std::sqrt(2.0)
+    // Divide by cSqrt2 if using first-degree distance.
+    constexpr double cExpMul = cMaxExp / 1.1892071150027210667174999705605; // std::pow(2.0, 0.25)
 
     // The average entropy over all answers for this question
     const double avgH = averages.m128d_f64[0];
@@ -138,12 +138,13 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     if (avgD > cSqrt2) {
       LOCLOG(Warning) << SR_FILE_LINE "Got avgD=" << avgD;
     }
-    constexpr double epsD = 1e-200;
-    const double stableDist = ((avgD <= epsD) ? epsD : avgD);
+    const double stableDist = std::sqrt(avgD);
+    //constexpr double epsD = 1e-100;
+    //const double stableDist = ((avgD <= epsD) ? epsD : avgD);
+    //const double squareDist = stableDist * stableDist;
     //const double scaledDist = avgD * 1e20;
     //constexpr double epsD = 1e-20;
     //const double stableDist = ((scaledDist <= epsD) ? epsD : scaledDist);
-    //const double squareDist = stableDist * stableDist;
 
     //FIXME: growth of distance polynomial degree has the opposite effects for D<1 and D>1.
     //TODO: devise a function which has consistent effects
