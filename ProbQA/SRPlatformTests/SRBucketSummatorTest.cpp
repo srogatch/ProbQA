@@ -30,7 +30,7 @@ TEST(SRBucketSummator, Sequential) {
 
 TEST(SRBucketSummator, Parallel) {
   constexpr int32_t cnWorkers = 16;
-  SRThreadPool tp(cnWorkers);
+  SRThreadPool tp(cnWorkers, 0);
   alignas(SRSimd::_cNBytes) static uint8_t memBsp[
     SRBucketSummatorPar<SRDoubleNumber>::GetMemoryRequirementBytes(cnWorkers)];
   SRBucketSummatorPar<SRDoubleNumber> bsp(cnWorkers, memBsp);

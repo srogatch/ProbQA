@@ -11,6 +11,11 @@ namespace ProbQA {
 
 class PqaEngineBaseFactory : public IPqaEngineFactory {
 public:
+  static const TPqaId _cMinAnswers = 2;
+  static const TPqaId _cMinQuestions = 1;
+  static const TPqaId _cMinTargets = 2;
+
+public:
   IPqaEngine* CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) override final;
   IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) override final;
   IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) override final;

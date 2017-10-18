@@ -12,6 +12,9 @@ template<typename taNumber> class CEEvalQsSubtaskConsider : public SRPlat::SRSta
 public: // types
   typedef CEEvalQsTask<taNumber> TTask;
 
+public: // constants
+  static const size_t _cAccumVectSize;
+
 public: // methods
   using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;

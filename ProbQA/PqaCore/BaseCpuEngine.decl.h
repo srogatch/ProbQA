@@ -17,9 +17,6 @@ namespace ProbQA {
 
 class BaseCpuEngine : public IPqaEngine {
 public: // constants
-  static const TPqaId cMinAnswers = 2;
-  static const TPqaId cMinQuestions = 1;
-  static const TPqaId cMinTargets = 2;
   static constexpr size_t cMemPoolMaxSimds = 1 << 10;
 
 public: // types
@@ -52,7 +49,7 @@ protected: // methods
   static SRPlat::SRThreadCount CalcMemOpThreads();
   static SRPlat::SRThreadCount CalcCompThreads();
 
-  explicit BaseCpuEngine(const EngineDefinition& engDef);
+  explicit BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize);
 
   TPqaId FindNearestQuestion(const TPqaId iMiddle, const CEBaseQuiz &quiz);
 

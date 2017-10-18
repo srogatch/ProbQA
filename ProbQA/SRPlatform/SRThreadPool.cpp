@@ -14,6 +14,7 @@
 #include "../SRPlatform/Interface/Exceptions/SRStdException.h"
 #include "../SRPlatform/Interface/Exceptions/SRGenericException.h"
 #include "../SRPlatform/Interface/SRUtils.h"
+#include "../SRPlatform/Interface/SRLogMacros.h"
 
 namespace SRPlat {
 
@@ -25,31 +26,61 @@ struct SRThreadPool::RareData {
   std::atomic<ISRLogger*> _pLogger;
   FCriticalCallback _cbCritical;
   void *_pCcbData;
-  std::thread _workers[0];
+  HANDLE _workers[0];
+
+  static DWORD WINAPI PlatformEntry(LPVOID lpParameter) {
+    static_cast<SRThreadPool*>(lpParameter)->WorkerEntry();
+    return 0;
+  }
 };
 #pragma warning( pop )
 
 #define TPLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetLogger())
 
-SRThreadPool::SRThreadPool(const SRThreadCount nThreads) : _qu(SRMath::CeilLog2(nThreads)), _nWorkers(nThreads),
-  _shutdownRequested(0)
+SRThreadPool::SRThreadPool(const SRThreadCount nThreads, const size_t stackSize) : _qu(SRMath::CeilLog2(nThreads)),
+  _nWorkers(nThreads), _shutdownRequested(0), _stackSize(stackSize + _cReserveStackSize)
 {
-  _pRd = SRCast::Ptr<RareData>(malloc(sizeof(RareData) + sizeof(std::thread) * _nWorkers));
+  _pRd = SRCast::Ptr<RareData>(malloc(sizeof(RareData) + sizeof(HANDLE) * _nWorkers));
   _pRd->_pLogger = SRDefaultLogger::Get();
   SetCriticalCallback(nullptr);
-  for (size_t i = 0; i < _nWorkers; i++) {
-    new(_pRd->_workers+i) std::thread(&SRThreadPool::WorkerEntry, this);
-  }
+  LaunchThreads();
 }
 
 SRThreadPool::~SRThreadPool() {
   RequestShutdown();
-  for (size_t i = 0; i < _nWorkers; i++) {
-    std::thread &curThr = _pRd->_workers[i];
-    curThr.join();
-    curThr.~thread();
-  }
+  StopThreads();
   free(_pRd);
+}
+
+void SRThreadPool::LaunchThreads() {
+  assert(!_shutdownRequested);
+  for (size_t i = 0; i < _nWorkers; i++) {
+    // Use WinAPI threads in order to be able to set the stack size
+    _pRd->_workers[i] = CreateThread(nullptr, _stackSize, &RareData::PlatformEntry, this, 0, nullptr);
+  }
+}
+
+void SRThreadPool::StopThreads() {
+  for (size_t i = 0; i < _nWorkers; i += MAXIMUM_WAIT_OBJECTS) {
+    const uint32_t nToWait = std::min<uint32_t>(MAXIMUM_WAIT_OBJECTS, uint32_t(_nWorkers - i));
+    const uint32_t waitRes = WaitForMultipleObjects(nToWait, _pRd->_workers + i, true, INFINITE);
+    if (waitRes < WAIT_OBJECT_0 || waitRes >= WAIT_OBJECT_0 + nToWait) {
+      TPLOG(Error) << SR_FILE_LINE "Got waitRes=" << waitRes << ", GetLastError()=" << GetLastError();
+    }
+    for (uint32_t j = 0; j < nToWait; j++) {
+      if (!CloseHandle(_pRd->_workers[i + j])) {
+        SR_LOG_WINFAIL_GLE(Error, GetLogger());
+      }
+    }
+  }
+}
+
+void SRThreadPool::ChangeStackSize(const size_t stackSize) {
+  RequestShutdown();
+  StopThreads();
+  _stackSize = stackSize + _cReserveStackSize;
+  _shutdownRequested = 0;
+  LaunchThreads();
 }
 
 void SRThreadPool::SetLogger(ISRLogger *pLogger) {

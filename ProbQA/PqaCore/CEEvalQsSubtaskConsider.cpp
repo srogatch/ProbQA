@@ -15,6 +15,8 @@ template class CEEvalQsSubtaskConsider<SRDoubleNumber>;
 
 #define LOCLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, engine.GetLogger())
 
+template<> const size_t CEEvalQsSubtaskConsider<SRDoubleNumber>::_cAccumVectSize = sizeof(SRAccumVectDbl256);
+
 template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());

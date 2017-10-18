@@ -13,6 +13,14 @@ using namespace SRPlat;
 namespace ProbQA {
 
 IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) {
+  if (engDef._dims._nAnswers < _cMinAnswers || engDef._dims._nQuestions < _cMinQuestions
+    || engDef._dims._nTargets < _cMinTargets)
+  {
+    err = PqaError(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
+      engDef._dims._nAnswers, _cMinAnswers, engDef._dims._nQuestions, _cMinQuestions, engDef._dims._nTargets,
+      _cMinTargets));
+    return nullptr;
+  }
   try {
     std::unique_ptr<IPqaEngine> pEngine;
     switch (engDef._prec._type) {

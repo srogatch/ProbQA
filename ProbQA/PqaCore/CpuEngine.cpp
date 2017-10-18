@@ -24,13 +24,18 @@ namespace ProbQA {
 
 #define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
 
-template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef) : BaseCpuEngine(engDef) {
-  if (_dims._nAnswers < cMinAnswers || _dims._nQuestions < cMinQuestions || _dims._nTargets < cMinTargets)
-  {
-    throw PqaException(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
-      _dims._nAnswers, cMinAnswers, _dims._nQuestions, cMinQuestions, _dims._nTargets, cMinTargets));
-  }
+template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(const EngineDefinition& engDef) {
+  const TPqaId nTargets = engDef._dims._nTargets;
+  const TPqaId nAnswers = engDef._dims._nAnswers;
+  const size_t szNextQuestion = SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets) * nAnswers
+    + ((nAnswers * (nAnswers - 1)) >> 1) * CEEvalQsSubtaskConsider<taNumber>::_cAccumVectSize;
 
+  return std::max({szNextQuestion});
+}
+
+template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
+  : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef))
+{
   taNumber initAmount(engDef._initAmount);
   //// Init cube A: A[q][ao][t] is weight for answer option |ao| for question |q| for target |t|
   _sA.resize(SRCast::ToSizeT(_dims._nQuestions));
@@ -443,7 +448,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   // The shared block for CEEvalQsSubtaskConsider
   SRMemTotal mtEval(mtCommon);
-  const size_t threadPosteriorBytes = SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nTargets);
+  const size_t threadPosteriorBytes = SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nTargets) * _dims._nAnswers;
   const SRByteMem miPosteriors(nWorkers * threadPosteriorBytes, SRMemPadding::Both, mtEval);
   const SRMemItem<AnswerMetrics<taNumber>> miAnswerMetrics(nWorkers * _dims._nAnswers, SRMemPadding::None, mtEval);
 
@@ -688,6 +693,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::FinishMaintenance() {
+  //TODO: adjust workers's stack size if more is needed for the new dimensions: SRThreadPool::ChangeStackSize()
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::FinishMaintenance")));
 }

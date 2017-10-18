@@ -20,6 +20,9 @@ template class SRPLATFORM_API SRQueue<SRBaseSubtask*>;
 class SRPLATFORM_API SRThreadPool : public ISRLogCustomizable {
   struct RareData; // cache-insensitive piece of thread pool data
 
+public: // constants
+  static constexpr size_t _cReserveStackSize = size_t(2) * 1024 * 1024;
+
 public: // types
   // Returns |true| if worker thread should continue, or |false| if it should exit.
   typedef bool (*FCriticalCallback)(void *, SRException&&);
@@ -28,18 +31,23 @@ private: // variables
   SRQueue<SRBaseSubtask*> _qu;
   SRCriticalSection _cs;
   SRConditionVariable _haveWork;
+  size_t _stackSize;
   // It has to be const to allow accessing without locks by the clients.
   const SRThreadCount _nWorkers;
   uint8_t _shutdownRequested : 1;
   RareData *_pRd;
 
 private: // methods
+  // Don't forget to clear _shutdownRequested before re-launching threads.
+  void LaunchThreads();
+  void StopThreads();
   void WorkerEntry();
   static bool DefaultCriticalCallback(void *pData, SRException &&ex);
   bool RunCriticalCallback(SRException &&ex);
 
 public:
-  explicit SRThreadPool(const SRThreadCount nThreads = std::thread::hardware_concurrency());
+  // Actual stack size will be increased by _cReserveStackSize.
+  explicit SRThreadPool(const SRThreadCount nThreads, const size_t stackSize);
   virtual ~SRThreadPool() override final;
 
   virtual ISRLogger* GetLogger() const override final;
@@ -60,6 +68,9 @@ public:
   // Subtasks must belong to the same task.
   template<typename taSubtask> inline void EnqueueAdjacent(taSubtask *pFirst, const SRSubtaskCount nSubtasks,
     SRBaseTask &task);
+
+  size_t GetStackSize() const { return _stackSize; }
+  void ChangeStackSize(const size_t stackSize);
 
   // Request shutdown. This method doesn't wait for all threads to exit: only destructor does.
   void RequestShutdown();

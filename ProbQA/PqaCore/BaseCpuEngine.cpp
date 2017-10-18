@@ -23,10 +23,10 @@ SRThreadCount BaseCpuEngine::CalcMemOpThreads() {
   return std::max(1ui32, std::min(CalcCompThreads(), 5ui32));
 }
 
-BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef)
-  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular),
-  _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)),
-  _tpWorkers(CalcCompThreads()), _nMemOpThreads(CalcMemOpThreads())
+BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize)
+  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular), _pLogger(SRDefaultLogger::Get()), 
+  _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)), _tpWorkers(CalcCompThreads(), workerStackSize),
+  _nMemOpThreads(CalcMemOpThreads())
 {
 }
 
