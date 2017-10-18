@@ -78,6 +78,9 @@ public:
   constexpr static size_t GetPaddedBytes(const size_t nUnpaddedBytes) {
     return (nUnpaddedBytes + _cByteMask) & (~_cByteMask);
   }
+  constexpr static void* AlignPtr(void *p) {
+    return reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(p) + _cByteMask) & (~_cByteMask));
+  }
 
   template<size_t taItemSize> constexpr static size_t PaddedBytesFromItems(const size_t nItems) {
     return GetPaddedBytes(nItems * taItemSize);

@@ -19,17 +19,12 @@ template<typename taNumber> class CEEvalQsTask : public CEBaseTask {
 
   const CEQuiz<taNumber> *const _pQuiz;
   taNumber *const _pRunLength;
-  uint8_t *const _pPosteriors;
-  AnswerMetrics<taNumber> *const _pAnswerMetrics;
-  size_t _threadPosteriorBytes;
   const TPqaId _nValidTargets;
 
 public: // methods
   explicit inline CEEvalQsTask(CpuEngine<taNumber> &engine, const CEQuiz<taNumber> &quiz, const TPqaId nValidTargets,
-    taNumber *pRunLength, uint8_t *const pPosteriors, const size_t threadPosteriorBytes,
-    AnswerMetrics<taNumber> *const pAnswerMetrics)
-    : CEBaseTask(engine), _pQuiz(&quiz), _nValidTargets(nValidTargets), _pRunLength(pRunLength),
-    _pPosteriors(pPosteriors), _threadPosteriorBytes(threadPosteriorBytes), _pAnswerMetrics(pAnswerMetrics)
+    taNumber *pRunLength)
+    : CEBaseTask(engine), _pQuiz(&quiz), _nValidTargets(nValidTargets), _pRunLength(pRunLength)
   { }
 
   const CEQuiz<taNumber>& GetQuiz() const { return *_pQuiz; }

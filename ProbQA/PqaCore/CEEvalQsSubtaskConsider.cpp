@@ -21,12 +21,13 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
-  auto *PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
-  __m256d *PTR_RESTRICT pPosteriors = SRCast::Ptr<__m256d>(task._pPosteriors + task._threadPosteriorBytes * _iWorker);
+  const TPqaId nTargets = engine.GetDims()._nTargets;
+  const TPqaId nTargVects = SRMath::RShiftRoundUp(nTargets, SRSimd::_cLogNComps64);
   const TPqaId nAnswers = engine.GetDims()._nAnswers;
-  AnswerMetrics<SRDoubleNumber> *PTR_RESTRICT pAnsMet = task._pAnswerMetrics + _iWorker * nAnswers;
+  auto *PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
+  auto *PTR_RESTRICT pPosteriors = SR_STACK_ALLOC_ALIGN(__m256d, nTargVects);
+  auto *PTR_RESTRICT pAnsMet = SR_STACK_ALLOC(AnswerMetrics<SRDoubleNumber>, nAnswers);
 
-  const TPqaId nTargVects = SRMath::RShiftRoundUp(engine.GetDims()._nTargets, SRSimd::_cLogNComps64);
   SRAccumulator<SRDoubleNumber> accRunLength(SRDoubleNumber(0.0));
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     if (engine.GetQuestionGaps().IsGap(i) || SRBitHelper::Test(quiz.GetQAsked(), i)) {

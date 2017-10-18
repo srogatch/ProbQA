@@ -28,7 +28,8 @@ template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(cons
   const TPqaId nTargets = engDef._dims._nTargets;
   const TPqaId nAnswers = engDef._dims._nAnswers;
   const size_t szNextQuestion = SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets) * nAnswers
-    + ((nAnswers * (nAnswers - 1)) >> 1) * CEEvalQsSubtaskConsider<taNumber>::_cAccumVectSize;
+    + ((nAnswers * (nAnswers - 1)) >> 1) * CEEvalQsSubtaskConsider<taNumber>::_cAccumVectSize
+    + nAnswers * sizeof(AnswerMetrics<taNumber>);
 
   return std::max({szNextQuestion});
 }
@@ -445,27 +446,15 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     mtCommon);
   const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
   const SRMemItem<taNumber> miRunLength(_dims._nQuestions, SRMemPadding::Both, mtCommon);
+  const SRMemItem<taNumber> miGrandTotals(nWorkers, SRMemPadding::Both, mtCommon);
 
-  // The shared block for CEEvalQsSubtaskConsider
-  SRMemTotal mtEval(mtCommon);
-  const size_t threadPosteriorBytes = SRSimd::GetPaddedBytes(sizeof(taNumber) * _dims._nTargets) * _dims._nAnswers;
-  const SRByteMem miPosteriors(nWorkers * threadPosteriorBytes, SRMemPadding::Both, mtEval);
-  const SRMemItem<AnswerMetrics<taNumber>> miAnswerMetrics(nWorkers * _dims._nAnswers, SRMemPadding::None, mtEval);
-
-  // The shared block for binary search over the run length.
-  SRMemTotal mtDichotomy(mtCommon);
-  const SRMemItem<taNumber> miGrandTotals(nWorkers, SRMemPadding::Both, mtDichotomy);
-
-  const size_t totalBytes = std::max(mtEval._nBytes, mtDichotomy._nBytes);
-  SRSmartMPP<uint8_t> commonBuf(_memPool, totalBytes);
-
+  SRSmartMPP<uint8_t> commonBuf(_memPool, mtCommon._nBytes);
   SRPoolRunner pr(_tpWorkers, miSubtasks.BytePtr(commonBuf));
 
   TPqaId selQuestion;
   do {
     CEEvalQsTask<taNumber> evalQsTask(*this, *pQuiz, _dims._nTargets - _targetGaps.GetNGaps(),
-      miRunLength.Ptr(commonBuf), miPosteriors.BytePtr(commonBuf), threadPosteriorBytes, miAnswerMetrics.Ptr(commonBuf)
-    );
+      miRunLength.Ptr(commonBuf));
     // Although there are no more subtasks which would use this split, it will be used for run-length analysis.
     const SRPoolRunner::Split questionSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), _dims._nQuestions,
       nWorkers);

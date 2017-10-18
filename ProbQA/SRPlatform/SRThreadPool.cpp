@@ -56,7 +56,12 @@ void SRThreadPool::LaunchThreads() {
   assert(!_shutdownRequested);
   for (size_t i = 0; i < _nWorkers; i++) {
     // Use WinAPI threads in order to be able to set the stack size
-    _pRd->_workers[i] = CreateThread(nullptr, _stackSize, &RareData::PlatformEntry, this, 0, nullptr);
+    HANDLE hThread = CreateThread(nullptr, _stackSize, &RareData::PlatformEntry, this, 0, nullptr);
+    if (hThread == nullptr) {
+      SR_LOG_WINFAIL_GLE(Critical, GetLogger());
+      SRUtils::ExitProgram(SRExitCode::ThreadPoolCritical);
+    }
+    _pRd->_workers[i] = hThread;
   }
 }
 

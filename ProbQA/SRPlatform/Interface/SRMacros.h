@@ -35,3 +35,7 @@
 // Cast for *printf format
 #define CASTF_HU(var) static_cast<unsigned short>(var)
 #define CASTF_DU(var) static_cast<unsigned int>(var)
+
+#define SR_STACK_ALLOC(typeVar, countVar) static_cast<typeVar*>(_alloca(sizeof(typeVar) * (countVar)))
+#define SR_STACK_ALLOC_ALIGN(typeVar, countVar) \
+  static_cast<typeVar*>(SRSimd::AlignPtr(_alloca(sizeof(typeVar) * (countVar) + SRSimd::_cByteMask)))
