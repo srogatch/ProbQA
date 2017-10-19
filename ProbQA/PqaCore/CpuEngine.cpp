@@ -28,7 +28,7 @@ template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(cons
   const TPqaId nTargets = engDef._dims._nTargets;
   const TPqaId nAnswers = engDef._dims._nAnswers;
   const size_t szNextQuestion = SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets) * nAnswers
-    + ((nAnswers * (nAnswers - 1)) >> 1) * CEEvalQsSubtaskConsider<taNumber>::_cAccumVectSize
+    + CEEvalQsSubtaskConsider<taNumber>::CalcPairDistTriangleBytes(nAnswers)
     + nAnswers * sizeof(AnswerMetrics<taNumber>);
 
   return std::max({szNextQuestion});
@@ -472,12 +472,13 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       pGrandTotals[i] = accTotG.Get();
       //TODO: for performance reasons this check should be moved to subtasks, but here it checks consistency better
       if (!pGrandTotals[i].IsFinite()) {
-        CELOG(Error) << SR_FILE_LINE << "Overflow or underflow has happened in the question evaluation subtasks.";
+        CELOG(Error) << SR_FILE_LINE << "Overflow or underflow has happened in the question evaluation subtasks: "
+          << pGrandTotals[i].ToAmount();
       }
     }
     const taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
     if (totG <= SRAmount(0)) {
-      CELOG(Warning) << SR_FILE_LINE << "Grand grand total is " << totG.ToAmount();
+      CELOG(Warning) << SR_FILE_LINE << "Grand-grand total is " << totG.ToAmount();
     }
     const taNumber selRunLen = taNumber::MakeRandom(totG, SRFastRandom::ThreadLocal());
     const SRThreadCount iWorker = static_cast<SRThreadCount>(

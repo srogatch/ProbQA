@@ -11,22 +11,80 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+template<typename taNumber> TPqaId CEEvalQsSubtaskConsider<taNumber>::CalcPairDistTriangleItems(const TPqaId nAnswers) {
+  return (nAnswers * (nAnswers - 1)) >> 1;
+}
+
+template<typename taNumber> size_t CEEvalQsSubtaskConsider<taNumber>::CalcPairDistTriangleBytes(const TPqaId nAnswers) {
+  return CalcPairDistTriangleItems(nAnswers) * _cAccumVectSize;
+}
+
 template class CEEvalQsSubtaskConsider<SRDoubleNumber>;
 
 #define LOCLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, engine.GetLogger())
 
 template<> const size_t CEEvalQsSubtaskConsider<SRDoubleNumber>::_cAccumVectSize = sizeof(SRAccumVectDbl256);
 
+namespace {
+
+class ContextDouble {
+  __m256d *PTR_RESTRICT const _pPosteriors;
+  SRAccumVectDbl256 *PTR_RESTRICT const _pPairDist;
+
+  TPqaId CalcAccCount() const {
+    return CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcPairDistTriangleItems(_nAnswers);
+  }
+public:
+  const TPqaId _nTargVects;
+  const TPqaId _nAnswers;
+
+public:
+  explicit ContextDouble(__m256d *PTR_RESTRICT pPosteriors, SRAccumVectDbl256 *pPairDist, const TPqaId nAnswers,
+    const TPqaId nTargVects) : _pPosteriors(pPosteriors), _pPairDist(pPairDist), _nAnswers(nAnswers),
+    _nTargVects(nTargVects)
+  {
+    const TPqaId nAccs = CalcAccCount();
+    for (TPqaId i = 0; i < nAccs; i++) {
+      new(static_cast<void*>(_pPairDist + i)) SRAccumVectDbl256();
+    }
+  }
+  ~ContextDouble() {
+    const TPqaId nAccs = CalcAccCount();
+    for (TPqaId i = 0; i < nAccs; i++) {
+      _pPairDist[i].~SRAccumVectDbl256();
+    }
+  }
+
+  void ResetAccs() {
+    const TPqaId nAccs = CalcAccCount();
+    for (TPqaId i = 0; i < nAccs; i++) {
+      _pPairDist[i].Reset();
+    }
+  }
+
+  ATTR_NOALIAS __m256d &PTR_RESTRICT ModPosterior(const TPqaId iAnswer, const TPqaId iTargVect) {
+    return _pPosteriors[iAnswer*_nTargVects + iTargVect];
+  }
+
+  ATTR_NOALIAS SRAccumVectDbl256 &PTR_RESTRICT ModPairDist(const TPqaId iSmAns, const TPqaId iGtAns) {
+    assert(iSmAns < iGtAns);
+    assert(iGtAns >= 1);
+    return _pPairDist[CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcPairDistTriangleItems(iGtAns) + iSmAns];
+  }
+};
+
+} // anonymous namespace
+
 template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
-  const TPqaId nTargets = engine.GetDims()._nTargets;
-  const TPqaId nTargVects = SRMath::RShiftRoundUp(nTargets, SRSimd::_cLogNComps64);
   const TPqaId nAnswers = engine.GetDims()._nAnswers;
+  const TPqaId nTargVects = SRMath::RShiftRoundUp(engine.GetDims()._nTargets, SRSimd::_cLogNComps64);
   auto *PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
-  auto *PTR_RESTRICT pPosteriors = SR_STACK_ALLOC_ALIGN(__m256d, nTargVects);
   auto *PTR_RESTRICT pAnsMet = SR_STACK_ALLOC(AnswerMetrics<SRDoubleNumber>, nAnswers);
+  ContextDouble ctx(SR_STACK_ALLOC_ALIGN(__m256d, nTargVects * nAnswers),
+    SR_STACK_ALLOC_ALIGN(SRAccumVectDbl256, CalcPairDistTriangleItems(nAnswers)), nAnswers, nTargVects);
 
   SRAccumulator<SRDoubleNumber> accRunLength(SRDoubleNumber(0.0));
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
@@ -35,18 +93,19 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       task._pRunLength[i] = accRunLength.Get();
       continue;
     }
+    ctx.ResetAccs();
     SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
-    for (TPqaId k = 0; k < nAnswers; k++) {
+    for (TPqaId k = 0; k < ctx._nAnswers; k++) {
       SRAccumVectDbl256 accVect;
       const __m256d *psAik = SRCast::CPtr<__m256d>(&engine.GetA(i, k, 0));
       const __m256d *pmDi = SRCast::CPtr<__m256d>(&engine.GetD(i, 0));
-      for (TPqaId j = 0; j < nTargVects; j++) {
+      for (TPqaId j = 0; j < ctx._nTargVects; j++) {
         const __m256d Pr_Qi_eq_k_given_Tj = _mm256_div_pd(SRSimd::Load<false>(psAik+j), SRSimd::Load<false>(pmDi+j));
         const __m256d likelihood = _mm256_mul_pd(Pr_Qi_eq_k_given_Tj, SRSimd::Load<false>(pPriors + j));
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
         const __m256d maskedLH = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), likelihood);
-        SRSimd::Store<false>(pPosteriors + j, maskedLH);
+        SRSimd::Store<false>(&(ctx.ModPosterior(k, j)), maskedLH);
         accVect.Add(maskedLH);
       }
       const double Wk = accVect.PreciseSum();
@@ -55,11 +114,17 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const __m256d vWk = _mm256_set1_pd(Wk);
 
       accVect.Reset(); // reuse for entropy summation
-      SRAccumVectDbl256 accDist;
-      for (TPqaId j = 0; j < nTargVects; j++) {
-        const __m256d posteriors = _mm256_div_pd(SRSimd::Load<false>(pPosteriors + j), vWk);
-        const __m256d priors = SRSimd::Load<false>(pPriors + j);
+      for (TPqaId j = 0; j < ctx._nTargVects; j++) {
+        // So far there are likelihoods stored, rather than probabilities
+        __m256d *pPostLH = &(ctx.ModPosterior(k, j));
+        // Normalize to probabilities
+        const __m256d posteriors = _mm256_div_pd(SRSimd::Load<false>(pPostLH), vWk);
+        // Store for computing distances in the passes over subsequent answers (if current answer is not the last)
+        if (k + 1 < nAnswers) { //TODO: confirm proper branch prediction here
+          SRSimd::Store<false>(pPostLH, posteriors);
+        }
 
+        //TODO: remove if entropy is not needed
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
 
@@ -68,22 +133,43 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256d maskedHikj = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), Hikj);
         accVect.Add(maskedHikj);
 
-        const __m256d diff = _mm256_sub_pd(posteriors, priors);
-        // Operations should be faster if components are zero, so zero them out early.
-        const __m256d maskedDiff = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), diff);
-        const __m256d square = _mm256_mul_pd(maskedDiff, maskedDiff);
-        accDist.Add(square);
+        for (TPqaId t = 0; t < k; t++) {
+          // Gaps must have been masked out
+          const __m256d fellowPost = SRSimd::Load<false>(&(ctx.ModPosterior(t, j)));
+          const __m256d diff = _mm256_sub_pd(posteriors, fellowPost);
+          const __m256d square = _mm256_mul_pd(diff, diff);
+          ctx.ModPairDist(t, k).Add(square);
+        }
       }
-      double sumDist2;
-      const double entropyHik = -accVect.PairSum(accDist, sumDist2);
+      const double entropyHik = -accVect.PreciseSum();
       pAnsMet[k]._entropy.SetValue(entropyHik);
-      //Store without computing the square root, therefore it's a square of distance
-      pAnsMet[k]._distance.SetValue(sumDist2);
     }
     const double totW = accTotW.Get().GetValue();
-    //TODO: investigate why this happens
     if (std::fabs(totW - 1.0) > 1e-3) {
       LOCLOG(Warning) << SR_FILE_LINE "The sum of answer weights is " << totW;
+    }
+
+    const double totW2 = totW * totW;
+    //TODO: vectorize - calculate accumulator sums in quads, and calculate 4 square roots at once
+    for (TPqaId k = 0; k < ctx._nAnswers; k++) {
+      SRAccumulator<SRDoubleNumber> accD(SRDoubleNumber(0.0));
+      for (TPqaId t = 0; t < k; t++) {
+        const double dist2 = ctx.ModPairDist(t, k).PreciseSum();
+        if (dist2 > 2) {
+          printf("x%lfx", dist2);
+        }
+        const double dist = std::sqrt(dist2);
+        accD.Add(SRDoubleNumber::FromDouble(dist * pAnsMet[t]._weight.GetValue()));
+      }
+      for (TPqaId t = k + 1; t < ctx._nAnswers; t++) {
+        const double dist2 = ctx.ModPairDist(k, t).PreciseSum();
+        if (dist2 > 2) {
+          printf("x%lfx", dist2);
+        }
+        const double dist = std::sqrt(dist2);
+        accD.Add(SRDoubleNumber::FromDouble(dist * pAnsMet[t]._weight.GetValue()));
+      }
+      pAnsMet[k]._distance.SetValue(accD.Get().GetValue() / totW2);
     }
 
     SRAccumVectDbl256 accAvgH; // average entropy over all answer options
@@ -96,11 +182,9 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   pAnsMet[baseVar].metricVar.GetValue())
 
     for (TPqaId k = 0; k < nVectorized; k += SRSimd::_cNComps64) {
-      const __m256d curD2 = EASY_SET(_distance, k);
+      const __m256d curD = EASY_SET(_distance, k);
       const __m256d curW = EASY_SET(_weight, k);
       const __m256d curH = EASY_SET(_entropy, k);
-      // Because pAnsMet[k]._distance contains the square distance, compute the square root here.
-      const __m256d curD = _mm256_sqrt_pd(curD2);
       const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
       const __m256d weightedDistance = _mm256_mul_pd(curW, curD);
       accAvgH.Add(weightedEntropy);
@@ -111,9 +195,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     for (TPqaId k = nVectorized; k < nAnswers; k++) {
       const __m128d weight = _mm_set1_pd(pAnsMet[k]._weight.GetValue());
-      // Because pAnsMet[k]._distance contains the square distance, compute the square root here.
-      const double distance = std::sqrt(pAnsMet[k]._distance.GetValue());
-      const __m128d metrics = _mm_set_pd(distance, pAnsMet[k]._entropy.GetValue());
+      const __m128d metrics = _mm_set_pd(pAnsMet[k]._distance.GetValue(), pAnsMet[k]._entropy.GetValue());
       const __m128d product = _mm_mul_pd(weight, metrics);
       //TODO: vectorize
       accAvgH.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[0]);
@@ -126,33 +208,23 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     averages = _mm_div_pd(averages, vTotW);
 
     constexpr double cMaxExp = 664; //Don't call exp(x) for x>cMaxExp
-    constexpr double cSqrt2 = 1.4142135623730950488016887242097; // std::sqrt(2.0)
-    // Divide by cSqrt2 if using first-degree distance.
-    constexpr double cExpMul = cMaxExp / 1.1892071150027210667174999705605; // std::pow(2.0, 0.25)
+    constexpr double cMaxD = 0.5 * SRMath::_cSqrt2;
+    constexpr double cExpMul = cMaxExp / cMaxD;
 
     // The average entropy over all answers for this question
     const double avgH = averages.m128d_f64[0];
     const double nExpectedTargets = std::exp2(avgH);
-    constexpr double epsET = 1.0; // 1e-9
+    constexpr double epsET = 1.0;
     const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
 
     // The average of the square of distance over all answers for this question.
     const double avgD = averages.m128d_f64[1];
-    if (avgD > cSqrt2) {
+    if (avgD > cMaxD) {
       LOCLOG(Warning) << SR_FILE_LINE "Got avgD=" << avgD;
     }
-    const double stableDist = std::sqrt(avgD);
-    //constexpr double epsD = 1e-100;
-    //const double stableDist = ((avgD <= epsD) ? epsD : avgD);
-    //const double squareDist = stableDist * stableDist;
-    //const double scaledDist = avgD * 1e20;
-    //constexpr double epsD = 1e-20;
-    //const double stableDist = ((scaledDist <= epsD) ? epsD : scaledDist);
-
-    //FIXME: growth of distance polynomial degree has the opposite effects for D<1 and D>1.
-    //TODO: devise a function which has consistent effects
-    //const double priority = squareDist * squareDist / stableET * stableET;
-    //accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
+    //const double stableDist = std::sqrt(avgD);
+    constexpr double epsD = 1e-200;
+    const double stableDist = ((avgD <= epsD) ? epsD : avgD);
 
     const double priority = std::expm1(cExpMul * stableDist / stableET);
     accRunLength.Add(SRDoubleNumber::FromDouble(priority));

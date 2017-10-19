@@ -19,6 +19,8 @@ SRPLATFORM_API ATTR_NOALIAS double __fastcall SRLog2MulD(const double toLog, con
 
 class SRMath {
 public:
+  static constexpr double _cSqrt2 = 1.4142135623730950488016887242097;
+
   // Works for non-negative only, and doesn't handle |factor==0| .
   template<typename T> static T RoundUpToFactor(const T num, const T factor) {
     const T a = num + factor - 1;

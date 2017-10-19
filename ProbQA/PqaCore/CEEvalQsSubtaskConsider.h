@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../PqaCore/CEEvalQsTask.fwd.h"
+#include "../PqaCore/Interface/PqaCommon.h"
 
 namespace ProbQA {
 
@@ -16,6 +17,8 @@ public: // constants
   static const size_t _cAccumVectSize;
 
 public: // methods
+  static TPqaId CalcPairDistTriangleItems(const TPqaId nAnswers);
+  static size_t CalcPairDistTriangleBytes(const TPqaId nAnswers);
   using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };
