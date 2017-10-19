@@ -57,6 +57,7 @@ int __cdecl main() {
       sumQuizLens = 0;
     }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
+    volatile TPqaId dbgGuess = guess;
     const TPqaId iQuiz = pEngine->StartQuiz(err);
     if (!err.IsOk() || iQuiz == cInvalidPqaId) {
       fprintf(stderr, "Failed to create a quiz.\n");

@@ -28,6 +28,11 @@ template<> const size_t CEEvalQsSubtaskConsider<SRDoubleNumber>::_cAccumVectSize
 namespace {
 
 class ContextDouble {
+public: // constants
+  static constexpr int32_t _mLog2probEps = 960;
+  static const __m256d _probEps;
+
+private:
   __m256d *PTR_RESTRICT const _pPosteriors;
   SRAccumVectDbl256 *PTR_RESTRICT const _pPairDist;
 
@@ -72,6 +77,8 @@ public:
     return _pPairDist[CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcPairDistTriangleItems(iGtAns) + iSmAns];
   }
 };
+
+const __m256d ContextDouble::_probEps = _mm256_set1_pd(std::ldexp(1.0, -_mLog2probEps));
 
 } // anonymous namespace
 
@@ -127,19 +134,24 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         }
 
         //TODO: remove if entropy is not needed
-        //const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
-        //const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
+        const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
+        const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
 
         // Calculate negated entropy component: negated self-information multiplied by probability of its event.
-        //const __m256d Hikj = _mm256_mul_pd(posteriors, SRVectMath::Log2Hot(posteriors));
-        //const __m256d maskedHikj = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), Hikj);
-        //accVect.Add(maskedHikj);
+        const __m256d Hikj = _mm256_mul_pd(posteriors, SRVectMath::Log2Hot(posteriors));
+        const __m256d maskedHikj = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), Hikj);
+        accVect.Add(maskedHikj);
 
         for (TPqaId t = 0; t < k; t++) {
           // Gaps must have been masked out
           const __m256d *PTR_RESTRICT pFellowPost = &(ctx.ModPosterior(t, j));
           const __m256d fellowPost = SRSimd::Load<true>(pFellowPost);
-          const __m256d diff = _mm256_sub_pd(posteriors, fellowPost);
+          const __m256d minProbs = _mm256_max_pd(_mm256_min_pd(posteriors, fellowPost), ContextDouble::_probEps);
+          const __m256d maxProbs = _mm256_max_pd(posteriors, fellowPost);
+          const __m256d ratio = _mm256_div_pd(maxProbs, minProbs);
+          const __m256d diff = SRVectMath::Log2Hot(ratio);
+          //TODO: instead replace by a log(max divided by min) ?
+          //const __m256d diff = _mm256_sub_pd(posteriors, fellowPost);
           const __m256d square = _mm256_mul_pd(diff, diff);
           //TODO: profiler shows this as the bottleneck (42%)
           ctx.ModPairDist(t, k).Add(square);
@@ -158,22 +170,16 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       SRAccumulator<SRDoubleNumber> accD(SRDoubleNumber(0.0));
       for (TPqaId t = 0; t < k; t++) {
         const double dist2 = ctx.ModPairDist(t, k).PreciseSum();
-        if (dist2 > 2) {
-          printf("x%lfx", dist2);
-        }
         const double dist = std::sqrt(dist2);
-        accD.Add(SRDoubleNumber::FromDouble(dist * pAnsMets[t]._weight.GetValue()));
+        accD.Add(SRDoubleNumber::FromDouble(dist /* * pAnsMets[t]._weight.GetValue()*/));
       }
       for (TPqaId t = k + 1; t < ctx._nAnswers; t++) {
         const double dist2 = ctx.ModPairDist(k, t).PreciseSum();
-        if (dist2 > 2) {
-          printf("x%lfx", dist2);
-        }
         const double dist = std::sqrt(dist2);
-        accD.Add(SRDoubleNumber::FromDouble(dist * pAnsMets[t]._weight.GetValue()));
+        accD.Add(SRDoubleNumber::FromDouble(dist /* * pAnsMets[t]._weight.GetValue()*/));
       }
       //TODO: any normalization by totW here?
-      pAnsMets[k]._distance.SetValue(accD.Get().GetValue());
+      pAnsMets[k]._distance.SetValue(accD.Get().GetValue() / ctx._nAnswers);
     }
 
     SRAccumVectDbl256 accAvgH; // average entropy over all answer options
@@ -188,10 +194,10 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     for (TPqaId k = 0; k < nVectorized; k += SRSimd::_cNComps64) {
       const __m256d curD = EASY_SET(_distance, k);
       const __m256d curW = EASY_SET(_weight, k);
-      //const __m256d curH = EASY_SET(_entropy, k);
-      //const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
+      const __m256d curH = EASY_SET(_entropy, k);
+      const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
       const __m256d weightedDistance = _mm256_mul_pd(curW, curD);
-      //accAvgH.Add(weightedEntropy);
+      accAvgH.Add(weightedEntropy);
       accAvgD.Add(weightedDistance);
     }
 
@@ -201,25 +207,26 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const __m128d weight = _mm_set1_pd(pAnsMets[k]._weight.GetValue());
       const __m128d metrics = _mm_set_pd(pAnsMets[k]._distance.GetValue(), pAnsMets[k]._entropy.GetValue());
       const __m128d product = _mm_mul_pd(weight, metrics);
+      const SRVectCompCount iComp = static_cast<SRVectCompCount>(k - nVectorized);
       //TODO: vectorize
-      accAvgH.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[0]);
-      accAvgD.Add(SRVectCompCount(k - nVectorized), product.m128d_f64[1]);
+      accAvgH.Add(iComp, product.m128d_f64[0]);
+      accAvgD.Add(iComp, product.m128d_f64[1]);
     }
 
     __m128d averages;
     averages.m128d_f64[0] = accAvgH.PairSum(accAvgD, averages.m128d_f64[1]);
-    const __m128d vTotW = _mm_set1_pd(totW);
-    averages = _mm_div_pd(averages, vTotW);
+    const __m128d normalizer = _mm_set_pd(totW /* *totW */, totW);
+    averages = _mm_div_pd(averages, normalizer);
 
     constexpr double cMaxExp = 664; //Don't call exp(x) for x>cMaxExp
-    constexpr double cMaxD = SRMath::_cSqrt2;
+    constexpr double cMaxD = SRMath::_cSqrt2 * ContextDouble::_mLog2probEps;
     constexpr double cExpMul = cMaxExp / cMaxD;
 
     // The average entropy over all answers for this question
     const double avgH = averages.m128d_f64[0];
     const double nExpectedTargets = std::exp2(avgH);
     constexpr double epsET = 1.0;
-    const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
+    volatile const double stableET = ((nExpectedTargets <= epsET) ? epsET : nExpectedTargets);
 
     // The average of the square of distance over all answers for this question.
     const double avgD = averages.m128d_f64[1];
@@ -228,10 +235,10 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       LOCLOG(Warning) << SR_FILE_LINE "Got avgD=" << avgD;
     }
     //const double stableDist = std::sqrt(avgD);
-    constexpr double epsD = 1e-200;
-    const double stableDist = ((avgD <= epsD) ? epsD : avgD);
+    constexpr double epsD = 1e-256;
+    volatile const double stableDist = ((avgD <= epsD) ? epsD : avgD);
 
-    const double priority = std::expm1(cExpMul * stableDist /* / stableET */);
+    volatile const double priority = std::expm1(cExpMul * stableDist) / stableET;
     accRunLength.Add(SRDoubleNumber::FromDouble(priority));
 
     task._pRunLength[i] = accRunLength.Get();
