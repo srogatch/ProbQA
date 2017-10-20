@@ -26,6 +26,9 @@ class SRPLATFORM_API SRVectMath {
   static bool _isInitialized;
 
   static bool Initialize();
+public: // constants
+  static const __m256d _cdOne256; // 1.0
+
 public:
   // For x<=0, a number smaller than -1023 is returned.
   static __m256d __vectorcall Log2Cold(const __m256d x) {

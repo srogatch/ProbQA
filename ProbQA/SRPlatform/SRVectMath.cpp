@@ -6,6 +6,7 @@
 
 namespace SRPlat {
 
+const __m256d SRVectMath::_cdOne256 = _mm256_set1_pd(1.0);
 const __m256d SRVectMath::_c2divLn2 = _mm256_set1_pd(2.8853900817779268147208156228095); // 2.0/ln(2)
 const __m256d SRVectMath::_cDoubleNotExp = _mm256_castsi256_pd(_mm256_set1_epi64x(
   ~(SRNumTraits<double>::_cExponentMaskUp)));
