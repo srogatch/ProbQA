@@ -55,6 +55,10 @@ public:
     _value += fellow._value;
     return *this;
   }
+  SRDoubleNumber& Sqr() {
+    _value *= _value;
+    return *this;
+  }
   SRDoubleNumber operator*(const int64_t fellow) const {
     SRDoubleNumber answer;
     answer._value = _value * fellow;

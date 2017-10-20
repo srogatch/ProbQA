@@ -16,6 +16,9 @@ template<typename taNumber> class CETrainOperation {
   const TPqaId _nQuestions;
   const TPqaId _iTarget;
 
+  // A method for taNumber=SRDoubleNumber only. Overload for other taNumber values.
+  void ProcessOne(const AnsweredQuestion& aq, const double twoB, const double bSquare);
+
 public:
   CETrainOperation(CpuEngine<taNumber> &engine, const TPqaId nQuestions, const AnsweredQuestion* const pAQs,
     const TPqaId iTarget, const TPqaAmount amount) : _engine(engine), _nQuestions(nQuestions), _pAQs(pAQs),

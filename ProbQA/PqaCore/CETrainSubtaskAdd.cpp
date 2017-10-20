@@ -25,6 +25,7 @@ template<> void CETrainSubtaskAdd<SRDoubleNumber>::Run() {
   const __m256d& fullAddend = cTask._numSpec._fullAddend;
   const __m256d& collAddend = cTask._numSpec._collAddend;
   do {
+    //TODO: reimplement as in CETrainOperation
     const AnsweredQuestion& aqFirst = cTask._pAQs[iLast];
     iLast = cPrev[iLast];
     if (iLast == cInvalidPqaId) {
@@ -39,6 +40,7 @@ template<> void CETrainSubtaskAdd<SRDoubleNumber>::Run() {
     }
     const AnsweredQuestion& aqSecond = cTask._pAQs[iLast];
     if (aqFirst._iQuestion == aqSecond._iQuestion) {
+      //TODO: check for equal answers too.
       // Vectorize 3 additions, with twice the amount in element #1
       __m256d sum = _mm256_set_pd(0,
         engine.GetA(aqSecond._iQuestion, aqSecond._iAnswer, cTask._iTarget).GetValue(),

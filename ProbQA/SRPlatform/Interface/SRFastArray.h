@@ -77,7 +77,7 @@ public: // methods
         _pItems = _mm_malloc(targetBytes, sizeof(__m256i));
         if (_pItems == nullptr) {
           _count = 0;
-          throw SRException(SRMessageBuilder(__FUNCTION__ " has failed to reallocate from ")(oldBytes)(" to ")
+          throw SRException(SRMessageBuilder(SR_FILE_LINE " failed to reallocate from ")(oldBytes)(" to ")
             (targetBytes)(" bytes.").GetOwnedSRString());
         }
       }
@@ -95,6 +95,8 @@ public: // methods
   }
   template<bool taFellowCD> SRFastArray& operator=(SRFastArray<taItem, taFellowCD>&& fellow) {
     if (static_cast<SRFastArrayBase*>(this) != static_cast<const SRFastArrayBase*>(&fellow)) {
+      //TODO: replicate this fix to master
+      _mm_free(_pItems);
       _pItems = fellow._pItems;
       _count = fellow._count;
       fellow._pItems = nullptr;

@@ -37,21 +37,22 @@ template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(cons
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
   : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef))
 {
-  taNumber initAmount(engDef._initAmount);
+  const taNumber init1(engDef._initAmount);
+  const taNumber initSqr = taNumber(init1).Sqr();
   //// Init cube A: A[q][ao][t] is weight for answer option |ao| for question |q| for target |t|
   _sA.resize(SRCast::ToSizeT(_dims._nQuestions));
   for (size_t i = 0, iEn= SRCast::ToSizeT(_dims._nQuestions); i < iEn; i++) {
     _sA[i].resize(SRCast::ToSizeT(_dims._nAnswers));
     for (size_t k = 0, kEn= SRCast::ToSizeT(_dims._nAnswers); k < kEn; k++) {
       _sA[i][k].Resize<false>(SRCast::ToSizeT(_dims._nTargets));
-      _sA[i][k].FillAll<false>(initAmount);
+      _sA[i][k].FillAll<false>(initSqr);
     }
   }
 
   //// Init matrix D: D[q][t] is the sum of weigths over all answers for question |q| for target |t|. In the other
   ////   words, D[q][t] is A[q][0][t] + A[q][1][t] + ... + A[q][K-1][t], where K is the number of answer options.
   //// Note that D is subject to summation errors, thus its regular recomputation is desired.
-  taNumber initMD = initAmount * _dims._nAnswers;
+  const taNumber initMD = initSqr * _dims._nAnswers;
   _mD.resize(size_t(_dims._nQuestions));
   for (size_t i = 0, iEn=size_t(_dims._nQuestions); i < iEn; i++) {
     _mD[i].Resize<false>(size_t(_dims._nTargets));
@@ -60,7 +61,7 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
 
   //// Init vector B: the sums of weights over all trainings for each target
   _vB.Resize<false>(size_t(_dims._nTargets));
-  _vB.FillAll<false>(initAmount);
+  _vB.FillAll<false>(init1);
 
   _questionGaps.GrowTo(_dims._nQuestions);
   _targetGaps.GrowTo(_dims._nTargets);
