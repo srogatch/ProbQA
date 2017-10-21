@@ -91,7 +91,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   const TPqaId nTargVects = SRMath::RShiftRoundUp(engine.GetDims()._nTargets, SRSimd::_cLogNComps64);
   auto *PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
   auto *pAnsMets = SR_STACK_ALLOC(AnswerMetrics<SRDoubleNumber>, nAnswers);
-  ContextDouble ctx(SR_STACK_ALLOC_ALIGN(__m256d, nTargVects * nAnswers),
+  ContextDouble ctx(SR_STACK_ALLOC_ALIGN(__m256d, nTargVects /* * nAnswers*/),
     SR_STACK_ALLOC_ALIGN(SRAccumVectDbl256, CalcPairDistTriangleItems(nAnswers)), nAnswers, nTargVects);
 
   SRAccumulator<SRDoubleNumber> accRunLength(SRDoubleNumber(0.0));
@@ -101,7 +101,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       task._pRunLength[i] = accRunLength.Get();
       continue;
     }
-    ctx.ResetAccs();
+    //ctx.ResetAccs();
     SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
     for (TPqaId k = 0; k < ctx._nAnswers; k++) {
       SRAccumVectDbl256 accVect;
@@ -113,7 +113,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
         const __m256d maskedLH = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), likelihood);
-        SRSimd::Store<true>(&(ctx.ModPosterior(k, j)), maskedLH);
+        SRSimd::Store<true>(&(ctx.ModPosterior(0 /*k*/, j)), maskedLH);
         //TODO: profiler shows this as the bottleneck (23%)
         accVect.Add(maskedLH);
       }
@@ -128,13 +128,13 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const bool bSavePosterior = (k + 1 != ctx._nAnswers);
       for (TPqaId j = 0; j < ctx._nTargVects; j++) {
         // So far there are likelihoods stored, rather than probabilities
-        __m256d *pPostLH = &(ctx.ModPosterior(k, j));
+        __m256d *pPostLH = &(ctx.ModPosterior(0 /*k*/, j));
         // Normalize to probabilities
         const __m256d posteriors = _mm256_mul_pd(SRSimd::Load<true>(pPostLH), invWk);
         // Store for computing distances in the passes over subsequent answers (if current answer is not the last)
-        if (bSavePosterior) { //TODO: confirm proper branch prediction here
-          SRSimd::Store<true>(pPostLH, posteriors);
-        }
+        //if (bSavePosterior) { //TODO: confirm proper branch prediction here
+        //  SRSimd::Store<true>(pPostLH, posteriors);
+        //}
 
         //TODO: remove if entropy is not needed
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
@@ -146,25 +146,25 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         accVect.Add(maskedHikj);
 
 
-        const __m256d postsGood = _mm256_cmp_pd(posteriors, ContextDouble::_probEps, _CMP_GT_OQ);
-        const __m256d invPosts = _mm256_div_pd(SRVectMath::_cdOne256, posteriors);
-        for (TPqaId t = 0; t < k; t++) {
-          // Gaps must have been masked out
-          const __m256d *pFellowPost = &(ctx.ModPosterior(t, j));
-          const __m256d fellowPost = SRSimd::Load<true>(pFellowPost);
-          
-          const __m256d fellowGood = _mm256_cmp_pd(fellowPost, ContextDouble::_probEps, _CMP_GT_OQ);
-          const __m256d allGood = _mm256_and_pd(postsGood, fellowGood);
-          const __m256d ratio = _mm256_mul_pd(fellowPost, invPosts);
+        //const __m256d postsGood = _mm256_cmp_pd(posteriors, ContextDouble::_probEps, _CMP_GT_OQ);
+        //const __m256d invPosts = _mm256_div_pd(SRVectMath::_cdOne256, posteriors);
+        //for (TPqaId t = 0; t < k; t++) {
+        //  // Gaps must have been masked out
+        //  const __m256d *pFellowPost = &(ctx.ModPosterior(t, j));
+        //  const __m256d fellowPost = SRSimd::Load<true>(pFellowPost);
+        //  
+        //  const __m256d fellowGood = _mm256_cmp_pd(fellowPost, ContextDouble::_probEps, _CMP_GT_OQ);
+        //  const __m256d allGood = _mm256_and_pd(postsGood, fellowGood);
+        //  const __m256d ratio = _mm256_mul_pd(fellowPost, invPosts);
 
-          // This gives bad result for a 0 ratio.
-          const __m256d diff = SRVectMath::Log2Hot(ratio);
+        //  // This gives bad result for a 0 ratio.
+        //  const __m256d diff = SRVectMath::Log2Hot(ratio);
 
-          const __m256d square = _mm256_mul_pd(diff, diff);
-          const __m256d goodSquare = _mm256_and_pd(allGood, square);
-          //TODO: profiler shows this as the bottleneck (42%)
-          ctx.ModPairDist(t, k).Add(goodSquare);
-        }
+        //  const __m256d square = _mm256_mul_pd(diff, diff);
+        //  const __m256d goodSquare = _mm256_and_pd(allGood, square);
+        //  //TODO: profiler shows this as the bottleneck (42%)
+        //  ctx.ModPairDist(t, k).Add(goodSquare);
+        //}
 
         const __m256d priors = SRSimd::Load<true>(pPriors + j);
         //const __m256d priorsGood = _mm256_cmp_pd(priors, ContextDouble::_probEps, _CMP_GT_OQ);
@@ -193,24 +193,24 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
 
     //TODO: vectorize - calculate accumulator sums in quads, and calculate 4 square roots at once
-    for (TPqaId k = 0; k < ctx._nAnswers; k++) {
-      SRAccumulator<SRDoubleNumber> accD(SRDoubleNumber(0.0));
-      for (TPqaId t = 0; t < k; t++) {
-        const double dist2 = ctx.ModPairDist(t, k).PreciseSum();
-        const double dist = std::sqrt(dist2);
-        accD.Add(SRDoubleNumber::FromDouble(dist * pAnsMets[t]._weight.GetValue()));
-      }
-      for (TPqaId t = k + 1; t < ctx._nAnswers; t++) {
-        const double dist2 = ctx.ModPairDist(k, t).PreciseSum();
-        const double dist = std::sqrt(dist2);
-        accD.Add(SRDoubleNumber::FromDouble(dist  * pAnsMets[t]._weight.GetValue()));
-      }
-      //TODO: any normalization by totW here?
-      pAnsMets[k]._distance.SetValue(accD.Get().GetValue() /* / ctx._nAnswers*/);
-    }
+    //for (TPqaId k = 0; k < ctx._nAnswers; k++) {
+    //  SRAccumulator<SRDoubleNumber> accD(SRDoubleNumber(0.0));
+    //  for (TPqaId t = 0; t < k; t++) {
+    //    const double dist2 = ctx.ModPairDist(t, k).PreciseSum();
+    //    const double dist = std::sqrt(dist2);
+    //    accD.Add(SRDoubleNumber::FromDouble(dist * pAnsMets[t]._weight.GetValue()));
+    //  }
+    //  for (TPqaId t = k + 1; t < ctx._nAnswers; t++) {
+    //    const double dist2 = ctx.ModPairDist(k, t).PreciseSum();
+    //    const double dist = std::sqrt(dist2);
+    //    accD.Add(SRDoubleNumber::FromDouble(dist  * pAnsMets[t]._weight.GetValue()));
+    //  }
+    //  //TODO: any normalization by totW here?
+    //  pAnsMets[k]._distance.SetValue(accD.Get().GetValue() /* / ctx._nAnswers*/);
+    //}
 
     SRAccumVectDbl256 accAvgH; // average entropy over all answer options
-    SRAccumVectDbl256 accAvgD;// average distance over all answer options
+    //SRAccumVectDbl256 accAvgD;// average distance over all answer options
     SRAccumVectDbl256 accAvgV;// average velocity over all answer options
     const TPqaId nAnswerVects = (ctx._nAnswers >> SRSimd::_cLogNComps64);
     const TPqaId nVectorized = (nAnswerVects << SRSimd::_cLogNComps64);
@@ -220,16 +220,16 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   pAnsMets[baseVar].metricVar.GetValue())
 
     for (TPqaId k = 0; k < nVectorized; k += SRSimd::_cNComps64) {
-      const __m256d curD = EASY_SET(_distance, k);
+      //const __m256d curD = EASY_SET(_distance, k);
       const __m256d curW = EASY_SET(_weight, k);
       const __m256d curH = EASY_SET(_entropy, k);
       const __m256d curV2 = EASY_SET(_velocity, k);
       const __m256d curV = _mm256_sqrt_pd(curV2);
       const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
-      const __m256d weightedDistance = _mm256_mul_pd(curW, curD);
+      //const __m256d weightedDistance = _mm256_mul_pd(curW, curD);
       const __m256d weightedVelocity = _mm256_mul_pd(curW, curV);
       accAvgH.Add(weightedEntropy);
-      accAvgD.Add(weightedDistance);
+      //accAvgD.Add(weightedDistance);
       accAvgV.Add(weightedVelocity);
     }
 
@@ -238,28 +238,28 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     for (TPqaId k = nVectorized; k < ctx._nAnswers; k++) {
       const __m256d weight = _mm256_set1_pd(pAnsMets[k]._weight.GetValue());
       const double velocity = std::sqrt(pAnsMets[k]._velocity.GetValue());
-      const __m256d metrics = _mm256_set_pd(0, velocity, pAnsMets[k]._distance.GetValue(),
+      const __m256d metrics = _mm256_set_pd(0, 0 /*pAnsMets[k]._distance.GetValue()*/, velocity,
         pAnsMets[k]._entropy.GetValue());
       const __m256d product = _mm256_mul_pd(weight, metrics);
       const SRVectCompCount iComp = static_cast<SRVectCompCount>(k - nVectorized);
       //TODO: vectorize
       accAvgH.Add(iComp, product.m256d_f64[0]);
-      accAvgD.Add(iComp, product.m256d_f64[1]);
-      accAvgV.Add(iComp, product.m256d_f64[2]);
+      accAvgV.Add(iComp, product.m256d_f64[1]);
+      //accAvgD.Add(iComp, product.m256d_f64[2]);
     }
 
     __m256d averages = _mm256_setzero_pd();
-    averages.m256d_f64[0] = accAvgH.PairSum(accAvgD, averages.m256d_f64[1]);
-    averages.m256d_f64[2] = accAvgV.PreciseSum();
-    const __m256d normalizer = _mm256_set_pd(1, totW, totW * totW, totW);
+    averages.m256d_f64[0] = accAvgH.PairSum(accAvgV, averages.m256d_f64[1]);
+    //averages.m256d_f64[2] = accAvgD.PreciseSum();
+    const __m256d normalizer = _mm256_set_pd(1, totW * totW, totW, totW);
     averages = _mm256_div_pd(averages, normalizer);
 
-    constexpr double cMaxExp = 664; //Don't call exp(x) for x>cMaxExp
-    constexpr double cMaxD = SRMath::_cSqrt2 * ContextDouble::_mLog2probEps;
+    //constexpr double cMaxExp = 664; //Don't call exp(x) for x>cMaxExp
+    //constexpr double cMaxD = SRMath::_cSqrt2 * ContextDouble::_mLog2probEps;
     //constexpr double cMaxV = SRMath::_cSqrt2 * ContextDouble::_mLog2probEps;
     constexpr double cMaxV = SRMath::_cSqrt2;
 
-    constexpr double cExpMul = cMaxExp / (cMaxV * cMaxD); // and cMaxD, if used
+    //constexpr double cExpMul = cMaxExp / (cMaxV * cMaxD); // and cMaxD, if used
 
     // The average entropy over all answers for this question
     const double avgH = averages.m256d_f64[0];
@@ -270,26 +270,29 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
 
     // The average of the square of distance over all answers for this question.
-    const double avgD = averages.m256d_f64[1];
-    if (avgD > cMaxD) {
-      printf("X%lfX", avgD);
-      LOCLOG(Warning) << SR_FILE_LINE "Got avgD=" << avgD;
-    }
+    //const double avgD = averages.m256d_f64[2];
+    //if (avgD > cMaxD) {
+    //  printf("X%lfX", avgD);
+    //  LOCLOG(Warning) << SR_FILE_LINE "Got avgD=" << avgD;
+    //}
 
-    const double avgV = averages.m256d_f64[2];
+    const double avgV = averages.m256d_f64[1];
     if (avgV > cMaxV) {
       printf("X%lfX", avgV);
       LOCLOG(Warning) << SR_FILE_LINE "Got avgV=" << avgV;
     }
 
-    double priority = 1e90 * avgD * avgV / nExpectedTargets;
+    const TPqaId stableVTs = (task._nValidTargets + 1);
+    const double epsVComp = 1.0 / stableVTs;
+    double vComp = stableVTs * avgV;
+
+    vComp = ((vComp <= epsVComp) ? epsVComp : vComp);
+    const double priority = vComp / nExpectedTargets;
     if (priority < 0) {
       printf("X%lgX", priority);
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
     }
-    constexpr double epsPriority = 1e-90;
-    priority = ((priority <= epsPriority) ? epsPriority : priority);
-    accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
+    accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority));
 
     task._pRunLength[i] = accRunLength.Get();
   }

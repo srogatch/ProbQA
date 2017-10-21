@@ -9,7 +9,7 @@ namespace ProbQA {
 template<typename taNumber> struct AnswerMetrics {
   taNumber _weight;
   taNumber _entropy;
-  taNumber _distance;
+  //taNumber _distance;
   taNumber _velocity;
 };
 

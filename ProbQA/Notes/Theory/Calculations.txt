@@ -1,0 +1,4 @@
+Min exponent: -1023
+Exponent due to subnormals: -52
+ln(2**1075) = 1075 * ln(2) = 1075 * 0.6931471805599453 = 745.1332191019411975
+So min ln(velocity) = -746
