@@ -282,17 +282,27 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       LOCLOG(Warning) << SR_FILE_LINE "Got avgV=" << avgV;
     }
 
-    const TPqaId stableVTs = (task._nValidTargets + 1);
-    const double epsVComp = 1.0 / stableVTs;
-    double vComp = stableVTs * avgV;
+    //const TPqaId stableVTs = (task._nValidTargets + 1);
+    //const double epsVComp = 1.0 / stableVTs;
+    //double vComp = stableVTs * avgV;
 
-    vComp = ((vComp <= epsVComp) ? epsVComp : vComp);
-    const double priority = vComp / nExpectedTargets;
+    //vComp = ((vComp <= epsVComp) ? epsVComp : vComp);
+    //constexpr double epsV = 1e-300;
+    //const double stableV = ((avgV <= epsV) ? epsV : avgV);
+    //const double vComp = ((avgV==0) ? 0.1 : (746 + std::log(avgV)));
+
+    // Min exponent : -1023
+    //  Exponent due to subnormals : -52
+    //  ln(2**1075) = 1075 * ln(2) = 1075 * 0.6931471805599453 = 745.1332191019411975
+    const double lnV = ((avgV == 0) ? -746 : std::log(avgV));
+    const double powVT = double(task._nValidTargets) * task._nValidTargets * task._nValidTargets;
+    const double vComp = 1 / (SRMath::_cLnSqrt2 - lnV + SRMath::_cLnSqrt2/powVT);
+    const double priority = vComp*vComp / nExpectedTargets;
     if (priority < 0) {
       printf("X%lgX", priority);
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
     }
-    accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority));
+    accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
 
     task._pRunLength[i] = accRunLength.Get();
   }
