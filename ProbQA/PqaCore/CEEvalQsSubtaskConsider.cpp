@@ -295,16 +295,16 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     //  Exponent due to subnormals : -52
     //  ln(2**1075) = 1075 * ln(2) = 1075 * 0.6931471805599453 = 745.1332191019411975
     const double lnV = ((avgV == 0) ? -746 : std::log(avgV));
-    const double powVT = double(task._nValidTargets) * task._nValidTargets * task._nValidTargets;
+    const double powVT = double(task._nValidTargets) * task._nValidTargets;
     const double vComp = 1 / (SRMath::_cLnSqrt2 - lnV + SRMath::_cLnSqrt2/powVT);
-    const double priority = vComp*vComp / nExpectedTargets;
+    const double priority = std::pow(vComp, 5) / std::pow(nExpectedTargets, 2);
     if (priority < 0) {
       printf("X%lgX", priority);
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
     }
-    accRunLength.Add(SRDoubleNumber::FromDouble(priority * priority * priority));
+    accRunLength.Add(SRDoubleNumber::FromDouble(priority));
 
-    task._pRunLength[i] = accRunLength.Get();
+    task._pRunLength[i] = accRunLength.Get(); 
   }
   //TODO: perhaps check task._pRunLength[_iLimit-1] for overflow/underflow instead of CpuEngine::NextQuestion()
 }
