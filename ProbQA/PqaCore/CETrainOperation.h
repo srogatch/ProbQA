@@ -6,26 +6,25 @@
 
 #include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/CpuEngine.fwd.h"
+#include "../PqaCore/CETrainTaskNumSpec.h"
 
 namespace ProbQA {
 
 template<typename taNumber> class CETrainOperation {
   CpuEngine<taNumber> &_engine;
-  const AnsweredQuestion* const _pAQs;
-  const TPqaAmount _amount;
-  const TPqaId _nQuestions;
+  const CETrainTaskNumSpec<taNumber>& _numSpec;
   const TPqaId _iTarget;
 
   // A method for taNumber=SRDoubleNumber only. Overload for other taNumber values.
   void ProcessOne(const AnsweredQuestion& aq, const double twoB, const double bSquare);
 
 public:
-  CETrainOperation(CpuEngine<taNumber> &engine, const TPqaId nQuestions, const AnsweredQuestion* const pAQs,
-    const TPqaId iTarget, const TPqaAmount amount) : _engine(engine), _nQuestions(nQuestions), _pAQs(pAQs),
-    _iTarget(iTarget), _amount(amount) { }
+  CETrainOperation(CpuEngine<taNumber> &engine, const TPqaId iTarget, const CETrainTaskNumSpec<taNumber>& numSpec)
+    : _engine(engine), _iTarget(iTarget), _numSpec(numSpec) { }
 
-  // Inputs must have been verified. Maintenance switch must be locked, but not reader-writer sync.
-  void Perform();
+  // Inputs must have been verified. Maintenance switch and reader-writer sync must be locked.
+  void Perform2(const AnsweredQuestion& aqFirst, const AnsweredQuestion& aqSecond);
+  void Perform1(const AnsweredQuestion& aq);
 };
 
 } // namespace ProbQA

@@ -126,15 +126,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   return PqaError();
 }
 
-template<> void CpuEngine<SRDoubleNumber>::InitTrainTaskNumSpec(CETrainTaskNumSpec<SRDoubleNumber>& numSpec,
-  const TPqaAmount amount) 
-{
-  const double dAmount = SRCast::ToDouble(amount);
-  numSpec._collAddend = numSpec._fullAddend = _mm256_set1_pd(dAmount);
-  // Colliding addend: amount is added twice to _mD[iQuestion][iTarget] .
-  numSpec._collAddend.m256d_f64[1] += dAmount;
-}
-
 template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
@@ -158,12 +149,11 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   const SRMemItem<TPqaId> miTtPrev(SRCast::ToSizeT(nQuestions), SRMemPadding::None, mtCommon);
   SRSmartMPP<uint8_t> commonBuf(_memPool, mtCommon._nBytes);
 
-  CETrainTask<taNumber> trainTask(*this, nWorkers, iTarget, pAQs);
+  CETrainTask<taNumber> trainTask(*this, nWorkers, iTarget, pAQs, amount);
   //TODO: these are slow because threads share a cache line. It's not clear yet how to workaround this: the data is not
   //  per-source thread, but rather per target thread (after distribution).
   trainTask._prev = miTtPrev.Ptr(commonBuf);
   trainTask._last = miTtLast.Ptr(commonBuf);
-  InitTrainTaskNumSpec(trainTask._numSpec, amount);
   //TODO: vectorize/parallelize
   for (size_t i = 0; i < nWorkers; i++) {
     new(trainTask._last + i) std::atomic<TPqaId>(cInvalidPqaId);
@@ -220,6 +210,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
 
     _vB[iTarget] += amount;
 
+    //TODO: why is this inside the locks?
     // This method should increase the counter of questions asked by the number of questions in this training.
     _nQuestionsAsked.fetch_add(nQuestions, std::memory_order_relaxed);
   }
@@ -437,7 +428,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     return cInvalidPqaId;
   }
 
-  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount() * 3;
+  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount() * 8;
   SRMemTotal mtCommon;
   const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value, SRMemPadding::None,
     mtCommon);
@@ -474,7 +465,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       }
     }
     const taNumber totG = pGrandTotals[questionSplit._nSubtasks - 1];
-    if (totG <= SRAmount(0)) {
+    if (totG <= TPqaAmount(0)) {
       CELOG(Warning) << SR_FILE_LINE << "Grand-grand total is " << totG.ToAmount();
     }
     const taNumber selRunLen = taNumber::MakeRandom(totG, SRFastRandom::ThreadLocal());
@@ -619,8 +610,23 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RecordQuizTarget(const
   }
 
   const std::vector<AnsweredQuestion>& answers = pQuiz->GetAnswers();
-  CETrainOperation<taNumber> trainOp(*this, answers.size(), answers.data(), iTarget, amount);
-  trainOp.Perform();
+  const CETrainTaskNumSpec<taNumber> numSpec(amount);
+  CETrainOperation<taNumber> trainOp(*this, iTarget, numSpec);
+  {
+    SRRWLock<true> rwl(_rws);
+    TPqaId i = 0;
+    const TPqaId iEn = TPqaId(answers.size()) - 1;
+    for (; i < iEn; i += 2) {
+      const AnsweredQuestion& aqFirst = answers[i];
+      const AnsweredQuestion& aqSecond = answers[i + 1];
+      trainOp.Perform2(aqFirst, aqSecond);
+    }
+    assert(TPqaId(answers.size()) - 1 <= i && i <= TPqaId(answers.size()));
+    if (i == iEn) {
+      trainOp.Perform1(answers[i]);
+    }
+    _vB[iTarget] += amount;
+  }
 
   return PqaError();
 }

@@ -44,7 +44,6 @@ private: // methods
   static size_t CalcWorkerStackSize(const EngineDefinition& engDef);
 
 #pragma region Behind Train() interface method
-  void InitTrainTaskNumSpec(CETrainTaskNumSpec<taNumber>& numSpec, const TPqaAmount amount);
   PqaError TrainInternal(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount);
 #pragma endregion

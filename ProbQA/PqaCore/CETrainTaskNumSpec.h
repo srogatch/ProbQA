@@ -4,15 +4,32 @@
 
 #pragma once
 
+#include "../PqaCore/Interface/PqaCommon.h"
+
 namespace ProbQA {
 
+//TODO: rename because it now specifies for both a parallel train task and just a sequential train operation
 // Number-specific data for CETrainTask
 template <typename taNumber> class CETrainTaskNumSpec;
 
 template<> class CETrainTaskNumSpec<SRPlat::SRDoubleNumber> {
 public: // variables
-  __m256d _fullAddend; // non-colliding (4 at once)
-  __m256d _collAddend; // colliding (3 at once)
+  double _inc2B;
+  double _incBSquare;
+  double _inc4B;
+  double _inc2BSquare;
+
+public: // methods
+
+  explicit CETrainTaskNumSpec(const TPqaAmount amount) {
+    // (a+b)**2 = a**2 + 2*a*b + b**2
+    const double b = SRPlat::SRCast::ToDouble(amount);
+    //TODO: check that optimizer uses SSE/AVX here, otherwise rewrite manually
+    _inc2B = 2 * b;
+    _inc2BSquare = b * b;
+    _inc4B = 4 * b;
+    _inc2BSquare = 4 * _inc2BSquare;
+  }
 };
 
 } // namespace ProbQA

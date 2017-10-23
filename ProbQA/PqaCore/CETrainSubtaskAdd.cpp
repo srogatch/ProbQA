@@ -6,6 +6,7 @@
 #include "../PqaCore/CETrainSubtaskAdd.h"
 #include "../PqaCore/CETrainTask.h"
 #include "../PqaCore/CpuEngine.h"
+#include "../PqaCore/CETrainOperation.h"
 
 using namespace SRPlat;
 
@@ -21,49 +22,17 @@ template<> void CETrainSubtaskAdd<SRDoubleNumber>::Run() {
     return;
   }
   const TPqaId *const cPrev = cTask._prev;
-  // Enable optimizations with const
-  const __m256d& fullAddend = cTask._numSpec._fullAddend;
-  const __m256d& collAddend = cTask._numSpec._collAddend;
+
+  CETrainOperation<SRDoubleNumber> trainOp(engine, cTask._iTarget, cTask._numSpec);
   do {
-    //TODO: reimplement as in CETrainOperation
     const AnsweredQuestion& aqFirst = cTask._pAQs[iLast];
     iLast = cPrev[iLast];
     if (iLast == cInvalidPqaId) {
-      // Use SSE2 instead of AVX here to supposedly reduce the load on the CPU core (better hyperthreading).
-      __m128d sum = _mm_set_pd(
-        engine.GetD(aqFirst._iQuestion, cTask._iTarget).GetValue(),
-        engine.GetA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).GetValue());
-      sum = _mm_add_pd(sum, _mm256_castpd256_pd128(fullAddend));
-      engine.ModA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).SetValue(sum.m128d_f64[0]);
-      engine.ModD(aqFirst._iQuestion, cTask._iTarget).SetValue(sum.m128d_f64[1]);
+      trainOp.Perform1(aqFirst);
       return;
     }
     const AnsweredQuestion& aqSecond = cTask._pAQs[iLast];
-    if (aqFirst._iQuestion == aqSecond._iQuestion) {
-      //TODO: check for equal answers too.
-      // Vectorize 3 additions, with twice the amount in element #1
-      __m256d sum = _mm256_set_pd(0,
-        engine.GetA(aqSecond._iQuestion, aqSecond._iAnswer, cTask._iTarget).GetValue(),
-        engine.GetD(aqFirst._iQuestion, cTask._iTarget).GetValue(),
-        engine.GetA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).GetValue());
-      sum = _mm256_add_pd(sum, collAddend);
-      engine.ModA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).SetValue(sum.m256d_f64[0]);
-      engine.ModD(aqFirst._iQuestion, cTask._iTarget).SetValue(sum.m256d_f64[1]);
-      engine.ModA(aqSecond._iQuestion, aqSecond._iAnswer, cTask._iTarget).SetValue(sum.m256d_f64[2]);
-    }
-    else {
-      // Finally we can vectorize all the 4 additions
-      __m256d sum = _mm256_set_pd(
-        engine.GetD(aqSecond._iQuestion, cTask._iTarget).GetValue(),
-        engine.GetA(aqSecond._iQuestion, aqSecond._iAnswer, cTask._iTarget).GetValue(),
-        engine.GetD(aqFirst._iQuestion, cTask._iTarget).GetValue(),
-        engine.GetA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).GetValue());
-      sum = _mm256_add_pd(sum, fullAddend);
-      engine.ModA(aqFirst._iQuestion, aqFirst._iAnswer, cTask._iTarget).SetValue(sum.m256d_f64[0]);
-      engine.ModD(aqFirst._iQuestion, cTask._iTarget).SetValue(sum.m256d_f64[1]);
-      engine.ModA(aqSecond._iQuestion, aqSecond._iAnswer, cTask._iTarget).SetValue(sum.m256d_f64[2]);
-      engine.ModD(aqSecond._iQuestion, cTask._iTarget).SetValue(sum.m256d_f64[3]);
-    }
+    trainOp.Perform2(aqFirst, aqSecond);
     iLast = cPrev[iLast];
   } while (iLast != cInvalidPqaId);
 }
