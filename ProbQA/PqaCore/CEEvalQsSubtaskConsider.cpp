@@ -27,7 +27,7 @@ template<> double CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcVelocityComponent
   // Exponent due to subnormals : -52
   // ln(2**1075) = 1075 * ln(2) = 1075 * 0.6931471805599453 = 745.1332191019411975
   const double lnV = ((V == 0) ? _cLn0Stab : std::log(V));
-  const double powT = double(nTargets) * nTargets * nTargets;
+  const double powT = double(nTargets) * nTargets;
   // The order of operations is important for numerical stability.
   const double vComp = 1 / (_cLnMaxV - lnV + _cLnMaxV / powT);
   return vComp;
@@ -54,27 +54,33 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
     const __m256d *const PTR_RESTRICT pmDi = SRCast::CPtr<__m256d>(&engine.GetD(i, 0));
     SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
+    SRAccumVectDbl256 accLack;
     for (TPqaId k = 0; k < nAnswers; k++) {
       SRAccumVectDbl256 accLhEnt; // For likelihood and entropy
       const __m256d *const PTR_RESTRICT psAik = SRCast::CPtr<__m256d>(&engine.GetA(i, k, 0));
       const bool isAns0 = (k == 0);
       for (TPqaId j = 0; j < nTargVects; j++) {
+        const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
+        const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
+        const __m256d priors = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), SRSimd::Load<true>(pPriors + j));
+
         __m256d invCountTotal; // mD[i][j]
         if (isAns0) {
           invCountTotal = _mm256_div_pd(SRVectMath::_cdOne256, SRSimd::Load<false>(pmDi + j));
           SRSimd::Store<true>(pInvDi + j, invCountTotal);
+          const __m256d indeterminacy = _mm256_mul_pd(invCountTotal, priors);
+          accLack.Add(indeterminacy);
         }
         else {
           invCountTotal = SRSimd::Load<true>(pInvDi + j);
         }
+
         const __m256d Pr_Qi_eq_k_given_Tj = _mm256_mul_pd(SRSimd::Load<false>(psAik+j), invCountTotal);
-        const __m256d likelihood = _mm256_mul_pd(Pr_Qi_eq_k_given_Tj, SRSimd::Load<true>(pPriors + j));
-        const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
-        const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
-        const __m256d maskedLH = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), likelihood);
-        SRSimd::Store<true>(pPosteriors + j, maskedLH);
+        const __m256d likelihood = _mm256_mul_pd(Pr_Qi_eq_k_given_Tj, priors);
+        
+        SRSimd::Store<true>(pPosteriors + j, likelihood);
         //TODO: profiler shows this as the bottleneck (23%)
-        accLhEnt.Add(maskedLH);
+        accLhEnt.Add(likelihood);
       }
       const double Wk = accLhEnt.PreciseSum();
       accTotW.Add(SRDoubleNumber::FromDouble(Wk));
@@ -124,12 +130,14 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     for (TPqaId k = 0; k < nVectorized; k += SRSimd::_cNComps64) {
       const __m256d curW = EASY_SET(_weight, k);
+      
       const __m256d curH = EASY_SET(_entropy, k);
+      const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
+      accAvgH.Add(weightedEntropy);
+
       const __m256d curV2 = EASY_SET(_velocity, k);
       const __m256d curV = _mm256_sqrt_pd(curV2);
-      const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
       const __m256d weightedVelocity = _mm256_mul_pd(curW, curV);
-      accAvgH.Add(weightedEntropy);
       accAvgV.Add(weightedVelocity);
     }
 
@@ -151,6 +159,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     const __m128d normalizer = _mm_set1_pd(totW);
     averages = _mm_div_pd(averages, normalizer);
 
+    const double avgLack = accLack.PreciseSum();
+
     // The average entropy over all answers for this question
     const double avgH = averages.m128d_f64[0];
     const double nExpectedTargets = std::exp2(avgH);
@@ -165,7 +175,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(vComp, 6) / std::pow(nExpectedTargets, 2);
+    const double priority = std::pow(avgLack, 1) * std::pow(vComp, 6) * std::pow(nExpectedTargets, -2);
 
     if (priority < 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
