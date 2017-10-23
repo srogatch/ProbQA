@@ -27,7 +27,7 @@ template<> double CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcVelocityComponent
   // Exponent due to subnormals : -52
   // ln(2**1075) = 1075 * ln(2) = 1075 * 0.6931471805599453 = 745.1332191019411975
   const double lnV = ((V == 0) ? _cLn0Stab : std::log(V));
-  const double powT = double(nTargets) * nTargets;
+  const double powT = double(nTargets) * nTargets * nTargets;
   // The order of operations is important for numerical stability.
   const double vComp = 1 / (_cLnMaxV - lnV + _cLnMaxV / powT);
   return vComp;
@@ -165,7 +165,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(vComp, 8) / std::pow(nExpectedTargets, 2);
+    const double priority = std::pow(vComp, 6) / std::pow(nExpectedTargets, 2);
 
     if (priority < 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
