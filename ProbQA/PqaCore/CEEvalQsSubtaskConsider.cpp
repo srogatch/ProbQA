@@ -11,19 +11,14 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<typename taNumber> TPqaId CEEvalQsSubtaskConsider<taNumber>::CalcPairDistTriangleItems(const TPqaId nAnswers) {
-  return (nAnswers * (nAnswers - 1)) >> 1;
-}
-
-template<typename taNumber> size_t CEEvalQsSubtaskConsider<taNumber>::CalcPairDistTriangleBytes(const TPqaId nAnswers) {
-  return CalcPairDistTriangleItems(nAnswers) * _cAccumVectSize;
+template<typename taNumber> size_t CEEvalQsSubtaskConsider<taNumber>::CalcStackReq(const EngineDefinition& engDef) {
+  return SRSimd::GetPaddedBytes(sizeof(taNumber) * engDef._dims._nTargets) * 2
+    + sizeof(AnswerMetrics<taNumber>) * engDef._dims._nAnswers;
 }
 
 template class CEEvalQsSubtaskConsider<SRDoubleNumber>;
 
 #define LOCLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, engine.GetLogger())
-
-template<> const size_t CEEvalQsSubtaskConsider<SRDoubleNumber>::_cAccumVectSize = sizeof(SRAccumVectDbl256);
 
 FLOAT_PRECISE_BEGIN
 template<> double CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcVelocityComponent(const double V,
@@ -47,6 +42,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   const TPqaId nTargVects = SRMath::RShiftRoundUp(engine.GetDims()._nTargets, SRSimd::_cLogNComps64);
   auto *const PTR_RESTRICT pPriors = SRCast::CPtr<__m256d>(quiz.GetPriorMants());
   auto *const PTR_RESTRICT pAnsMets = SR_STACK_ALLOC(AnswerMetrics<SRDoubleNumber>, nAnswers);
+  __m256d *const PTR_RESTRICT pInvDi = SR_STACK_ALLOC_ALIGN(__m256d, nTargVects);
   __m256d *const PTR_RESTRICT pPosteriors = SR_STACK_ALLOC_ALIGN(__m256d, nTargVects);
 
   SRAccumulator<SRDoubleNumber> accRunLength(SRDoubleNumber(0.0));
@@ -56,14 +52,22 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       task._pRunLength[i] = accRunLength.Get();
       continue;
     }
+    const __m256d *const PTR_RESTRICT pmDi = SRCast::CPtr<__m256d>(&engine.GetD(i, 0));
     SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
     for (TPqaId k = 0; k < nAnswers; k++) {
       SRAccumVectDbl256 accLhEnt; // For likelihood and entropy
       const __m256d *const PTR_RESTRICT psAik = SRCast::CPtr<__m256d>(&engine.GetA(i, k, 0));
-      const __m256d *const PTR_RESTRICT pmDi = SRCast::CPtr<__m256d>(&engine.GetD(i, 0));
+      const bool isAns0 = (k == 0);
       for (TPqaId j = 0; j < nTargVects; j++) {
-        const __m256d Pr_Qi_eq_k_given_Tj = _mm256_div_pd(SRSimd::Load<false>(psAik+j),
-          SRSimd::Load</* Reuse for the other answers */ true>(pmDi+j));
+        __m256d invCountTotal; // mD[i][j]
+        if (isAns0) {
+          invCountTotal = _mm256_div_pd(SRVectMath::_cdOne256, SRSimd::Load<false>(pmDi + j));
+          SRSimd::Store<true>(pInvDi + j, invCountTotal);
+        }
+        else {
+          invCountTotal = SRSimd::Load<true>(pInvDi + j);
+        }
+        const __m256d Pr_Qi_eq_k_given_Tj = _mm256_mul_pd(SRSimd::Load<false>(psAik+j), invCountTotal);
         const __m256d likelihood = _mm256_mul_pd(Pr_Qi_eq_k_given_Tj, SRSimd::Load<true>(pPriors + j));
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);

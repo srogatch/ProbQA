@@ -14,7 +14,6 @@ public: // types
   typedef CEEvalQsTask<taNumber> TTask;
 
 public: // constants
-  static const size_t _cAccumVectSize;
   static constexpr double _cMaxV = SRMath::_cSqrt2;
   static constexpr double _cLnMaxV = SRMath::_cLnSqrt2;
   static constexpr double _cLn0Stab = -746; // stabilizer for std::log(0)
@@ -23,8 +22,8 @@ private: // methods
   static double CalcVelocityComponent(const double V, const TPqaId nTargets);
 
 public: // methods
-  static TPqaId CalcPairDistTriangleItems(const TPqaId nAnswers);
-  static size_t CalcPairDistTriangleBytes(const TPqaId nAnswers);
+  static size_t CalcStackReq(const EngineDefinition& engDef);
+
   using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };

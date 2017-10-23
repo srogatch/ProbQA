@@ -25,11 +25,7 @@ namespace ProbQA {
 #define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
 
 template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(const EngineDefinition& engDef) {
-  const TPqaId nTargets = engDef._dims._nTargets;
-  const TPqaId nAnswers = engDef._dims._nAnswers;
-  const size_t szNextQuestion = SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets) * nAnswers
-    + CEEvalQsSubtaskConsider<taNumber>::CalcPairDistTriangleBytes(nAnswers)
-    + nAnswers * sizeof(AnswerMetrics<taNumber>);
+  const size_t szNextQuestion = std::max({CEEvalQsSubtaskConsider<taNumber>::CalcStackReq(engDef)});
 
   return std::max({szNextQuestion});
 }

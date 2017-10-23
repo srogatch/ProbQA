@@ -37,5 +37,8 @@
 #define CASTF_DU(var) static_cast<unsigned int>(var)
 
 #define SR_STACK_ALLOC(typeVar, countVar) static_cast<typeVar*>(_alloca(sizeof(typeVar) * (countVar)))
-#define SR_STACK_ALLOC_ALIGN(typeVar, countVar) \
-  static_cast<typeVar*>(SRSimd::AlignPtr(_alloca(sizeof(typeVar) * (countVar) + SRSimd::_cByteMask)))
+// _alloca() alignment seems 16 bytes: https://docs.microsoft.com/en-us/cpp/build/alloca . Thus we need no more than
+//  16 padding bytes to make it 32-byte aligned.
+#define SR_ALIGNED_ALLOCA_PADDING 16
+#define SR_STACK_ALLOC_ALIGN(typeVar, countVar) static_cast<typeVar*>( \
+  SRSimd::AlignPtr(_alloca(sizeof(typeVar) * (countVar) + SR_ALIGNED_ALLOCA_PADDING), SR_ALIGNED_ALLOCA_PADDING))

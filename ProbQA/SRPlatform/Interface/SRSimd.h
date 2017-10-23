@@ -7,6 +7,8 @@
 #include "../SRPlatform/Interface/SRMath.h"
 #include "../SRPlatform/Interface/SRNumTraits.h"
 #include "../SRPlatform/Interface/SRPacked64.h"
+#include "../SRPlatform/Interface/SRException.h"
+#include "../SRPlatform/Interface/SRMessageBuilder.h"
 
 namespace SRPlat {
 
@@ -78,8 +80,14 @@ public:
   constexpr static size_t GetPaddedBytes(const size_t nUnpaddedBytes) {
     return (nUnpaddedBytes + _cByteMask) & (~_cByteMask);
   }
-  constexpr static void* AlignPtr(void *p) {
-    return reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(p) + _cByteMask) & (~_cByteMask));
+  constexpr static void* AlignPtr(void *p, const size_t maxPadding) {
+    const uintptr_t upOrig = reinterpret_cast<uintptr_t>(p);
+    const uintptr_t upAligned = (upOrig + _cByteMask) & (~_cByteMask);
+    if (upAligned - upOrig > maxPadding) {
+      throw SRException(SRMessageBuilder("Insufficient max padding ")(maxPadding)(" for aligning ")(upOrig)
+        .GetOwnedSRString());
+    }
+    return reinterpret_cast<void*>(upAligned);
   }
 
   template<size_t taItemSize> constexpr static size_t PaddedBytesFromItems(const size_t nItems) {
