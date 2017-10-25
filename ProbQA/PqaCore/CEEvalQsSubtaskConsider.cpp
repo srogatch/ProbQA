@@ -98,13 +98,13 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256d maskedHikj = _mm256_andnot_pd(gapMask, Hikj);
         accLhEnt.Add(maskedHikj);
 
-        const __m256d priors = SRSimd::Load<true>(pPriors + j);
-        const __m256d diff = _mm256_sub_pd(posteriors, priors);
         // Operations should be faster if components are zero, so zero them out early.
-        const __m256d maskedDiff = _mm256_andnot_pd(gapMask, diff);
-        const __m256d goodSquare = _mm256_mul_pd(maskedDiff, maskedDiff);
+        const __m256d priors = _mm256_andnot_pd(gapMask, SRSimd::Load<true>(pPriors + j));
+        const __m256d diff = _mm256_sub_pd(posteriors, priors);
+        const __m256d square = _mm256_mul_pd(diff, diff);
+        const __m256d weighted = _mm256_mul_pd(posteriors, square);
 
-        accV.Add(goodSquare);
+        accV.Add(weighted);
       }
       double velocity;
       const double entropyHik = -accLhEnt.PairSum(accV, velocity);
@@ -170,7 +170,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(vComp, 6) * std::pow(nExpectedTargets, -2);
+    const double priority = std::pow(vComp, 8) * std::pow(nExpectedTargets, -2);
 
     if (priority < 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
