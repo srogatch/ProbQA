@@ -34,6 +34,10 @@ template<> double CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcVelocityComponent
 }
 FLOAT_PRECISE_END
 
+namespace {
+  const __m256d gcProbEps = _mm256_set1_pd(std::ldexp(1.0, -960));
+}
+
 template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
@@ -100,7 +104,12 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
         // Operations should be faster if components are zero, so zero them out early.
         const __m256d priors = _mm256_andnot_pd(gapMask, SRSimd::Load<true>(pPriors + j));
-        const __m256d diff = _mm256_sub_pd(posteriors, priors);
+        //const __m256d diff = _mm256_sub_pd(posteriors, priors);
+
+        const __m256d priorsGood = _mm256_cmp_pd(priors, gcProbEps, _CMP_GT_OQ);
+        const __m256d ratio = _mm256_div_pd(posteriors, priors);
+        const __m256d diff = _mm256_and_pd(priorsGood, SRVectMath::Log2Hot(ratio));
+
         const __m256d square = _mm256_mul_pd(diff, diff);
         const __m256d weighted = _mm256_mul_pd(posteriors, square);
 
@@ -164,11 +173,14 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
 
     const double avgV = averages.m128d_f64[1];
-    if (avgV > _cMaxV) {
-      LOCLOG(Warning) << SR_FILE_LINE "Got avgV=" << avgV;
-    }
+    //if (avgV > _cMaxV) {
+    //  LOCLOG(Warning) << SR_FILE_LINE "Got avgV=" << avgV;
+    //}
 
-    const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
+    //const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
+    const double scaledV = avgV * 1e30;
+    const double stableV = ((scaledV <= 1e-30) ? 1e-30 : scaledV);
+    const double vComp = stableV;
     //TODO: change to integer powers algorithm after best powers are found experimentally.
     const double priority = std::pow(vComp, 8) * std::pow(nExpectedTargets, -2);
 
