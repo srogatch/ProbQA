@@ -14,8 +14,8 @@ public: // types
   typedef CEEvalQsTask<taNumber> TTask;
 
 public: // constants
-  static constexpr double _cMaxV = SRMath::_cSqrt2;
-  static constexpr double _cLnMaxV = SRMath::_cLnSqrt2;
+  static constexpr double _cMaxV = 2; //SRMath::_cSqrt2;
+  static constexpr double _cLnMaxV = 0.69314718055994530941723212145818; // ln(2) //SRMath::_cLnSqrt2;
   static constexpr double _cLn0Stab = -746; // stabilizer for std::log(0)
 
 private: // methods

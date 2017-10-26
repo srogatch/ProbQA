@@ -32,6 +32,7 @@ public:
   static const __m256i _cDoubleExpMaskUp;
   static const __m256i _cDoubleExp0Up;
   static const __m256i _cDoubleExp0Down;
+  static const __m256d _cDoubleSign256;
   static const __m128i _cDoubleExpMaskDown32;
   static const __m128i _cDoubleExp0Down32;
   static const __m128d _cDoubleSign128;
@@ -235,6 +236,10 @@ public:
     const __m128i isLoGreater = _mm_cmpgt_epi64(loLane, hiLane);
     const __m128i maxes = _mm_blendv_epi8(hiLane, loLane, isLoGreater);
     return std::max(maxes.m128i_i64[0], maxes.m128i_i64[1]);
+  }
+
+  ATTR_NOALIAS static __m256d __vectorcall AbsF64(const __m256d x) {
+    return _mm256_andnot_pd(_cDoubleSign256, x);
   }
 
   // Version for infrequent calls, so to minimize cache footprint.
