@@ -26,7 +26,7 @@ template<> double CEEvalQsSubtaskConsider<SRDoubleNumber>::CalcVelocityComponent
   // Min exponent : -1023
   // Exponent due to subnormals : -52
   // ln(2**1075) = 1075 * ln(2) = 1075 * 0.6931471805599453 = 745.1332191019411975
-  const double lnV = ((V == 0) ? _cLn0Stab : std::log(V));
+  const double lnV = ((V == 0) ? _cLn0Stab : std::log2(V) /*std::log(V)*/);
   const double powT = double(nTargets) * nTargets;
   // The order of operations is important for numerical stability.
   const double vComp = 1 / (_cLnMaxV - lnV + _cLnMaxV / powT);
@@ -109,12 +109,10 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         //const __m256d priorsGood = _mm256_cmp_pd(priors, gcProbEps, _CMP_GT_OQ);
         //const __m256d ratio = _mm256_div_pd(posteriors, priors);
         //const __m256d diff = _mm256_and_pd(priorsGood, SRVectMath::Log2Hot(ratio));
+        //const __m256d absDiff = SRSimd::AbsF64(diff);
 
-        //const __m256d square = _mm256_mul_pd(diff, diff);
-        //const __m256d quart = _mm256_mul_pd(square, square);
-        const __m256d absDiff = SRSimd::AbsF64(diff);
-
-        accV.Add(absDiff);
+        const __m256d square = _mm256_mul_pd(diff, diff);
+        accV.Add(square);
       }
       double velocity;
       const double entropyHik = -accLhEnt.PairSum(accV, velocity);
@@ -142,9 +140,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const __m256d weightedEntropy = _mm256_mul_pd(curW, curH);
       accAvgH.Add(weightedEntropy);
 
-      //const __m256d curV2 = EASY_SET(_velocity, k);
-      //const __m256d curV = _mm256_sqrt_pd(curV2);
-      const __m256d curV = EASY_SET(_velocity, k);
+      const __m256d curV2 = EASY_SET(_velocity, k);
+      const __m256d curV = _mm256_sqrt_pd(curV2);
       const __m256d weightedVelocity = _mm256_mul_pd(curW, curV);
       accAvgV.Add(weightedVelocity);
     }
@@ -153,8 +150,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     for (TPqaId k = nVectorized; k < nAnswers; k++) {
       const __m128d weight = _mm_set1_pd(pAnsMets[k]._weight.GetValue());
-      //const double velocity = std::sqrt(pAnsMets[k]._velocity.GetValue());
-      const double velocity = pAnsMets[k]._velocity.GetValue();
+      const double velocity = std::sqrt(pAnsMets[k]._velocity.GetValue());
       const __m128d metrics = _mm_set_pd(velocity, pAnsMets[k]._entropy.GetValue());
       const __m128d product = _mm_mul_pd(weight, metrics);
       const SRVectCompCount iComp = static_cast<SRVectCompCount>(k - nVectorized);
@@ -185,7 +181,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     //const double stableV = ((scaledV <= 1e-200) ? 1e-200 : scaledV);
     //const double vComp = stableV;
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(vComp, 4) * std::pow(nExpectedTargets, -2);
+    const double priority = std::pow(vComp, 6) * std::pow(nExpectedTargets, -2);
 
     if (priority < 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
