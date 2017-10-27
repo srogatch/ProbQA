@@ -15,8 +15,8 @@ public: // types
 
 public: // constants
   static constexpr double _cMaxV = SRMath::_cSqrt2;
-  static constexpr double _cLnMaxV = 0.5; //SRMath::_cLnSqrt2;
-  static constexpr double _cLn0Stab = -1076; //-746; // stabilizer for std::log(0)
+  static constexpr double _cLnMaxV = SRMath::_cLnSqrt2;
+  static constexpr double _cLn0Stab = -746; // stabilizer for std::log(0)
 
 private: // methods
   static double CalcVelocityComponent(const double V, const TPqaId nTargets);
