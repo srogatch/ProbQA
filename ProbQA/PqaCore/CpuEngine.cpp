@@ -668,8 +668,20 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqa
 }
 
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* const filePath, const bool bDoubleBuffer) {
-  (void)filePath; (void)bDoubleBuffer; //TODO: remove when implemented
+template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* const filePath, const bool bDoubleBuffer)
+{
+  { //Ensure that the file is closed before returning success
+    SRSmartFile sf(fopen(filePath, "wb"));
+    if (sf.Get() == nullptr) {
+      return PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(filePath), SRString::MakeUnowned(
+        SR_FILE_LINE "Can't open the file to write KB to."));
+    }
+    MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+    SRRWLock<false> rwl(_rws);
+
+  }
+
+  (void)bDoubleBuffer; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::SaveKB")));
 }

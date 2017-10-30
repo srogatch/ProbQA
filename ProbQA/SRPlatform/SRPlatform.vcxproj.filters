@@ -225,6 +225,9 @@
     <ClInclude Include="Interface\SRAccumVectDbl256.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\SRSmartFile.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

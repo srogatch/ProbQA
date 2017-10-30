@@ -24,9 +24,9 @@ SRThreadCount BaseCpuEngine::CalcMemOpThreads() {
 }
 
 BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize)
-  : _dims(engDef._dims), _maintSwitch(MaintenanceSwitch::Mode::Regular), _pLogger(SRDefaultLogger::Get()), 
-  _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)), _tpWorkers(CalcCompThreads(), workerStackSize),
-  _nMemOpThreads(CalcMemOpThreads())
+  : _dims(engDef._dims), _precDef(engDef._prec), _maintSwitch(MaintenanceSwitch::Mode::Regular),
+  _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)),
+  _tpWorkers(CalcCompThreads(), workerStackSize), _nMemOpThreads(CalcMemOpThreads())
 {
 }
 

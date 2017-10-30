@@ -3,6 +3,7 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
+#include "../SRPlatform/Interface/SRSmartFile.h"
 #include "../SRPlatform/Interface/SRAccumVectDbl256.h"
 #include "../SRPlatform/Interface/SRStringUtils.h"
 #include "../SRPlatform/Interface/SRAccumulator.h"

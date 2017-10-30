@@ -264,6 +264,7 @@
     <ClInclude Include="Interface\SRQueue.h" />
     <ClInclude Include="Interface\SRReaderWriterSync.h" />
     <ClInclude Include="Interface\SRSimd.h" />
+    <ClInclude Include="Interface\SRSmartFile.h" />
     <ClInclude Include="Interface\SRSpinSync.h" />
     <ClInclude Include="Interface\SRStandardSubtask.h" />
     <ClInclude Include="Interface\SRString.h" />

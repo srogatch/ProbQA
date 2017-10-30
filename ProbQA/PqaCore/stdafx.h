@@ -68,6 +68,7 @@
 #include "../SRPlatform/Interface/SRPoolRunner.h"
 #include "../SRPlatform/Interface/SRReaderWriterSync.h"
 #include "../SRPlatform/Interface/SRSimd.h"
+#include "../SRPlatform/Interface/SRSmartFile.h"
 #include "../SRPlatform/Interface/SRSpinSync.h"
 #include "../SRPlatform/Interface/SRTaskWaiter.h"
 #include "../SRPlatform/Interface/SRThreadPool.h"

@@ -26,6 +26,7 @@ protected: // variables
   TMemPool _memPool; // thread-safe itself
   SRPlat::SRThreadPool _tpWorkers; // thread-safe itself
 
+  PrecisionDefinition _precDef;
   EngineDimensions _dims; // Guarded by _rws in maintenance mode. Read-only in regular mode.
   const SRPlat::SRThreadCount _nMemOpThreads;
   std::atomic<uint64_t> _nQuestionsAsked = 0;

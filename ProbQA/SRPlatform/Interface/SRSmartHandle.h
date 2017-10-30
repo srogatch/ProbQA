@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "../SRPlatform/Interface/SRMacros.h"
+#include "../SRPlatform/Interface/SRLogMacros.h"
 
 namespace SRPlat {
 
