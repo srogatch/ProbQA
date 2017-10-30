@@ -58,6 +58,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
     const __m256d *const PTR_RESTRICT pmDi = SRCast::CPtr<__m256d>(&(engine.GetD(i, 0)));
     SRAccumulator<SRDoubleNumber> accTotW(SRDoubleNumber(0.0));
+    SRAccumVectDbl256 accL;
     for (TPqaId k = 0; k < nAnswers; k++) {
       SRAccumVectDbl256 accLhEnt; // For likelihood and entropy
       const __m256d *const PTR_RESTRICT psAik = SRCast::CPtr<__m256d>(&(engine.GetA(i, k, 0)));
@@ -93,6 +94,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       for (TPqaId j = 0; j < nTargVects; j++) {
         // So far there are likelihoods stored, rather than probabilities. Normalize to probabilities.
         const __m256d posteriors = _mm256_mul_pd(SRSimd::Load<true>(pPosteriors+j), invWk);
+        const __m256d invDij = SRSimd::Load<true>(pInvDi + j);
+        accL.Add(_mm256_mul_pd(_mm256_mul_pd(invDij, invDij), posteriors));
 
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256d gapMask = _mm256_castsi256_pd(SRSimd::SetToBitQuadHot(gaps));
@@ -178,12 +181,15 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
 
     const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
 
-    //const double scaledV = avgV * 1e200;
-    //const double stableV = ((scaledV <= 1e-200) ? 1e-200 : scaledV);
+    //constexpr double epsV = 1e-30;
+    //const double scaledV = avgV / epsV;
+    //const double stableV = ((scaledV <= epsV) ? epsV : scaledV);
     //const double vComp = stableV;
 
+    const double lack = accL.PreciseSum();
+
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(vComp, 6) * std::pow(nExpectedTargets, -2);
+    const double priority = std::pow(lack, 1) * std::pow(vComp, 12) * std::pow(nExpectedTargets, -3);
 
     if (priority < 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;

@@ -117,6 +117,11 @@ public:
     const __m256d log2_x = _mm256_add_pd(log2_z, leading);
     return log2_x;
   }
+
+  //TODO: replace with precise log2(x+1) implementation
+  static __m256d __vectorcall Log2Plus1Hot(const __m256d x) {
+    return Log2Hot(_mm256_add_pd(x, _cdOne256));
+  }
 };
 
 } // namespace SRPlat

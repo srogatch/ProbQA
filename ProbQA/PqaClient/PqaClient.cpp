@@ -42,6 +42,7 @@ int __cdecl main() {
 
   int64_t nCorrect = 0;
   int64_t sumQuizLens = 0;
+  double totCertainty = 0;
   for (int64_t i = 0; i < cnTrainings; i++) {
     if (((i & 255) == 0) && (i != 0)) {
       const uint64_t totQAsked = pEngine->GetTotalQuestionsAsked(err);
@@ -51,10 +52,12 @@ int __cdecl main() {
       }
       const double precision = nCorrect * 100.0 / 256;
       printf("\n*%" PRIu64 ";%.2lf%%*", totQAsked, precision);
-      fprintf(fpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\t%lf\n", i, totQAsked, precision, double(sumQuizLens)/nCorrect);
+      fprintf(fpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\t%lf\t%lf\n", i, totQAsked, precision,
+        double(sumQuizLens)/nCorrect, totCertainty/nCorrect);
       fflush(fpProgress);
       nCorrect = 0;
       sumQuizLens = 0;
+      totCertainty = 0;
     }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     volatile TPqaId dbgGuess = guess;
@@ -116,10 +119,13 @@ int __cdecl main() {
         }
       }
       if (posInTop != cInvalidPqaId) {
+        const double certainty = rts[posInTop]._prob * 100;
         nCorrect++;
         sumQuizLens += j + 1;
-        printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop),
-          int64_t(j+1));
+        totCertainty += certainty;
+        //printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop),
+        //  int64_t(j+1));
+        printf("[G=%" PRId64 ",A=%" PRId64 ",P=%.2lf%%]", int64_t(guess), int64_t(j + 1), certainty);
         break;
       }
     }
