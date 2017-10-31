@@ -189,7 +189,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     const double lack = accL.PreciseSum();
 
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(lack, 1) * std::pow(vComp, 12) * std::pow(nExpectedTargets, -3);
+    const double priority = std::pow(lack, 1) * std::pow(vComp, 9) * std::pow(nExpectedTargets, -3);
 
     if (priority < 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
