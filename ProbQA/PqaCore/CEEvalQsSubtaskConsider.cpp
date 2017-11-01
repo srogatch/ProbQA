@@ -65,12 +65,13 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       const bool isAns0 = (k == 0);
       for (TPqaId j = 0; j < nTargVects; j++) {
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
-        const __m256i gapMask = SRSimd::SetToBitQuadHot(gaps);
-        const __m256d priors = _mm256_andnot_pd(_mm256_castsi256_pd(gapMask), SRSimd::Load<true>(pPriors + j));
+        const __m256d gapMask = _mm256_castsi256_pd(SRSimd::SetToBitQuadHot(gaps));
+        const __m256d priors = _mm256_andnot_pd(gapMask, SRSimd::Load<true>(pPriors + j));
 
         __m256d invCountTotal; // mD[i][j]
         if (isAns0) {
-          invCountTotal = _mm256_div_pd(SRVectMath::_cdOne256, SRSimd::Load<false>(pmDi + j));
+          const __m256d vDij = SRSimd::Load<false>(pmDi + j);
+          invCountTotal = _mm256_andnot_pd(gapMask, _mm256_div_pd(SRVectMath::_cdOne256, vDij));
           SRSimd::Store<true>(pInvDi + j, invCountTotal);
         }
         else {
@@ -94,19 +95,27 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       for (TPqaId j = 0; j < nTargVects; j++) {
         // So far there are likelihoods stored, rather than probabilities. Normalize to probabilities.
         const __m256d posteriors = _mm256_mul_pd(SRSimd::Load<true>(pPosteriors+j), invWk);
-        const __m256d invDij = SRSimd::Load<true>(pInvDi + j);
-        accL.Add(_mm256_mul_pd(_mm256_mul_pd(invDij, invDij), posteriors));
 
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256d gapMask = _mm256_castsi256_pd(SRSimd::SetToBitQuadHot(gaps));
 
-        // Calculate negated entropy component: negated self-information multiplied by probability of its event.
-        const __m256d Hikj = _mm256_mul_pd(posteriors, SRVectMath::Log2Hot(posteriors));
-        const __m256d maskedHikj = _mm256_andnot_pd(gapMask, Hikj);
-        accLhEnt.Add(maskedHikj);
-
         // Operations should be faster if components are zero, so zero them out early.
         const __m256d priors = _mm256_andnot_pd(gapMask, SRSimd::Load<true>(pPriors + j));
+
+        // Calculate negated entropy component: negated self-information multiplied by probability of its event.
+        const __m256d l2post = _mm256_andnot_pd(gapMask, SRVectMath::Log2Hot(posteriors));
+        //DEBUG
+        for (int8_t c = 0; c <= 3; c++) {
+          if (l2post.m256d_f64[c] > 0) {
+            __debugbreak();
+          }
+        }
+        const __m256d Hikj = _mm256_mul_pd(posteriors, l2post);
+        accLhEnt.Add(Hikj);
+
+        const __m256d invDij = SRSimd::Load<true>(pInvDi + j);
+        accL.Add(_mm256_div_pd(_mm256_mul_pd(invDij, invDij), l2post));
+
         const __m256d diff = _mm256_sub_pd(posteriors, priors);
 
         //const __m256d priorsGood = _mm256_cmp_pd(priors, gcProbEps, _CMP_GT_OQ);
@@ -186,7 +195,10 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     //const double stableV = ((scaledV <= epsV) ? epsV : scaledV);
     //const double vComp = stableV;
 
-    const double lack = accL.PreciseSum();
+    const double lack = -accL.PreciseSum();
+    if (lack < 0) {
+      LOCLOG(Warning) << SR_FILE_LINE "Got lack=" << lack;
+    }
 
     //TODO: change to integer powers algorithm after best powers are found experimentally.
     const double priority = std::pow(lack, 1) * std::pow(vComp, 9) * std::pow(nExpectedTargets, -3);

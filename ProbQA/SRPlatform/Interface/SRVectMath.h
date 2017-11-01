@@ -14,9 +14,11 @@ class SRPLATFORM_API SRVectMath {
   //   used for rounding.s
   static constexpr uint8_t _cnLog2TblBits = 10; // 1024 numbers times 8 bytes = 8KB.
   static const __m256d _c2divLn2; // 2.0/ln(2)
+  static const __m256d _cLog2Coeff1;
+  static const __m256d _cLog2Coeff2;
   static const __m256d _cDoubleNotExp;
   static const __m256d _cDoubleExp0;
-  static const __m256i _cAvxExp2YMask;
+  static const __m256d _cAvxExp2YMask;
   static const __m256d _cPlusBit;
   static const __m128i _cSseMantTblMask;
   static const __m128i _cExpNorm0;
@@ -78,7 +80,7 @@ public:
     const __m256d expsPD = _mm256_cvtepi32_pd(normExps);
 
     const __m256d log2_x = _mm256_fmadd_pd(terms012345,
-      /* 2.0/ln(2) */ _mm256_set1_pd(2.8853900817779268147208156228095), expsPD);
+      /* 2.0/ln(2) */ _mm256_set1_pd(2.8853900817779268147198493620038), expsPD);
     return log2_x;
   }
 
@@ -99,18 +101,32 @@ public:
     const __m128i indexes = _mm_and_si128(_cSseMantTblMask, _mm_srai_epi32(high32,
       SRNumTraits<double>::_cnMantissaBits - 32 - _cnLog2TblBits));
     //const __m256d y = _mm256_i32gather_pd(gPlusLog2Table, indexes, /*number of bytes per item*/ 8);
+    //TODO: instead, try computing above the byte offsets rather than applying 8-byte offsets below
     const __m256d y = _mm256_set_pd(_plusLog2Table[indexes.m128i_u32[3]], _plusLog2Table[indexes.m128i_u32[2]],
       _plusLog2Table[indexes.m128i_u32[1]], _plusLog2Table[indexes.m128i_u32[0]]);
     // Compute A as z/exp2(y)
-    const __m256d exp2_Y = _mm256_or_pd(_cPlusBit, _mm256_and_pd(z, _mm256_castsi256_pd(_cAvxExp2YMask)));
+    const __m256d exp2_Y = _mm256_or_pd(_cPlusBit, _mm256_and_pd(z, _cAvxExp2YMask));
 
     // Calculate t=(A-1)/(A+1)
     const __m256d tNum = _mm256_sub_pd(z, exp2_Y);
     const __m256d tDen = _mm256_add_pd(z, exp2_Y); // both numerator and denominator would be divided by exp2_Y
 
     const __m256d t = _mm256_div_pd(tNum, tDen);
+    const __m256d t2 = _mm256_mul_pd(t, t); // t**2
 
-    const __m256d log2_z = _mm256_fmadd_pd(/*terms012345*/ t, _c2divLn2, y);
+    const __m256d t3 = _mm256_mul_pd(t, t2); // t**3
+    const __m256d terms01 = _mm256_fmadd_pd(_cLog2Coeff1, t3, t);
+    const __m256d t5 = _mm256_mul_pd(t3, t2); // t**5
+    const __m256d terms012 = _mm256_fmadd_pd(_cLog2Coeff2, t5, terms01);
+
+    const __m256d log2_z = _mm256_fmadd_pd(/*terms012345*/ terms01, _c2divLn2, y);
+
+    //DEBUG
+    //if(x.m256d_f64[0] == 1) {
+    //  const double adjT = t.m256d_f64[0] * _c2divLn2.m256d_f64[0];
+    //  const double E = log2_z.m256d_f64[0];
+    //  printf("{Corr=%.16le}", -adjT/(E-adjT));
+    //}
 
     const __m256d leading = _mm256_cvtepi32_pd(normExps); // leading integer part for the logarithm
 
