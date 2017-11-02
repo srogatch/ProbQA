@@ -23,7 +23,8 @@ template class CEListTopTargetsAlgorithm<SRDoubleNumber>;
 template<typename taNumber> CEListTopTargetsAlgorithm<taNumber>::CEListTopTargetsAlgorithm(PqaError &PTR_RESTRICT err, 
   CpuEngine<taNumber> &PTR_RESTRICT engine, const CEQuiz<taNumber> &PTR_RESTRICT quiz, const TPqaId maxCount,
   RatedTarget *PTR_RESTRICT pDest) : _err(err), _pEngine(&engine), _pQuiz(&quiz), _maxCount(maxCount), _pDest(pDest),
-  _nWorkers(engine.GetWorkers().GetWorkerCount()), _nTargets(engine.GetDims()._nTargets)
+  _nWorkers(engine.GetWorkers().GetWorkerCount() /*TODO: engine.GetNLooseWorkers() ? */),
+  _nTargets(engine.GetDims()._nTargets)
 { }
 
 template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapifyBased() {
@@ -52,8 +53,8 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
   targSplit.RecalcToStarts();
   const size_t *const PTR_RESTRICT pStarts = targSplit._pBounds;
   RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.Ptr(commonBuf);
-  SRThreadCount nHhItems = 0;
-  for (SRThreadCount i = 0; i < targSplit._nSubtasks; i++) {
+  SRSubtaskCount nHhItems = 0;
+  for (SRSubtaskCount i = 0; i < targSplit._nSubtasks; i++) {
     const TPqaId curFirst = pStarts[i];
     if (pPieceLimits[i] == curFirst) {
       continue;
@@ -70,7 +71,7 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunHeapi
       return i; // the number of targets actually listed
     }
     _pDest[i]._prob = pHeadHeap[0]._prob;
-    const SRThreadCount curPiece = static_cast<SRThreadCount>(pHeadHeap[0]._iSource);
+    const SRSubtaskCount curPiece = static_cast<SRSubtaskCount>(pHeadHeap[0]._iSource);
     const TPqaId pieceStart = pStarts[curPiece];
     _pDest[i]._iTarget = pRatings[pieceStart]._iTarget;
 
@@ -131,8 +132,8 @@ template<typename taNumber> TPqaId CEListTopTargetsAlgorithm<taNumber>::RunRadix
   targSplit.RecalcToStarts();
   const size_t *const PTR_RESTRICT pStarts = targSplit._pBounds;
   RatingsHeapItem *const PTR_RESTRICT pHeadHeap = miHeadHeap.Ptr(commonBuf);
-  SRThreadCount nHhItems = 0;
-  for (SRThreadCount i = 0; i < targSplit._nSubtasks; i++) {
+  SRSubtaskCount nHhItems = 0;
+  for (SRSubtaskCount i = 0; i < targSplit._nSubtasks; i++) {
     const TPqaId curFirst = pStarts[i] + i;
     const TPqaAmount curProb = pcRatings[curFirst]._prob;
     if (curProb <= 0) { // sentinel item

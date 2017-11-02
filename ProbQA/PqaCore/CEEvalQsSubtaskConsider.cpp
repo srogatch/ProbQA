@@ -105,11 +105,11 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         // Calculate negated entropy component: negated self-information multiplied by probability of its event.
         const __m256d l2post = _mm256_andnot_pd(gapMask, SRVectMath::Log2Hot(posteriors));
         //DEBUG
-        for (int8_t c = 0; c <= 3; c++) {
-          if (l2post.m256d_f64[c] > 0) {
-            __debugbreak();
-          }
-        }
+        //for (int8_t c = 0; c <= 3; c++) {
+        //  if (l2post.m256d_f64[c] > 0) {
+        //    __debugbreak();
+        //  }
+        //}
         const __m256d Hikj = _mm256_mul_pd(posteriors, l2post);
         accLhEnt.Add(Hikj);
 
@@ -184,11 +184,14 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
 
     const double avgV = averages.m128d_f64[1];
-    if (avgV > _cMaxV) {
+    if (avgV < 0 || avgV > _cMaxV) {
       LOCLOG(Warning) << SR_FILE_LINE "Got avgV=" << avgV;
     }
 
     const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
+    if (vComp <= 0) {
+      LOCLOG(Warning) << SR_FILE_LINE "Got vComp=" << vComp;
+    }
 
     //constexpr double epsV = 1e-30;
     //const double scaledV = avgV / epsV;
@@ -196,14 +199,14 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     //const double vComp = stableV;
 
     const double lack = -accL.PreciseSum();
-    if (lack < 0) {
+    if (lack <= 0) {
       LOCLOG(Warning) << SR_FILE_LINE "Got lack=" << lack;
     }
 
     //TODO: change to integer powers algorithm after best powers are found experimentally.
     const double priority = std::pow(lack, 1) * std::pow(vComp, 9) * std::pow(nExpectedTargets, -3);
 
-    if (priority < 0 || !std::isfinite(priority)) {
+    if (priority <= 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
     }
     accRunLength.Add(SRDoubleNumber::FromDouble(priority));

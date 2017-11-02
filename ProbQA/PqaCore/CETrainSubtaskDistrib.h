@@ -20,7 +20,7 @@ template<typename taNumber> void CETrainSubtaskDistrib<taNumber>::Run() {
   auto &task = static_cast<CETrainTask<taNumber>&>(*GetTask());
   auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
   const EngineDimensions& dims = engine.GetDims();
-  const SRPlat::SRThreadCount nWorkers = task.GetWorkerCount();
+  const SRPlat::SRSubtaskCount nWorkers = task.GetWorkerCount();
   for (const AnsweredQuestion *pAQ = _pFirst, *pEn = _pLim; pAQ < pEn; pAQ++) {
     // Check ranges
     const TPqaId iQuestion = pAQ->_iQuestion;

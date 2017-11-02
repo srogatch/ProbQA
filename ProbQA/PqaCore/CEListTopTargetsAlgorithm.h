@@ -24,7 +24,7 @@ private: // variables
 
 public: // variables
   const TPqaId _nTargets;
-  const SRPlat::SRThreadCount _nWorkers;
+  const SRPlat::SRSubtaskCount _nWorkers;
 
 public:
   explicit CEListTopTargetsAlgorithm(PqaError &PTR_RESTRICT err, CpuEngine<taNumber> &PTR_RESTRICT engine,

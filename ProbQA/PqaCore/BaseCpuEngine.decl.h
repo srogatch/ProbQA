@@ -22,6 +22,9 @@ public: // constants
 public: // types
   typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, cMemPoolMaxSimds> TMemPool;
 
+private:
+  const SRPlat::SRThreadCount _nLooseWorkers;
+
 protected: // variables
   TMemPool _memPool; // thread-safe itself
   SRPlat::SRThreadPool _tpWorkers; // thread-safe itself
@@ -48,7 +51,6 @@ protected: // variables
 
 protected: // methods
   static SRPlat::SRThreadCount CalcMemOpThreads();
-  static SRPlat::SRThreadCount CalcCompThreads();
 
   explicit BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize);
 
@@ -63,6 +65,8 @@ public: // Internal interface methods
   const EngineDimensions& GetDims() const { return _dims; }
   const GapTracker<TPqaId>& GetQuestionGaps() const { return _questionGaps; }
   const GapTracker<TPqaId>& GetTargetGaps() const { return _targetGaps; }
+
+  const SRPlat::SRThreadCount GetNLooseWorkers() const { return _nLooseWorkers; }
 };
 
 } // namespace ProbQA

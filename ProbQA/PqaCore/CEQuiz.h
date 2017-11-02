@@ -9,6 +9,7 @@
 #include "../PqaCore/CERecordAnswerTask.h"
 #include "../PqaCore/CERecordAnswerSubtaskMul.h"
 #include "../PqaCore/CpuEngine.h"
+#include "../PqaCore/Summator.h"
 
 namespace ProbQA {
 
@@ -86,30 +87,29 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
   // Update prior probabilities in the quiz
   CpuEngine<taNumber> &PTR_RESTRICT engine = *GetEngine();
   const EngineDimensions &PTR_RESTRICT dims = engine.GetDims();
-  const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
+  // Each thread does very small amount of work, so perhaps loose workers approach is better here.
+  const SRThreadCount nWorkers = engine.GetNLooseWorkers();
+  //const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
   SRMemTotal mtCommon;
   const SRByteMem miSubtasks(nWorkers *std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
-    SRMaxSizeof<CERecordAnswerSubtaskMul<SRDoubleNumber>, CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>::value
+    SRMaxSizeof<CERecordAnswerSubtaskMul<taNumber>, CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>::value
   ), SRMemPadding::None, mtCommon);
   const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  //TODO: refactor to Kahan summation
-  const SRByteMem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers),
-    SRMemPadding::Both, mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
   const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
 
-  CERecordAnswerTask<taNumber> raTask(engine, *this, _answers.back(), bsp);
+  CERecordAnswerTask<taNumber> raTask(engine, *this, _answers.back());
   {
     SRRWLock<false> rwl(engine.GetRws());
-    pr.RunPreSplit<CERecordAnswerSubtaskMul<SRDoubleNumber>>(raTask, targSplit);
+    typedef CERecordAnswerSubtaskMul<taNumber> TSubtask;
+    SRPoolRunner::Keeper<TSubtask> kp = pr.RunPreSplit<TSubtask>(raTask, targSplit);
+    Summator<taNumber>::ForPriors(kp, raTask);
   }
-  raTask._sumPriors.Set1(bsp.ComputeSum(pr));
   // Divide the likelihoods by their sum calculated above
   pr.RunPreSplit<CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>(raTask, targSplit);
   return PqaError();

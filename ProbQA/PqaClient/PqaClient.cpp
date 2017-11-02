@@ -23,7 +23,19 @@ uint64_t GetPerfCnt() {
   return li.QuadPart;
 }
 
+//void InfLoop() {
+//  for(;;) { }
+//}
+
 int __cdecl main() {
+  //std::vector<std::thread> testLoad;
+  //for (int i = 0; i < 16; i++) {
+  //  testLoad.emplace_back(&InfLoop);
+  //}
+  //for (int i = 0; i < 16; i++) {
+  //  testLoad[i].join();
+  //}
+
   const char* baseName = "Logs\\PqaClient";
   if (!CreateDirectoryA("Logs", nullptr)) {
     uint32_t le = GetLastError();

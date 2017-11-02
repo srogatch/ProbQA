@@ -9,7 +9,7 @@
 
 namespace ProbQA {
 
-inline CETask::CETask(BaseCpuEngine &bce, const SRPlat::SRThreadCount nWorkers)
+inline CETask::CETask(BaseCpuEngine &bce, const SRPlat::SRSubtaskCount nWorkers)
   : CEBaseTask(bce), _nWorkers(nWorkers) { }
 
 inline void CETask::AddError(PqaError&& pe) {
@@ -17,7 +17,7 @@ inline void CETask::AddError(PqaError&& pe) {
   _aep.Add(std::forward<PqaError>(pe));
 }
 
-inline SRPlat::SRThreadCount CETask::GetWorkerCount() const { return _nWorkers; }
+inline SRPlat::SRSubtaskCount CETask::GetWorkerCount() const { return _nWorkers; }
 
 inline PqaError CETask::TakeAggregateError(SRPlat::SRString &&message) {
   if (_aep.Count() == 0) {

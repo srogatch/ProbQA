@@ -16,14 +16,14 @@ public: // types
 
     taSubtask *const _pSubtasks;
     typename taSubtask::TTask *_pTask;
-    SRThreadCount _nSubtasks = 0;
+    SRSubtaskCount _nSubtasks = 0; // It can be more than SRThreadCount if using multiple subtasks per thread
 
     //NOTE: this method doesn't set variables in a way to prevent another ReleaseInternal() operation.
     void ReleaseInternal() {
       if (_pTask) {
         _pTask->WaitComplete();
       }
-      for (SRThreadCount i = 0; i < _nSubtasks; i++) {
+      for (SRSubtaskCount i = 0; i < _nSubtasks; i++) {
         _pSubtasks[i].~taSubtask();
       }
     }
@@ -57,20 +57,20 @@ public: // types
       return *this;
     }
 
-    taSubtask *GetSubtask(const SRThreadCount at) { return _pSubtasks + at; }
-    SRThreadCount GetNSubtasks() const { return _nSubtasks; }
+    taSubtask *GetSubtask(const SRSubtaskCount at) const { return _pSubtasks + at; }
+    SRSubtaskCount GetNSubtasks() const { return _nSubtasks; }
   };
 
   struct Split {
     // The first subtask starts at 0, the last subtask ends at the last bound. The other bounds are both the start of
     //   the next subtask and the limit of the previous subtask.
     size_t *const _pBounds;
-    const SRThreadCount _nSubtasks;
+    const SRSubtaskCount _nSubtasks;
 
-    Split(size_t *const pBounds, const SRThreadCount nSubtasks) : _pBounds(pBounds), _nSubtasks(nSubtasks) { }
+    Split(size_t *const pBounds, const SRSubtaskCount nSubtasks) : _pBounds(pBounds), _nSubtasks(nSubtasks) { }
     void RecalcToStarts() {
       //TODO: vectorize, can't copy because regions overlap
-      for (SRThreadCount i = _nSubtasks - 1; i >= 1; i--) {
+      for (SRSubtaskCount i = _nSubtasks - 1; i >= 1; i--) {
         _pBounds[i] = _pBounds[i - 1];
       }
       _pBounds[0] = 0;
@@ -83,7 +83,7 @@ private: // variables
 
 public:
   // Returns the amount of memory required without padding. The allocating client must still pad the memory to SIMD size
-  static size_t CalcSplitMemReq(const SRThreadCount nWorkers) {
+  static size_t CalcSplitMemReq(const SRSubtaskCount nWorkers) {
     return nWorkers * sizeof(size_t);
   }
 
@@ -92,9 +92,9 @@ public:
   SRThreadPool& GetThreadPool() const { return *_pTp; }
 
   //TODO: vectorize, and align&pad each split memory
-  static Split CalcSplit(void *pSplitMem, const size_t nItems, const SRThreadCount nWorkers) {
+  static Split CalcSplit(void *pSplitMem, const size_t nItems, const SRSubtaskCount nWorkers) {
     size_t *pBounds = static_cast<size_t*>(pSplitMem);
-    SRThreadCount nSubtasks = 0;
+    SRSubtaskCount nSubtasks = 0;
 
     size_t nextStart = 0;
     const lldiv_t perWorker = div((long long)nItems, (long long)nWorkers);
@@ -120,7 +120,7 @@ public:
     typename taSubtask::TTask& task, const Split& split)
   {
     return RunPreSplit<taSubtask>(task, split,
-      [&](void *pStMem, const SRThreadCount iWorker, const int64_t iFirst, const int64_t iLimit) {
+      [&](void *pStMem, const SRSubtaskCount iWorker, const int64_t iFirst, const int64_t iLimit) {
         taSubtask *pSt = new(pStMem) taSubtask(&task);
         pSt->SetStandardParams(iWorker, iFirst, iLimit);
       }
@@ -128,13 +128,13 @@ public:
   }
 
   template<typename taSubtask, typename taCallback> inline Keeper<taSubtask> SplitAndRunSubtasks(
-    typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit);
+    typename taSubtask::TTask& task, const size_t nItems, const SRSubtaskCount nWorkers, const taCallback &subtaskInit);
 
   template<typename taSubtask> inline Keeper<taSubtask> SplitAndRunSubtasks(typename taSubtask::TTask& task,
-    const size_t nItems, const SRThreadCount nWorkers)
+    const size_t nItems, const SRSubtaskCount nWorkers)
   {
     return SplitAndRunSubtasks<taSubtask>(task, nItems, nWorkers,
-      [&](void *pStMem, const SRThreadCount iWorker, const int64_t iFirst, const int64_t iLimit) {
+      [&](void *pStMem, const SRSubtaskCount iWorker, const int64_t iFirst, const int64_t iLimit) {
         taSubtask *pSt = new(pStMem) taSubtask(&task);
         pSt->SetStandardParams(iWorker, iFirst, iLimit);
       }
@@ -148,12 +148,12 @@ public:
   }
 
   template<typename taSubtask, typename taCallback> inline Keeper<taSubtask> RunPerWorkerSubtasks(
-    typename taSubtask::TTask& task, const SRThreadCount nWorkers, const taCallback &subtaskInit);
+    typename taSubtask::TTask& task, const SRSubtaskCount nWorkers, const taCallback &subtaskInit);
 
   template<typename taSubtask> inline Keeper<taSubtask> RunPerWorkerSubtasks(typename taSubtask::TTask& task,
-    const SRThreadCount nWorkers)
+    const SRSubtaskCount nWorkers)
   {
-    return RunPerWorkerSubtasks<taSubtask>(task, nWorkers, [&](void *pStMem, const SRThreadCount iWorker) {
+    return RunPerWorkerSubtasks<taSubtask>(task, nWorkers, [&](void *pStMem, const SRSubtaskCount iWorker) {
       taSubtask *pSt = new(pStMem) taSubtask(&task);
       pSt->SetStandardParams(iWorker, iWorker, iWorker + 1);
     });
@@ -182,7 +182,7 @@ template<typename taSubtask, typename taCallback> inline SRPoolRunner::Keeper<ta
 
 template<typename taSubtask, typename taCallback> inline
   SRPoolRunner::Keeper<taSubtask> SRPoolRunner::SplitAndRunSubtasks(
-  typename taSubtask::TTask& task, const size_t nItems, const SRThreadCount nWorkers, const taCallback &subtaskInit)
+  typename taSubtask::TTask& task, const size_t nItems, const SRSubtaskCount nWorkers, const taCallback &subtaskInit)
 {
   task.Reset();
   Keeper<taSubtask> kp(_pSubtasksMem, task);
@@ -208,7 +208,7 @@ template<typename taSubtask, typename taCallback> inline
 
 template<typename taSubtask, typename taCallback> inline
   SRPoolRunner::Keeper<taSubtask> SRPoolRunner::RunPerWorkerSubtasks(
-  typename taSubtask::TTask& task, const SRThreadCount nWorkers, const taCallback &subtaskInit)
+  typename taSubtask::TTask& task, const SRSubtaskCount nWorkers, const taCallback &subtaskInit)
 {
   task.Reset();
   Keeper<taSubtask> kp(_pSubtasksMem, task);

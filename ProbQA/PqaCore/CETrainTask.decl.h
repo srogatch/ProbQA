@@ -22,7 +22,7 @@ public: // variables
   CETrainTaskNumSpec<taNumber> _numSpec;
 
 public: // methods
-  explicit CETrainTask(CpuEngine<taNumber> &ce, const SRPlat::SRThreadCount nWorkers,
+  explicit CETrainTask(CpuEngine<taNumber> &ce, const SRPlat::SRSubtaskCount nWorkers,
     const TPqaId iTarget, const AnsweredQuestion* const pAQs, const TPqaAmount amount);
   CETrainTask(const CETrainTask&) = delete;
   CETrainTask& operator=(const CETrainTask&) = delete;

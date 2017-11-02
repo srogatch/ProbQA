@@ -15,12 +15,12 @@ class SRPLATFORM_API SRStandardSubtask : public SRBaseSubtask {
 protected:
   int64_t _iFirst;
   int64_t _iLimit;
-  SRThreadCount _iWorker;
+  SRSubtaskCount _iWorker;
 
 public:
   explicit SRStandardSubtask(SRBaseTask *pTask) : SRBaseSubtask(pTask) { }
 
-  virtual void SetStandardParams(const SRThreadCount iWorker, const int64_t iFirst, const int64_t iLimit) {
+  virtual void SetStandardParams(const SRSubtaskCount iWorker, const int64_t iFirst, const int64_t iLimit) {
     _iFirst = iFirst;
     _iLimit = iLimit;
     _iWorker = iWorker;

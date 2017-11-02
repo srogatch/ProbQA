@@ -12,7 +12,7 @@ namespace SRPlat {
 
 template<> SRNumPack<SRDoubleNumber> __vectorcall BucketerSubtaskSum<SRDoubleNumber>::SumColumn(const size_t iVect) {
   __m256d sum = _pBsp->GetVect(0, SRCast::ToInt32(iVect))._comps;
-  for (SRThreadCount i = 1; i < _pBsp->_nWorkers; i++) {
+  for (SRSubtaskCount i = 1; i < _pBsp->_nWorkers; i++) {
     sum = _mm256_add_pd(sum, _pBsp->GetVect(i, SRCast::ToInt32(iVect))._comps);
   }
   return sum;

@@ -258,6 +258,7 @@
     <ClInclude Include="PqaRange.h" />
     <ClInclude Include="RatingsHeap.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Summator.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="CETrainTaskNumSpec.h" />
     <ClInclude Include="AnswerMetrics.h" />

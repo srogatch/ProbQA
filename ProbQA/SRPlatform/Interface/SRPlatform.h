@@ -14,6 +14,7 @@
 #pragma warning( disable : 4251 ) // needs to have dll-interface to be used by clients of class
 class SRPLATFORM_API std::exception_ptr;
 template struct SRPLATFORM_API std::atomic<int32_t>;
+template struct SRPLATFORM_API std::atomic<size_t>;
 class SRPLATFORM_API std::thread;
 template SRPLATFORM_API class std::allocator<std::thread>;
 

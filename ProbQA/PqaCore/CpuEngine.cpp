@@ -191,7 +191,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
 
     //// Distribute the AQs into buckets with the number of buckets divisable by the number of workers.
     pr.SplitAndRunSubtasks<CETrainSubtaskDistrib<taNumber>>(trainTask, nQuestions, trainTask.GetWorkerCount(),
-      [&](void *pStMem, SRThreadCount iWorker, int64_t iFirst, int64_t iLimit) {
+      [&](void *pStMem, SRSubtaskCount iWorker, int64_t iFirst, int64_t iLimit) {
         new (pStMem) CETrainSubtaskDistrib<taNumber>(&trainTask, pAQs + iFirst, pAQs + iLimit);
         (void)iWorker;
       }
@@ -371,8 +371,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz
     SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp = pr.RunPreSplit<CENormPriorsSubtaskMax<taNumber>>(
       normPriorsTask, targSplit);
     assert(kp.GetNSubtasks() == targSplit._nSubtasks);
-    const SRThreadCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
-    const SRVectCompCount nTail = kp.GetNSubtasks() & ((SRThreadCount(1) << SRSimd::_cLogNComps64) - 1);
+    const SRSubtaskCount nResultVects = kp.GetNSubtasks() >> SRSimd::_cLogNComps64;
+    const SRVectCompCount nTail = kp.GetNSubtasks() & ((SRSubtaskCount(1) << SRSimd::_cLogNComps64) - 1);
     __m256i vMaxExps;
     auto fnFetch = [&kp, iBase = (nResultVects << SRSimd::_cLogNComps64)](const SRVectCompCount at) {
       return kp.GetSubtask(iBase + at)->_maxExp;
@@ -384,8 +384,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz
     else {
       vMaxExps = _mm256_set_epi64x(kp.GetSubtask(3)->_maxExp, kp.GetSubtask(2)->_maxExp, kp.GetSubtask(1)->_maxExp,
         kp.GetSubtask(0)->_maxExp);
-      for (SRThreadCount i = 1; i < nResultVects; i++) {
-        const SRThreadCount iBase = (i << SRSimd::_cLogNComps64);
+      for (SRSubtaskCount i = 1; i < nResultVects; i++) {
+        const SRSubtaskCount iBase = (i << SRSimd::_cLogNComps64);
         const __m256i cand = _mm256_set_epi64x(kp.GetSubtask(iBase + 3)->_maxExp,
           kp.GetSubtask(iBase + 2)->_maxExp, kp.GetSubtask(iBase + 1)->_maxExp, kp.GetSubtask(iBase)->_maxExp);
         vMaxExps = SRSimd::MaxI64(vMaxExps, cand);
@@ -428,7 +428,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     return cInvalidPqaId;
   }
 
-  const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount() * 8;
+  const SRSubtaskCount nWorkers = _tpWorkers.GetWorkerCount() * 8;
   SRMemTotal mtCommon;
   const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CEEvalQsSubtaskConsider<taNumber> >::value, SRMemPadding::None,
     mtCommon);
@@ -454,7 +454,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
     SRAccumulator<taNumber> accTotG(taNumber(0.0));
     const taNumber *const PTR_RESTRICT pRunLength = evalQsTask.GetRunLength();
     taNumber *const PTR_RESTRICT pGrandTotals = miGrandTotals.Ptr(commonBuf);
-    for (SRThreadCount i = 0; i < questionSplit._nSubtasks; i++) {
+    for (SRSubtaskCount i = 0; i < questionSplit._nSubtasks; i++) {
       const taNumber curGT = pRunLength[questionSplit._pBounds[i] - 1];
       accTotG.Add(curGT);
       pGrandTotals[i] = accTotG.Get();
@@ -469,7 +469,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
       CELOG(Warning) << SR_FILE_LINE << "Grand-grand total is " << totG.ToAmount();
     }
     const taNumber selRunLen = taNumber::MakeRandom(totG, SRFastRandom::ThreadLocal());
-    const SRThreadCount iWorker = static_cast<SRThreadCount>(
+    const SRSubtaskCount iWorker = static_cast<SRSubtaskCount>(
       std::upper_bound(pGrandTotals, pGrandTotals + questionSplit._nSubtasks, selRunLen) - pGrandTotals);
     if (iWorker >= questionSplit._nSubtasks) {
       assert(iWorker == questionSplit._nSubtasks);

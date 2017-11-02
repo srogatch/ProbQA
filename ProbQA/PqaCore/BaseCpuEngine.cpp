@@ -10,23 +10,17 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-SRThreadCount BaseCpuEngine::CalcCompThreads() {
-  //TODO: experiment whether nCores-1 threads give better performance than nCores threads. In the former case the
-  //  master thread may keep spinning till worker threads are all done.
-  //return std::max(std::thread::hardware_concurrency()-1, 1u);
-  return std::thread::hardware_concurrency();
-}
-
 SRThreadCount BaseCpuEngine::CalcMemOpThreads() {
   // This is a trivial heuristic based on the observation that on Ryzen 1800X with 2 DDR4 modules in a single memory
   //   channel, the maximum copy speed is achieved for 5 threads.
-  return std::max(1ui32, std::min(CalcCompThreads(), 5ui32));
+  return std::max(1ui32, std::min(std::thread::hardware_concurrency(), 5ui32));
 }
 
 BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize)
   : _dims(engDef._dims), _precDef(engDef._prec), _maintSwitch(MaintenanceSwitch::Mode::Regular),
   _pLogger(SRDefaultLogger::Get()), _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes)),
-  _tpWorkers(CalcCompThreads(), workerStackSize), _nMemOpThreads(CalcMemOpThreads())
+  _tpWorkers(std::thread::hardware_concurrency(), workerStackSize), _nMemOpThreads(CalcMemOpThreads()),
+  _nLooseWorkers(std::max<SRThreadCount>(1, std::thread::hardware_concurrency()-1))
 {
 }
 

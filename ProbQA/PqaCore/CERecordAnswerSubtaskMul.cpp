@@ -16,12 +16,11 @@ template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
   auto &PTR_RESTRICT  task = static_cast<const TTask&>(*GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(task.GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = task.GetQuiz();
-  SRBucketSummatorPar<SRDoubleNumber> &PTR_RESTRICT bsp = task.GetBSP();
   const GapTracker<TPqaId>& targGaps = engine.GetTargetGaps();
 
   __m256d *PTR_RESTRICT pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
 
-  bsp.ZeroBuckets(_iWorker);
+  SRAccumVectDbl256 accMants;
   const AnsweredQuestion &PTR_RESTRICT aq = task.GetAQ();
   const __m256d *PTR_RESTRICT pAdjMuls = SRCast::CPtr<__m256d>(&engine.GetA(aq._iQuestion, aq._iAnswer, 0));
   const __m256d *PTR_RESTRICT pAdjDivs = SRCast::CPtr<__m256d>(&engine.GetD(aq._iQuestion, 0));
@@ -37,8 +36,9 @@ template<> void CERecordAnswerSubtaskMul<SRDoubleNumber>::Run() {
     const __m256d newMants = _mm256_andnot_pd(_mm256_castsi256_pd(SRSimd::SetToBitQuadHot(gaps)), product);
     SRSimd::Store<false>(pMants + i, newMants);
 
-    bsp.CalcAdd(_iWorker, newMants);
+    accMants.Add(newMants);
   }
+  _sumPriors.SetValue(accMants.PreciseSum());
 }
 
 } // namespace ProbQA

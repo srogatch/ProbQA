@@ -10,10 +10,13 @@
 namespace ProbQA {
 
 template<typename taNumber> class CERecordAnswerSubtaskMul : public SRPlat::SRStandardSubtask {
-public:
+public: // types
   typedef CERecordAnswerTask<taNumber> TTask;
 
-public:
+public: // variables
+  taNumber _sumPriors;
+
+public: // methods
   using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
 };
