@@ -667,7 +667,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqa
   return PqaError();
 }
 
-
 template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* const filePath, const bool bDoubleBuffer)
 {
   { //Ensure that the file is closed before returning success
