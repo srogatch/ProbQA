@@ -12,6 +12,9 @@ template<typename taNumber> class CESetPriorsSubtaskSum : public SRPlat::SRStand
 public: // types
   typedef CESetPriorsTask<taNumber> TTask;
 
+public:
+  taNumber _sumPriors;
+
 public: // methods
   using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;

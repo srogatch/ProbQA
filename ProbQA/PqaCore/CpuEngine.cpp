@@ -363,9 +363,9 @@ template<typename taNumber> CEQuiz<taNumber>* CpuEngine<taNumber>::UseQuiz(PqaEr
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz<taNumber> &quiz, SRPoolRunner &pr,
-  SRBucketSummatorPar<taNumber> &bsp, const SRPoolRunner::Split& targSplit)
+  const SRPoolRunner::Split& targSplit)
 {
-  CENormPriorsTask<taNumber> normPriorsTask(*this, quiz, bsp);
+  CENormPriorsTask<taNumber> normPriorsTask(*this, quiz);
 
   { // The lifetime for maximum selection subtasks
     SRPoolRunner::Keeper<CENormPriorsSubtaskMax<taNumber>> kp = pr.RunPreSplit<CENormPriorsSubtaskMax<taNumber>>(
@@ -403,9 +403,11 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::NormalizePriors(CEQuiz
     normPriorsTask._corrExp = _mm256_set1_epi64x(highBound - fullMax); // so that fullMax + correction == highBound
   }
 
-  // Correct the exponents towards the taNumber range, and calculate their sum
-  pr.RunPreSplit<CENormPriorsSubtaskCorrSum<taNumber>>(normPriorsTask, targSplit);
-  normPriorsTask._sumPriors.Set1(bsp.ComputeSum(pr));
+  { // Correct the exponents towards the taNumber range, and calculate their sum
+    typedef CENormPriorsSubtaskCorrSum<taNumber> TCorrSumSubtask;
+    SRPoolRunner::Keeper<TCorrSumSubtask> kp = pr.RunPreSplit<TCorrSumSubtask>(normPriorsTask, targSplit);
+    Summator<taNumber>::ForPriors(kp, normPriorsTask);
+  }
 
   // Divide priors by their sum, so to get probabilities.
   pr.RunPreSplit<CEDivTargPriorsSubtask<CENormPriorsTask<taNumber>>>(normPriorsTask, targSplit);

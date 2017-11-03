@@ -19,7 +19,7 @@ public: // types
 
 private: // variables
   const CEQuiz<taNumber> *const _pQuiz;
-  SRPlat::SRBucketSummatorPar<taNumber> *const _pBsp;
+
 public:
   // The number to add to the exponent so to get it within the representable range or to cut off if corrected exponent
   //   is too small. Repeated in each 64-bit component.
@@ -27,16 +27,14 @@ public:
   SRPlat::SRNumPack<taNumber> _sumPriors;
 
 public:
-  explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz,
-    SRPlat::SRBucketSummatorPar<taNumber> &bsp);
+  explicit inline CENormPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz);
 
   const CEQuiz<taNumber>& GetQuiz() const { return *_pQuiz; }
-  SRPlat::SRBucketSummatorPar<taNumber>& GetBSP() const { return *_pBsp; }
 };
 #pragma warning( pop )
 
 template<typename taNumber> inline CENormPriorsTask<taNumber>::CENormPriorsTask(CpuEngine<taNumber> &engine,
-  CEQuiz<taNumber> &quiz, SRPlat::SRBucketSummatorPar<taNumber> &bsp) : CEBaseTask(engine), _pQuiz(&quiz), _pBsp(&bsp)
+  CEQuiz<taNumber> &quiz) : CEBaseTask(engine), _pQuiz(&quiz)
 { }
 
 } // namespace ProbQA

@@ -92,9 +92,8 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
   //const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
   SRMemTotal mtCommon;
-  const SRByteMem miSubtasks(nWorkers *std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
-    SRMaxSizeof<CERecordAnswerSubtaskMul<taNumber>, CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>::value
-  ), SRMemPadding::None, mtCommon);
+  const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CERecordAnswerSubtaskMul<taNumber>, 
+    CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>::value, SRMemPadding::None, mtCommon);
   const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);

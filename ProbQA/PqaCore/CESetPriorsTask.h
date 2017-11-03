@@ -17,17 +17,14 @@ public: // types
 
 private:
   const CEQuiz<taNumber> *const _pQuiz;
-  SRPlat::SRBucketSummatorPar<taNumber> *const _pBsp;
 
 public: // variables
   SRPlat::SRNumPack<taNumber> _sumPriors;
 
 public:
-  CESetPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz, SRPlat::SRBucketSummatorPar<taNumber> &bsp)
-    : CEBaseTask(engine), _pQuiz(&quiz), _pBsp(&bsp) { }
+  CESetPriorsTask(CpuEngine<taNumber> &engine, CEQuiz<taNumber> &quiz) : CEBaseTask(engine), _pQuiz(&quiz) { }
 
   const CEQuiz<taNumber>& GetQuiz() const { return *_pQuiz; }
-  SRPlat::SRBucketSummatorPar<taNumber>& GetBSP() const { return *_pBsp; }
 };
 
 } // namespace ProbQA

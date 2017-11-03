@@ -23,7 +23,7 @@
     <ProjectGuid>{BFA65490-9CA9-4845-875E-5155047FD238}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>PqaCoreTests</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

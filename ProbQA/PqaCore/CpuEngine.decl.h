@@ -65,7 +65,7 @@ public: // Internal interface methods
   const taNumber& GetB(const TPqaId iTarget) const;
   taNumber& ModB(const TPqaId iTarget);
 
-  PqaError NormalizePriors(CEQuiz<taNumber> &quiz, SRPlat::SRPoolRunner &pr, SRPlat::SRBucketSummatorPar<taNumber> &bsp,
+  PqaError NormalizePriors(CEQuiz<taNumber> &quiz, SRPlat::SRPoolRunner &pr,
     const SRPlat::SRPoolRunner::Split& targSplit);
 
 public: // Client interface methods

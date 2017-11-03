@@ -12,6 +12,9 @@ template<typename taNumber> class CENormPriorsSubtaskCorrSum : public SRPlat::SR
 public: // types
   typedef CENormPriorsTask<taNumber> TTask;
 
+public: // variables
+  taNumber _sumPriors;
+
 public: // methods
   using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;

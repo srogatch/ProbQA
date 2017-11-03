@@ -24,7 +24,7 @@ struct ContextDouble {
   __m256i *PTR_RESTRICT _pExps;
 
   // Returns the addend for bucket summator
-  ATTR_NOALIAS inline __m256d __vectorcall Process(const TPqaId iVect, __m256i &PTR_RESTRICT exps) {
+  ATTR_NOALIAS inline __m256d __vectorcall Process(const TPqaId iVect) {
     const __m256d oldMants = SRSimd::Load<false, __m256d>(_pMants + iVect);
     const __m256i origExps = _mm256_add_epi64(SRSimd::Load<false, __m256i>(_pExps + iVect),
       SRSimd::ExtractExponents64<false>(oldMants));
@@ -38,7 +38,6 @@ struct ContextDouble {
       SRSimd::ReplaceExponents(oldMants, normExps));
     SRSimd::Store<false>(_pExps + iVect, _mm256_setzero_si256());
     SRSimd::Store<false>(_pMants + iVect, newMants);
-    exps = _mm256_andnot_si256(assume0, normExps);
     return newMants;
   }
 };
@@ -50,18 +49,16 @@ template<> void CENormPriorsSubtaskCorrSum<SRDoubleNumber>::Run() {
   ctx._pTask = static_cast<const TTask*>(GetTask());
   auto &PTR_RESTRICT engine = static_cast<const CpuEngine<SRDoubleNumber>&>(ctx._pTask->GetBaseEngine());
   const CEQuiz<SRDoubleNumber> &PTR_RESTRICT quiz = ctx._pTask->GetQuiz();
-  SRBucketSummatorPar<SRDoubleNumber> &PTR_RESTRICT bsp = (ctx._pTask->GetBSP());
   ctx._pGt = &engine.GetTargetGaps();
   ctx._pExps = SRCast::Ptr<__m256i>(quiz.GetTlhExps());
   ctx._pMants = SRCast::Ptr<__m256d>(quiz.GetPriorMants());
 
-  bsp.ZeroBuckets(_iWorker);
-
+  SRAccumVectDbl256 acc;
   for (TPqaId i = _iFirst, iEn = _iLimit; i < iEn; i++) {
-    __m256i exps;
-    const __m256d addend = ctx.Process(i, exps);
-    bsp.Add(_iWorker, addend, exps);
+    const __m256d addend = ctx.Process(i);
+    acc.Add(addend);
   }
+  _sumPriors.SetValue(acc.PreciseSum());
   _mm_sfence();
 }
 

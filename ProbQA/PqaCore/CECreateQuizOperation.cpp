@@ -29,28 +29,25 @@ template<typename taNumber> void CECreateQuizStart<taNumber>::UpdateLikelihoods(
   const SRThreadCount nWorkers = engine.GetWorkers().GetWorkerCount();
 
   SRMemTotal mtCommon;
-  const SRByteMem miSubtasks(nWorkers * std::max(SRBucketSummatorPar<taNumber>::_cSubtaskMemReq,
-    SRMaxSizeof<CESetPriorsSubtaskSum<taNumber>, CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>::value),
-    SRMemPadding::None, mtCommon);
+  const SRByteMem miSubtasks(nWorkers * SRMaxSizeof<CESetPriorsSubtaskSum<taNumber>, 
+    CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>::value, SRMemPadding::None, mtCommon);
   const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRByteMem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
-    mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
-  //TODO: replace with Kahan summation
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
   const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
 
-  CESetPriorsTask<taNumber> spTask(engine, quiz, bsp);
+  CESetPriorsTask<taNumber> spTask(engine, quiz);
   {
     SRRWLock<false> rwl(engine.GetRws());
     // Zero out exponents, copy mantissas, prepare for summing
-    pr.RunPreSplit<CESetPriorsSubtaskSum<taNumber>>(spTask, targSplit);
+    typedef CESetPriorsSubtaskSum<taNumber> TSubtask;
+    SRPoolRunner::Keeper<TSubtask> kp = pr.RunPreSplit<TSubtask>(spTask, targSplit);
+    rwl.EarlyRelease();
+    Summator<taNumber>::ForPriors(kp, spTask);
   }
-  spTask._sumPriors.Set1(bsp.ComputeSum(pr));
   // Divide the likelihoods by their sum so to get probabilities
   pr.RunPreSplit<CEDivTargPriorsSubtask<CESetPriorsTask<taNumber>>>(spTask, targSplit);
 }
@@ -69,13 +66,9 @@ template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods
   const SRByteMem miSubtasks(nWorkers * std::max(CpuEngine<taNumber>::_cNormPriorsMemReqPerSubtask,
     SRMaxSizeof<CEUpdatePriorsSubtaskMul<taNumber>>::value), SRMemPadding::None, mtCommon);
   const SRByteMem miSplit(SRPoolRunner::CalcSplitMemReq(nWorkers), SRMemPadding::Both, mtCommon);
-  const SRByteMem miBuckets(SRBucketSummatorPar<taNumber>::GetMemoryRequirementBytes(nWorkers), SRMemPadding::Both,
-    mtCommon);
 
   SRSmartMPP<uint8_t> commonBuf(engine.GetMemPool(), mtCommon._nBytes);
   SRPoolRunner pr(engine.GetWorkers(), miSubtasks.BytePtr(commonBuf));
-  //TODO: replace with Kahan summation
-  SRBucketSummatorPar<taNumber> bsp(nWorkers, miBuckets.BytePtr(commonBuf));
 
   const TPqaId nTargetVects = SRSimd::VectsFromComps<taNumber>(dims._nTargets);
   const SRPoolRunner::Split targSplit = SRPoolRunner::CalcSplit(miSplit.BytePtr(commonBuf), nTargetVects, nWorkers);
@@ -86,7 +79,7 @@ template<typename taNumber> void CECreateQuizResume<taNumber>::UpdateLikelihoods
     pr.RunPreSplit<CEUpdatePriorsSubtaskMul<taNumber>>(task, targSplit);
   }
   // Normalize to probabilities
-  _err = engine.NormalizePriors(quiz, pr, bsp, targSplit);
+  _err = engine.NormalizePriors(quiz, pr, targSplit);
 }
 
 } // namespace ProbQA
