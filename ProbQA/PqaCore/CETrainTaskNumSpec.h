@@ -17,7 +17,7 @@ public: // variables
   double _inc2B;
   double _incBSquare;
   double _inc4B;
-  double _inc2BSquare;
+  double _incSquare2B;
 
 public: // methods
 
@@ -26,9 +26,9 @@ public: // methods
     const double b = SRPlat::SRCast::ToDouble(amount);
     //TODO: check that optimizer uses SSE/AVX here, otherwise rewrite manually
     _inc2B = 2 * b;
-    _inc2BSquare = b * b;
+    _incBSquare = b * b;
     _inc4B = 4 * b;
-    _inc2BSquare = 4 * _inc2BSquare;
+    _incSquare2B = 4 * _incBSquare;
   }
 };
 

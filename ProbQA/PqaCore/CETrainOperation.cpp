@@ -32,7 +32,7 @@ template<> void CETrainOperation<SRDoubleNumber>::Perform1(const AnsweredQuestio
 template<> void CETrainOperation<SRDoubleNumber>::Perform2(const AnsweredQuestion& aqFirst, const AnsweredQuestion& aqSecond) {
   if (aqFirst._iQuestion == aqSecond._iQuestion) {
     if (aqFirst._iAnswer == aqSecond._iAnswer) {
-      ProcessOne(aqFirst, _numSpec._inc4B, _numSpec._inc2BSquare);
+      ProcessOne(aqFirst, _numSpec._inc4B, _numSpec._incSquare2B);
     }
     else { // Vectorize 3 additions, with twice the amount in element #2
       const __m256d vInc2B = _mm256_set1_pd(_numSpec._inc2B);
