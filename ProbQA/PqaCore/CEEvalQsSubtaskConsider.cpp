@@ -204,7 +204,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
 
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(lack, 1) * std::pow(vComp, 6) * std::pow(nExpectedTargets, -2);
+    const double priority = std::pow(lack, 2) * std::pow(vComp, 9) * std::pow(nExpectedTargets, -2);
 
     if (priority <= 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
