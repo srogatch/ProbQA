@@ -28,6 +28,15 @@ public:
       }
     }
   }
+
+  bool EarlyClose() {
+    if (_fp == nullptr) {
+      return false;
+    }
+    const bool ans = (std::fclose(_fp) == 0);
+    _fp = nullptr;
+    return ans;
+  }
 };
 
 } // namespace SRPlat

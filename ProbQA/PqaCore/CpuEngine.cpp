@@ -671,20 +671,73 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqa
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* const filePath, const bool bDoubleBuffer)
 {
-  { //Ensure that the file is closed before returning success
-    SRSmartFile sf(fopen(filePath, "wb"));
-    if (sf.Get() == nullptr) {
-      return PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(filePath), SRString::MakeUnowned(
-        SR_FILE_LINE "Can't open the file to write KB to."));
-    }
-    MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
-    SRRWLock<false> rwl(_rws);
-
+  SRSmartFile sf(std::fopen(filePath, "wb"));
+  if (sf.Get() == nullptr) {
+    return PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(filePath), SRString::MakeUnowned(
+      SR_FILE_LINE "Can't open the file to write KB to."));
   }
 
-  (void)bDoubleBuffer; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::SaveKB")));
+  {
+    MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+    // Can't write engine dimensions before reader-writer lock, because maintenance switch doesn't prevent their change
+    //   in maintenance mode.
+    SRRWLock<false> rwl(_rws);
+
+    const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
+
+    size_t bufSize;
+    if (bDoubleBuffer) {
+      bufSize = /* reserve */ SRSimd::_cNBytes + sizeof(_precDef) + sizeof(_dims)
+        + sizeof(taNumber) * nTargets * (_dims._nQuestions * _dims._nAnswers + _dims._nQuestions + 1);
+    }
+    else {
+      bufSize = _cFileBufSize;
+    }
+    if (std::setvbuf(sf.Get(), nullptr, _IOFBF, bufSize) != 0) {
+      return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRMessageBuilder(SR_FILE_LINE
+        "Can't set file buffer size to ")(bufSize).GetOwnedSRString());
+    }
+
+    // Can be out of locks so long that the member variable is const
+    if (std::fwrite(&_precDef, sizeof(_precDef), 1, sf.Get()) != 1) {
+      return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't write precision definition header."));
+    }
+
+    if (std::fwrite(&_dims, sizeof(_dims), 1, sf.Get()) != 1) {
+      return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't write engine dimensions header."));
+    }
+
+    for (TPqaId i = 0; i < _dims._nQuestions; i++) {
+      for (TPqaId k = 0; k < _dims._nAnswers; k++) {
+        if (std::fwrite(&(_sA[i][k][0]), sizeof(taNumber), nTargets, sf.Get()) != nTargets) {
+          return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRMessageBuilder(SR_FILE_LINE
+            "Can't write the target dimension of _sA weights at [")(i)(", ")(k)("].").GetOwnedSRString());
+        }
+      }
+    }
+
+    for (TPqaId i = 0; i < _dims._nQuestions; i++) {
+      if (std::fwrite(&(_mD[i][0]), sizeof(taNumber), nTargets, sf.Get()) != nTargets) {
+        return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRMessageBuilder(SR_FILE_LINE
+          "Can't write the target dimension of _mD weights at [")(i)("].").GetOwnedSRString());
+      }
+    }
+
+    if (std::fwrite(&(_vB[0]), sizeof(taNumber), nTargets, sf.Get()) != nTargets) {
+      return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't write the _vB weights."));
+    }
+  }
+
+  // Close it explicitly here, to be able to handle and report an error
+  if (!sf.EarlyClose()) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Failed in closing the file."));
+  }
+
+  return PqaError();
 }
 
 template<typename taNumber> uint64_t CpuEngine<taNumber>::GetTotalQuestionsAsked(PqaError& err) {

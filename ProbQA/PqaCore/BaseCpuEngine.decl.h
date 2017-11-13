@@ -17,10 +17,11 @@ namespace ProbQA {
 
 class BaseCpuEngine : public IPqaEngine {
 public: // constants
-  static constexpr size_t cMemPoolMaxSimds = 1 << 10;
+  static constexpr size_t _cMemPoolMaxSimds = size_t(1) << 10;
+  static constexpr size_t _cFileBufSize = size_t(1024) * 1024;
 
 public: // types
-  typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, cMemPoolMaxSimds> TMemPool;
+  typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, _cMemPoolMaxSimds> TMemPool;
 
 private:
   const SRPlat::SRThreadCount _nLooseWorkers;
@@ -29,7 +30,7 @@ protected: // variables
   TMemPool _memPool; // thread-safe itself
   SRPlat::SRThreadPool _tpWorkers; // thread-safe itself
 
-  PrecisionDefinition _precDef;
+  const PrecisionDefinition _precDef;
   EngineDimensions _dims; // Guarded by _rws in maintenance mode. Read-only in regular mode.
   const SRPlat::SRThreadCount _nMemOpThreads;
   std::atomic<uint64_t> _nQuestionsAsked = 0;
