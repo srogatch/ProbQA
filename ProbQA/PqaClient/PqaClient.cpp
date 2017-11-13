@@ -45,6 +45,14 @@ int __cdecl main() {
   }
   SRDefaultLogger::Init(SRString::MakeUnowned(baseName));
 
+  if (!CreateDirectoryA("KBs", nullptr)) {
+    uint32_t le = GetLastError();
+    if (le != ERROR_ALREADY_EXISTS) {
+      fprintf(stderr, "Failed to ensure that a directory for KBs exists.\n");
+      return int(SRExitCode::UnspecifiedError);
+    }
+  }
+
   FILE *fpProgress = fopen("progress.txt", "wt");
 
   PqaError err;
@@ -90,11 +98,20 @@ int __cdecl main() {
       fprintf(fpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\t%lf\t%lf\t%lf\n", i, totQAsked, precision,
         double(sumQuizLens)/nCorrect, totCertainty/nCorrect, (totQAsked-prevQAsked)/elapsedSec);
       fflush(fpProgress);
+
+      char kbFile[128];
+      sprintf(kbFile, "KBs\\dichotomy%.6" PRId64 ".kb", i);
+      err = pEngine->SaveKB(kbFile, false);
+      if (!err.IsOk()) {
+        fprintf(stderr, SR_FILE_LINE "Failed to save the KB.\n");
+        return int(SRExitCode::UnspecifiedError);
+      }
+
       nCorrect = 0;
       sumQuizLens = 0;
       totCertainty = 0;
-      pcStart = GetPerfCnt();
       prevQAsked = totQAsked;
+      pcStart = GetPerfCnt();
     }
     const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
     volatile TPqaId dbgGuess = guess;
