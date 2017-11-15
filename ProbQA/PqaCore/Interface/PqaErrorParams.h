@@ -187,7 +187,7 @@ public:
 class PQACORE_API CantOpenFileErrorParams : public IPqaErrorParams {
   SRPlat::SRString _filePath;
 public:
-  explicit CantOpenFileErrorParams(const char *const filePath) : _filePath(SRPlat::SRString::MakeOwned(filePath)) { }
+  explicit CantOpenFileErrorParams(const char *const filePath) : _filePath(SRPlat::SRString::MakeClone(filePath)) { }
   virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("filePath=[")(_filePath)("]").GetOwnedSRString();
   }
@@ -196,7 +196,7 @@ public:
 class PQACORE_API FileOpErrorParams : public IPqaErrorParams {
   SRPlat::SRString _filePath;
 public:
-  explicit FileOpErrorParams(const char *const filePath) : _filePath(SRPlat::SRString::MakeOwned(filePath)) { }
+  explicit FileOpErrorParams(const char *const filePath) : _filePath(SRPlat::SRString::MakeClone(filePath)) { }
   virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("filePath=[")(_filePath)("]").GetOwnedSRString();
   }

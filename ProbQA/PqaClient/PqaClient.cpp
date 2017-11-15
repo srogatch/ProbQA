@@ -27,6 +27,12 @@ uint64_t GetPerfCnt() {
 //  for(;;) { }
 //}
 
+bool ExistsDirectory(const char* const szPath) {
+  DWORD dwAttrib = GetFileAttributesA(szPath);
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+    (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
 int __cdecl main() {
   //std::vector<std::thread> testLoad;
   //for (int i = 0; i < 16; i++) {
@@ -45,11 +51,16 @@ int __cdecl main() {
   }
   SRDefaultLogger::Init(SRString::MakeUnowned(baseName));
 
-  if (!CreateDirectoryA("KBs", nullptr)) {
-    uint32_t le = GetLastError();
-    if (le != ERROR_ALREADY_EXISTS) {
-      fprintf(stderr, "Failed to ensure that a directory for KBs exists.\n");
-      return int(SRExitCode::UnspecifiedError);
+  std::string kbsDir = "E:\\Data\\Dev\\Engines\\ProbQA\\KBs\\";
+  if (!ExistsDirectory(kbsDir.c_str())) {
+    const char* const sKBs = "KBs";
+    kbsDir = std::string(sKBs) + "\\";
+    if (!CreateDirectoryA(sKBs, nullptr)) {
+      uint32_t le = GetLastError();
+      if (le != ERROR_ALREADY_EXISTS) {
+        fprintf(stderr, "Failed to ensure that a directory for KBs exists.\n");
+        return int(SRExitCode::UnspecifiedError);
+      }
     }
   }
 
@@ -100,7 +111,7 @@ int __cdecl main() {
       fflush(fpProgress);
 
       char kbFile[128];
-      sprintf(kbFile, "KBs\\dichotomy%.6" PRId64 ".kb", i);
+      sprintf(kbFile, "%sdichotomy%.6" PRId64 ".kb", kbsDir.c_str(), i);
       err = pEngine->SaveKB(kbFile, false);
       if (!err.IsOk()) {
         fprintf(stderr, SR_FILE_LINE "Failed to save the KB.\n");

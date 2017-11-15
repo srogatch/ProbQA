@@ -13,7 +13,7 @@ class SRPLATFORM_API SRStdException : public SRException {
   SRString _stdexMsg;
 public:
   explicit SRStdException(const std::exception& ex)
-    : _typeName(SRString::MakeUnowned(typeid(ex).name())), _stdexMsg(SRString::MakeOwned(ex.what())),
+    : _typeName(SRString::MakeUnowned(typeid(ex).name())), _stdexMsg(SRString::MakeClone(ex.what())),
     SRException(SRString::MakeUnowned("Converted from a (descendant of) std::exception.")) { }
 
   SRStdException(const SRStdException &fellow) : _typeName(fellow._typeName), _stdexMsg(fellow._stdexMsg),

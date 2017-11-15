@@ -33,8 +33,11 @@ public: // methods
 
   explicit SRString(const std::string& PTR_RESTRICT source);
 
+  // Takes ownership of the pointer passed.
   static SRString MakeOwned(const char *PTR_RESTRICT const pData, size_t length = std::string::npos);
+  // Clones the pointer passed.
   static SRString MakeClone(const char *PTR_RESTRICT const pData, size_t length = std::string::npos);
+  // Simply store the pointer passed without later releasing it.
   static SRString MakeUnowned(const char *PTR_RESTRICT const pData, size_t length = std::string::npos);
 
   // Must be inline, in order to use std::string from the same module.
