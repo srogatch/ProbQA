@@ -29,7 +29,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
       break;
     default:
       //TODO: implement
-      err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+      err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
         "ProbQA Engine on CPU for precision except double.")));
       return nullptr;
     }
@@ -40,10 +40,18 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
   return nullptr;
 }
 
+IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const filePath) {
+  (void)filePath;
+  //TODO: implement
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "Loading ProbQA Engine on CPU.")));
+  return nullptr;
+}
+
 IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) {
   (void)engDef; //TODO: remove when implemented
   //TODO: implement
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
     "ProbQA Engine on CUDA.")));
   return nullptr;
 }
@@ -51,7 +59,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDe
 IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDefinition& engDef) {
   (void)engDef; //TODO: remove when implemented
   //TODO: implement
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
     "ProbQA Engine over a grid.")));
   return nullptr;
 }

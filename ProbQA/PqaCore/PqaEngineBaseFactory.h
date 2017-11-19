@@ -17,6 +17,7 @@ public:
 
 public:
   IPqaEngine* CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) override final;
+  IPqaEngine* LoadCpuEngine(PqaError& err, const char* const filePath) override final;
   IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) override final;
   IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) override final;
 };

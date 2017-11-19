@@ -54,6 +54,8 @@ private: // methods
 
   CEQuiz<taNumber>* UseQuiz(PqaError& err, const TPqaId iQuiz);
 
+  PqaError LockedSaveKB(SRPlat::SRSmartFile &sf, const char* const filePath, const bool bDoubleBuffer);
+
 public: // Internal interface methods
 
   const taNumber& GetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) const;
