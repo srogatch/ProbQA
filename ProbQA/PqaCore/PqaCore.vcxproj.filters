@@ -237,6 +237,9 @@
     <ClInclude Include="Summator.h">
       <Filter>Header Files\CPU Engine</Filter>
     </ClInclude>
+    <ClInclude Include="KBFileInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

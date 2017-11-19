@@ -22,7 +22,7 @@ namespace SRPlat {
 
 FileLogger::FileLogger(const SRString& baseName) : _bShutdown(0), _enqueuedLen(0)
 {
-  _fileName = baseName.ToString() + SRUtils::PrintUtcDate().ToString() + ".log";
+  _fileName = baseName.ToStd() + SRUtils::PrintUtcDate().ToStd() + ".log";
   _fpout = fopen(_fileName.c_str(), "at");
   if (_fpout == nullptr) {
     throw SRCannotOpenLogFileException(_fileName);
@@ -44,7 +44,7 @@ FileLogger::~FileLogger() {
 
 bool FileLogger::Log(const Severity sev, const SRString& message) {
   SRString sTime = SRUtils::PrintUtcTime<true>();
-  std::string fullMessage = sTime.ToString() + " [" + std::to_string(sev) + "] " + message.ToString();
+  std::string fullMessage = sTime.ToStd() + " [" + std::to_string(sev) + "] " + message.ToStd();
   bool bNotifyPoppers;
   {
     SRLock<SRCriticalSection> csl(_cs);

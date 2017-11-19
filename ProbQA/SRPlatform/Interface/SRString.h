@@ -41,7 +41,7 @@ public: // methods
   static SRString MakeUnowned(const char *PTR_RESTRICT const pData, size_t length = std::string::npos);
 
   // Must be inline, in order to use std::string from the same module.
-  std::string ToString() const {
+  std::string ToStd() const {
     return std::string(_pData, _length);
   }
 

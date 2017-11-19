@@ -7,6 +7,7 @@
 using namespace ProbQA;
 using namespace SRPlat;
 
+//////TODO: move these to common routines when needed by something else
 const uint64_t gPerfCntFreq = []() {
   LARGE_INTEGER li;
   if (!QueryPerformanceFrequency(&li)) {
@@ -23,60 +24,58 @@ uint64_t GetPerfCnt() {
   return li.QuadPart;
 }
 
-//void InfLoop() {
-//  for(;;) { }
-//}
-
 bool ExistsDirectory(const char* const szPath) {
   DWORD dwAttrib = GetFileAttributesA(szPath);
   return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
     (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
-int __cdecl main() {
-  //std::vector<std::thread> testLoad;
-  //for (int i = 0; i < 16; i++) {
-  //  testLoad.emplace_back(&InfLoop);
-  //}
-  //for (int i = 0; i < 16; i++) {
-  //  testLoad[i].join();
-  //}
+//////End of common routines
 
-  const char* baseName = "Logs\\PqaClient";
-  if (!CreateDirectoryA("Logs", nullptr)) {
-    uint32_t le = GetLastError();
-    if (le != ERROR_ALREADY_EXISTS) {
-      baseName = "PqaClient";
-    }
+void InfLoopThread() {
+  for (;;) {}
+}
+
+void InfLoopHead() {
+  std::vector<std::thread> testLoad;
+  for (int i = 0; i < 16; i++) {
+    testLoad.emplace_back(&InfLoopThread);
   }
-  SRDefaultLogger::Init(SRString::MakeUnowned(baseName));
-
-  std::string kbsDir = "E:\\Data\\Dev\\Engines\\ProbQA\\KBs\\";
-  if (!ExistsDirectory(kbsDir.c_str())) {
-    const char* const sKBs = "KBs";
-    kbsDir = std::string(sKBs) + "\\";
-    if (!CreateDirectoryA(sKBs, nullptr)) {
-      uint32_t le = GetLastError();
-      if (le != ERROR_ALREADY_EXISTS) {
-        fprintf(stderr, "Failed to ensure that a directory for KBs exists.\n");
-        return int(SRExitCode::UnspecifiedError);
-      }
-    }
+  for (int i = 0; i < 16; i++) {
+    testLoad[i].join();
   }
+}
 
+namespace {
+
+std::string gKbsDir;
+
+} // anonymous namespace
+
+int LearnBinarySearch(const char* const initKbFp) {
   FILE *fpProgress = fopen("progress.txt", "wt");
 
   PqaError err;
+  IPqaEngine *pEngine;
   EngineDefinition ed;
-  ed._dims._nAnswers = 5;
-  ed._dims._nQuestions = 1000;
-  ed._dims._nTargets = 1000;
-  ed._initAmount = 0.1;
-  ed._prec._type = TPqaPrecisionType::Double;
-  IPqaEngine *pEngine = PqaGetEngineFactory().CreateCpuEngine(err, ed);
-  if (!err.IsOk() || pEngine == nullptr) {
-    fprintf(stderr, "Failed to instantiate a ProbQA engine.\n");
-    return int(SRExitCode::UnspecifiedError);
+  if (initKbFp == nullptr) {
+    ed._dims._nAnswers = 5;
+    ed._dims._nQuestions = 1000;
+    ed._dims._nTargets = 1000;
+    ed._initAmount = 0.1;
+    ed._prec._type = TPqaPrecisionType::Double;
+    pEngine = PqaGetEngineFactory().CreateCpuEngine(err, ed);
+    if (!err.IsOk() || pEngine == nullptr) {
+      fprintf(stderr, "Failed to instantiate a ProbQA engine.\n");
+      return int(SRExitCode::UnspecifiedError);
+    }
+  }
+  else {
+    pEngine = PqaGetEngineFactory().LoadCpuEngine(err, initKbFp);
+    if (!err.IsOk() || pEngine == nullptr) {
+      fprintf(stderr, "Failed to load a ProbQA engine: %s\n", err.ToString(true).ToStd().c_str());
+      return int(SRExitCode::UnspecifiedError);
+    }
   }
 
   SRFastRandom fr;
@@ -107,11 +106,11 @@ int __cdecl main() {
       const double elapsedSec = double(GetPerfCnt() - pcStart) / gPerfCntFreq;
       printf("\n*%" PRIu64 ";%.2lf%%*", totQAsked, precision);
       fprintf(fpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\t%lf\t%lf\t%lf\n", i, totQAsked, precision,
-        double(sumQuizLens)/nCorrect, totCertainty/nCorrect, (totQAsked-prevQAsked)/elapsedSec);
+        double(sumQuizLens) / nCorrect, totCertainty / nCorrect, (totQAsked - prevQAsked) / elapsedSec);
       fflush(fpProgress);
 
       char kbFile[128];
-      sprintf(kbFile, "%sdichotomy%.6" PRId64 ".kb", kbsDir.c_str(), i);
+      sprintf(kbFile, "%sdichotomy%.6" PRId64 ".kb", gKbsDir.c_str(), i);
       err = pEngine->SaveKB(kbFile, false);
       if (!err.IsOk()) {
         fprintf(stderr, SR_FILE_LINE "Failed to save the KB.\n");
@@ -160,7 +159,7 @@ int __cdecl main() {
       }
       err = pEngine->RecordAnswer(iQuiz, iAnswer);
       if (!err.IsOk()) {
-        fprintf(stderr, "Failed to record answer: %s\n", err.ToString(true).ToString().c_str());
+        fprintf(stderr, "Failed to record answer: %s\n", err.ToString(true).ToStd().c_str());
         return int(SRExitCode::UnspecifiedError);
       }
 
@@ -199,15 +198,41 @@ int __cdecl main() {
     }
     err = pEngine->RecordQuizTarget(iQuiz, guess);
     if (!err.IsOk()) {
-      fprintf(stderr, "Failed to record quiz target: %s\n", err.ToString(true).ToString().c_str());
+      fprintf(stderr, "Failed to record quiz target: %s\n", err.ToString(true).ToStd().c_str());
       return int(SRExitCode::UnspecifiedError);
     }
     err = pEngine->ReleaseQuiz(iQuiz);
     if (!err.IsOk()) {
-      fprintf(stderr, "Failed to release a quiz: %s\n", err.ToString(true).ToString().c_str());
+      fprintf(stderr, "Failed to release a quiz: %s\n", err.ToString(true).ToStd().c_str());
       return int(SRExitCode::UnspecifiedError);
     }
   }
   delete pEngine;
-  return 0;
+  fclose(fpProgress);
+}
+
+int __cdecl main() {
+  const char* baseName = "Logs\\PqaClient";
+  if (!CreateDirectoryA("Logs", nullptr)) {
+    uint32_t le = GetLastError();
+    if (le != ERROR_ALREADY_EXISTS) {
+      baseName = "PqaClient";
+    }
+  }
+  SRDefaultLogger::Init(SRString::MakeUnowned(baseName));
+
+  gKbsDir = "E:\\Data\\Dev\\Engines\\ProbQA\\KBs\\";
+  if (!ExistsDirectory(gKbsDir.c_str())) {
+    const char* const sKBs = "KBs";
+    gKbsDir = std::string(sKBs) + "\\";
+    if (!CreateDirectoryA(sKBs, nullptr)) {
+      uint32_t le = GetLastError();
+      if (le != ERROR_ALREADY_EXISTS) {
+        fprintf(stderr, "Failed to ensure that a directory for KBs exists.\n");
+        return int(SRExitCode::UnspecifiedError);
+      }
+    }
+  }
+
+  return LearnBinarySearch("KBs\\initial.kb");
 }

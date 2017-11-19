@@ -252,6 +252,7 @@
     <ClInclude Include="Interface\PqaErrorParams.h" />
     <ClInclude Include="Interface\PqaErrors.h" />
     <ClInclude Include="ErrorHelper.h" />
+    <ClInclude Include="KBFileInfo.h" />
     <ClInclude Include="MaintenanceSwitch.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="PqaException.h" />

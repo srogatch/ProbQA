@@ -30,40 +30,63 @@ template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(cons
   return std::max({szNextQuestion});
 }
 
-template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)
+template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi)
   : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef))
 {
+  const size_t nQuestions = SRCast::ToSizeT(_dims._nQuestions);
+  const size_t nAnswers = SRCast::ToSizeT(_dims._nAnswers);
+  const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
+
   const taNumber init1(engDef._initAmount);
   const taNumber initSqr = taNumber(init1).Sqr();
   //// Init cube A: A[q][ao][t] is weight for answer option |ao| for question |q| for target |t|
-  _sA.resize(SRCast::ToSizeT(_dims._nQuestions));
-  for (size_t i = 0, iEn= SRCast::ToSizeT(_dims._nQuestions); i < iEn; i++) {
+  _sA.resize(nQuestions);
+  for (size_t i = 0, iEn= nQuestions; i < iEn; i++) {
     _sA[i].resize(SRCast::ToSizeT(_dims._nAnswers));
-    for (size_t k = 0, kEn= SRCast::ToSizeT(_dims._nAnswers); k < kEn; k++) {
-      _sA[i][k].Resize<false>(SRCast::ToSizeT(_dims._nTargets));
-      _sA[i][k].FillAll<false>(initSqr);
+    for (size_t k = 0, kEn= nAnswers; k < kEn; k++) {
+      _sA[i][k].Resize<false>(nTargets);
+      if (pKbFi == nullptr) {
+        _sA[i][k].FillAll<false>(initSqr);
+        continue;
+      }
+      if (std::fread(&(_sA[i][k][0]), sizeof(taNumber), nTargets, pKbFi->_sf.Get()) != nTargets) {
+        PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRMessageBuilder(SR_FILE_LINE
+          "Can't read the target dimension of _sA weights at [")(i)(", ")(k)("].").GetOwnedSRString()).ThrowMoving();
+      }
     }
   }
 
   //// Init matrix D: D[q][t] is the sum of weigths over all answers for question |q| for target |t|. In the other
   ////   words, D[q][t] is A[q][0][t] + A[q][1][t] + ... + A[q][K-1][t], where K is the number of answer options.
   //// Note that D is subject to summation errors, thus its regular recomputation is desired.
-  const taNumber initMD = initSqr * _dims._nAnswers;
+  const taNumber initMD = initSqr * nAnswers;
   _mD.resize(size_t(_dims._nQuestions));
-  for (size_t i = 0, iEn=size_t(_dims._nQuestions); i < iEn; i++) {
-    _mD[i].Resize<false>(size_t(_dims._nTargets));
-    _mD[i].FillAll<false>(initMD);
+  for (size_t i = 0, iEn=nQuestions; i < iEn; i++) {
+    _mD[i].Resize<false>(nTargets);
+    if (pKbFi == nullptr) {
+      _mD[i].FillAll<false>(initMD);
+      continue;
+    }
+    if (std::fread(&(_mD[i][0]), sizeof(taNumber), nTargets, pKbFi->_sf.Get()) != nTargets) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRMessageBuilder(SR_FILE_LINE
+        "Can't read the target dimension of _mD weights at [")(i)("].").GetOwnedSRString()).ThrowMoving();
+    }
   }
 
   //// Init vector B: the sums of weights over all trainings for each target
-  _vB.Resize<false>(size_t(_dims._nTargets));
-  _vB.FillAll<false>(init1);
+  _vB.Resize<false>(nTargets);
+  if (pKbFi == nullptr) {
+    _vB.FillAll<false>(init1);
+  }
+  else {
+    if (std::fread(&(_vB[0]), sizeof(taNumber), nTargets, pKbFi->_sf.Get()) != nTargets) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the _vB weights.")).ThrowMoving();
+    }
+  }
 
-  _questionGaps.GrowTo(_dims._nQuestions);
-  _targetGaps.GrowTo(_dims._nTargets);
-
-  //throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-  //  "CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef)")));
+  _questionGaps.GrowTo(nQuestions);
+  _targetGaps.GrowTo(nTargets);
 }
 
 template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {
@@ -101,7 +124,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
         SR_FILE_LINE "Can't open the file to write KB to."));
       break;
     }
-    err = LockedSaveKB(sf, saveFilePath, false);
+    err = LockedSaveKB(sf, false, saveFilePath);
   } WHILE_FALSE;
 
   //TODO: check the order - perhaps some releases should happen while the workers are still operational
@@ -676,8 +699,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqa
   return PqaError();
 }
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::LockedSaveKB(SRSmartFile &sf, const char* const filePath,
-  const bool bDoubleBuffer)
+template<typename taNumber> PqaError CpuEngine<taNumber>::LockedSaveKB(SRSmartFile &sf, const bool bDoubleBuffer,
+  const char* const filePath)
 {
   const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
 
@@ -742,7 +765,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* con
     //   in maintenance mode.
     SRRWLock<false> rwl(_rws);
 
-    PqaError err = LockedSaveKB(sf, filePath, bDoubleBuffer);
+    PqaError err = LockedSaveKB(sf, bDoubleBuffer, filePath);
     if (!err.IsOk()) {
       return std::move(err);
     }

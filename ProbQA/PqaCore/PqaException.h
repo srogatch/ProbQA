@@ -19,6 +19,8 @@ public:
     : SRPlat::SRException(std::forward<SRPlat::SRString>(message)), _pParams(pParams), _errCode(errCode) { }
   virtual ~PqaException() override { delete _pParams; }
 
+  SREXCEPTION_TYPICAL(Pqa);
+
   PqaErrorCode GetCode() const { return _errCode; }
   IPqaErrorParams* DetachParams() { IPqaErrorParams*  answer = _pParams; _pParams = nullptr; return answer; }
 };
