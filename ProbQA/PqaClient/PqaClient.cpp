@@ -57,8 +57,8 @@ int LearnBinarySearch(const char* const initKbFp) {
 
   PqaError err;
   IPqaEngine *pEngine;
-  EngineDefinition ed;
   if (initKbFp == nullptr) {
+    EngineDefinition ed;
     ed._dims._nAnswers = 5;
     ed._dims._nQuestions = 1000;
     ed._dims._nTargets = 1000;
@@ -66,7 +66,7 @@ int LearnBinarySearch(const char* const initKbFp) {
     ed._prec._type = TPqaPrecisionType::Double;
     pEngine = PqaGetEngineFactory().CreateCpuEngine(err, ed);
     if (!err.IsOk() || pEngine == nullptr) {
-      fprintf(stderr, "Failed to instantiate a ProbQA engine.\n");
+      fprintf(stderr, "Failed to instantiate a ProbQA engine: %s\n", err.ToString(true).ToStd().c_str());
       return int(SRExitCode::UnspecifiedError);
     }
   }
@@ -123,7 +123,7 @@ int LearnBinarySearch(const char* const initKbFp) {
       prevQAsked = totQAsked;
       pcStart = GetPerfCnt();
     }
-    const TPqaId guess = ea.Generate<TPqaId>(ed._dims._nTargets);
+    const TPqaId guess = ea.Generate<TPqaId>(pEngine->GetDims()._nTargets);
     volatile TPqaId dbgGuess = guess;
     const TPqaId iQuiz = pEngine->StartQuiz(err);
     if (!err.IsOk() || iQuiz == cInvalidPqaId) {
@@ -209,6 +209,7 @@ int LearnBinarySearch(const char* const initKbFp) {
   }
   delete pEngine;
   fclose(fpProgress);
+  return 0;
 }
 
 int __cdecl main() {

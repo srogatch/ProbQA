@@ -64,7 +64,7 @@ IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const
     return nullptr;
   }
 
-  if (std::fwrite(&engDef._dims, sizeof(engDef._dims), 1, sf.Get()) != 1) {
+  if (std::fread(&engDef._dims, sizeof(engDef._dims), 1, sf.Get()) != 1) {
     err = PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
       "Can't read engine dimensions header."));
     return nullptr;

@@ -63,7 +63,7 @@ public: // Internal interface methods
   SRPlat::SRThreadPool& GetWorkers() { return _tpWorkers; }
   SRPlat::SRReaderWriterSync& GetRws() { return _rws; }
 
-  const EngineDimensions& GetDims() const { return _dims; }
+  const EngineDimensions& GetDims() const override { return _dims; }
   const GapTracker<TPqaId>& GetQuestionGaps() const { return _questionGaps; }
   const GapTracker<TPqaId>& GetTargetGaps() const { return _targetGaps; }
 

@@ -47,8 +47,11 @@ public:
   // Double buffer uses as much additional memory as the size of the KB, but reduces KB lock duration because the KB
   //   is only locked for the period of copying in memory to the buffer, then saving to disk proceeds without a lock.
   virtual PqaError SaveKB(const char* const filePath, const bool bDoubleBuffer) = 0;
+
   // Statistics method, especially useful for charging.
   virtual uint64_t GetTotalQuestionsAsked(PqaError& err) = 0;
+  // Get engine dimensions: the number of questions, answers and targets
+  virtual const EngineDimensions& GetDims() const = 0;
 
   // When |forceQuizes|=false, the function fails if there are any quizes in progress.
   // When |forceQuizes|=true, the function closes all the open quizes.
