@@ -235,5 +235,6 @@ int __cdecl main() {
     }
   }
 
-  return LearnBinarySearch("KBs\\initial.kb");
+  //return LearnBinarySearch("KBs\\initial.kb"); // To load a saved KB
+  return LearnBinarySearch(nullptr); // To create a KB from scratch by training
 }
