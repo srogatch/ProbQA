@@ -79,45 +79,6 @@ void MaintenanceSwitch::LeaveAgnostic() {
   }
 }
 
-template <MaintenanceSwitch::Mode taMode> void MaintenanceSwitch::SwitchMode() {
-  {
-    SRLock<SRCriticalSection> csl(_cs);
-    if (_bModeChangeRequested) {
-      if (_bShutdownRequested) {
-        csl.EarlyRelease();
-        throw PqaException(PqaErrorCode::ObjectShutDown, new ObjectShutDownErrorParams(SRString::MakeUnowned(
-          __FUNCTION__ " at enter")));
-      }
-      else {
-        uint8_t activeMode = ToUInt8(static_cast<Mode>(_curMode));
-        csl.EarlyRelease();
-        throw PqaException(PqaErrorCode::MaintenanceModeChangeInProgress, new MaintenanceModeErrorParams(activeMode));
-      }
-    }
-    if (static_cast<Mode>(_curMode) == taMode) {
-      csl.EarlyRelease();
-      throw PqaException(PqaErrorCode::MaintenanceModeAlreadyThis, new MaintenanceModeErrorParams(ToUInt8(taMode)));
-    }
-    if (_nUsing > 0) {
-      _bModeChangeRequested = 1;
-      do {
-        _canSwitch.Wait(_cs);
-        if (_bShutdownRequested) {
-          csl.EarlyRelease();
-          throw PqaException(PqaErrorCode::ObjectShutDown, new ObjectShutDownErrorParams(SRString::MakeUnowned(
-            __FUNCTION__ " at wait")));
-        }
-      } while (_nUsing > 0);
-    }
-    _curMode = static_cast<uint64_t>(taMode);
-    _bModeChangeRequested = 0;
-  }
-  _canEnter.WakeAll();
-}
-
-template void MaintenanceSwitch::SwitchMode<MaintenanceSwitch::Mode::Maintenance>();
-template void MaintenanceSwitch::SwitchMode<MaintenanceSwitch::Mode::Regular>();
-
 bool MaintenanceSwitch::Shutdown() {
   SRLock<SRCriticalSection> csl(_cs);
   if (_bShutdownRequested) {

@@ -32,17 +32,23 @@ public:
 template<bool taExclusive> class SRRWLock {
   SRReaderWriterSync *_pRws;
 public:
+  SRRWLock() : _pRws(nullptr) { }
   explicit SRRWLock(SRReaderWriterSync& rws) : _pRws(&rws) {
     _pRws->Acquire<taExclusive>();
-  }
-  void EarlyRelease() {
-    _pRws->Release<taExclusive>();
-    _pRws = nullptr;
   }
   ~SRRWLock() {
     if (_pRws != nullptr) {
       _pRws->Release<taExclusive>();
     }
+  }
+  void Init(SRReaderWriterSync& rws) {
+    assert(_pRws == nullptr);
+    rws.Acquire<taExclusive>();
+    _pRws = &rws;
+  }
+  void EarlyRelease() {
+    _pRws->Release<taExclusive>();
+    _pRws = nullptr;
   }
 };
 

@@ -202,4 +202,13 @@ public:
   }
 };
 
+class PQACORE_API QuizzesActiveErrorParams : public IPqaErrorParams {
+  TPqaId _nQuizzes;
+public:
+  explicit QuizzesActiveErrorParams(const TPqaId nQuizzes) : _nQuizzes(nQuizzes) { }
+  virtual SRPlat::SRString ToString() override final {
+    return SRPlat::SRMessageBuilder("nQuizzes=[")(_nQuizzes)("]").GetOwnedSRString();
+  }
+};
+
 } // namespace ProbQA

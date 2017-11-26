@@ -786,9 +786,42 @@ template<typename taNumber> uint64_t CpuEngine<taNumber>::GetTotalQuestionsAsked
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const bool forceQuizes) {
-  (void)forceQuizes; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::StartMaintenance")));
+  try {
+    constexpr auto cOrigMode = MaintenanceSwitch::Mode::Regular;
+    constexpr auto cTargMode = MaintenanceSwitch::Mode::Maintenance;
+    MaintenanceSwitch::SpecificLeaver<cTargMode> mssl;
+    SRRWLock<true> rwl; // block every read and write until we are clear about quizzes
+    SRLock<SRCriticalSection> csl;
+    mssl = _maintSwitch.SwitchMode<cTargMode>([&]() {
+      rwl.Init(_rws);
+      csl.Init(_csQuizReg);
+    });
+    const TPqaId quizRange = _quizzes.size();
+    const TPqaId nQuizzes = quizRange - _quizGaps.GetNGaps();
+    assert(nQuizzes >= 0);
+    if (nQuizzes != 0) {
+      if (forceQuizes) {
+        for (TPqaId i = 0; i < quizRange; i++) {
+          if (_quizGaps.IsGap(i)) {
+            continue;
+          }
+          CEQuiz<taNumber> *pQuiz = _quizzes[i];
+          SRCheckingRelease(_memPool, pQuiz);
+          _quizGaps.Release(i);
+        }
+        assert(_quizzes.size() == _quizGaps.GetNGaps());
+      }
+      else {
+        csl.EarlyRelease();
+        mssl.EarlyRelease();
+        _maintSwitch.SwitchMode<cOrigMode>();
+        return PqaError(PqaErrorCode::QuizzesActive, new QuizzesActiveErrorParams(nQuizzes), SRString::MakeUnowned(
+          SR_FILE_LINE "Can't switch to maintenance mode because there are active quizzes and forceQuizzes=false"));
+      }
+    }
+    return PqaError();
+  }
+  CATCH_TO_ERR_RETURN;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::FinishMaintenance() {

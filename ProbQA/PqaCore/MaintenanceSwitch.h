@@ -18,14 +18,32 @@ public: // types
   class AgnosticLock {
     MaintenanceSwitch *_pMs;
     Mode _mode;
+
+    void CheckingRelease() {
+      if (_pMs != nullptr) {
+        _pMs->LeaveAgnostic();
+      }
+    }
   public:
     explicit AgnosticLock(MaintenanceSwitch& ms) : _pMs(&ms) {
       _mode = _pMs->EnterAgnostic();
     }
     ~AgnosticLock() {
-      if (_pMs != nullptr) {
-        _pMs->LeaveAgnostic();
+      CheckingRelease();
+    }
+    AgnosticLock(const AgnosticLock&) = delete;
+    AgnosticLock& operator=(const AgnosticLock&) = delete;
+    AgnosticLock(AgnosticLock&& source) : _pMs(source._pMs), _mode(source._mode) {
+      source._pMs = nullptr;
+    }
+    AgnosticLock& operator=(AgnosticLock&& source) {
+      if (this != &source) {
+        CheckingRelease();
+        _pMs = source._pMs;
+        source._pMs = nullptr;
+        _mode = source._mode;
       }
+      return *this;
     }
     void EarlyRelease() {
       _pMs->LeaveAgnostic();
@@ -38,17 +56,37 @@ public: // types
 
   // Object must be instantiated only after TryEnterSpecific() succeeds.
   template <Mode taMode> class SpecificLeaver {
+    friend class MaintenanceSwitch;
     MaintenanceSwitch *_pMs;
-  public:
-    explicit SpecificLeaver(MaintenanceSwitch& ms) : _pMs(&ms) { }
-    void EarlyRelease() {
-      _pMs->LeaveSpecific<taMode>();
-      _pMs = nullptr;
-    }
-    ~SpecificLeaver() {
+
+    void CheckingRelease() {
       if (_pMs != nullptr) {
         _pMs->LeaveSpecific<taMode>();
       }
+    }
+
+  public:
+    SpecificLeaver() : _pMs(nullptr) {}
+    explicit SpecificLeaver(MaintenanceSwitch& ms) : _pMs(&ms) { }
+    ~SpecificLeaver() {
+      CheckingRelease();
+    }
+    SpecificLeaver(const SpecificLeaver&) = delete;
+    SpecificLeaver& operator=(const SpecificLeaver&) = delete;
+    SpecificLeaver(SpecificLeaver&& source) : _pMs(source._pMs) {
+      source._pMs = nullptr;
+    }
+    SpecificLeaver& operator=(SpecificLeaver&& source) {
+      if (this != &source) {
+        CheckingRelease();
+        _pMs = source._pMs;
+        source._pMs = nullptr;
+      }
+      return *this;
+    }
+    void EarlyRelease() {
+      _pMs->LeaveSpecific<taMode>();
+      _pMs = nullptr;
     }
   };
 
@@ -81,11 +119,55 @@ public: // methods
   //   current operations of the current mode to finish, then switch to the new mode.
   // Throws if it is already in the target mode or in the process of state change.
   // Throws when shut(ting) down.
-  template <Mode taMode> void SwitchMode();
+  template <Mode taMode, typename taSimultaneous> SpecificLeaver<taMode> SwitchMode(const taSimultaneous& sf);
+  template <Mode taMode> SpecificLeaver<taMode> SwitchMode() { return SwitchMode<taMode>([]() {}); }
   // Wait for completion of any current operations (except mode switch) and forbid starting any new operations in any
   //   mode. Concurrent switch operations throw and may do this a little later than when this method returns.
   // Returns |true| if shutdown has happened in the current call. Returns |false| if it was already shut down.
   bool Shutdown();
 };
+
+template <MaintenanceSwitch::Mode taMode, typename taSimultaneous> MaintenanceSwitch::SpecificLeaver<taMode>
+  MaintenanceSwitch::SwitchMode(const taSimultaneous& sf)
+{
+  SpecificLeaver<taMode> ans;
+  {
+    SRLock<SRCriticalSection> csl(_cs);
+    if (_bModeChangeRequested) {
+      if (_bShutdownRequested) {
+        csl.EarlyRelease();
+        throw PqaException(PqaErrorCode::ObjectShutDown, new ObjectShutDownErrorParams(SRString::MakeUnowned(
+          __FUNCTION__ " at enter")));
+      }
+      else {
+        uint8_t activeMode = ToUInt8(static_cast<Mode>(_curMode));
+        csl.EarlyRelease();
+        throw PqaException(PqaErrorCode::MaintenanceModeChangeInProgress, new MaintenanceModeErrorParams(activeMode));
+      }
+    }
+    if (static_cast<Mode>(_curMode) == taMode) {
+      csl.EarlyRelease();
+      throw PqaException(PqaErrorCode::MaintenanceModeAlreadyThis, new MaintenanceModeErrorParams(ToUInt8(taMode)));
+    }
+    if (_nUsing > 0) {
+      _bModeChangeRequested = 1;
+      do {
+        _canSwitch.Wait(_cs);
+        if (_bShutdownRequested) {
+          csl.EarlyRelease();
+          throw PqaException(PqaErrorCode::ObjectShutDown, new ObjectShutDownErrorParams(SRString::MakeUnowned(
+            __FUNCTION__ " at wait")));
+        }
+      } while (_nUsing > 0);
+    }
+    _curMode = static_cast<uint64_t>(taMode);
+    _bModeChangeRequested = 0;
+    _nUsing = 1; // Lock simultaneously with switching to the target mode
+    ans._pMs = this;
+    sf();
+  }
+  _canEnter.WakeAll();
+  return std::move(ans);
+}
 
 } // namespace ProbQA
