@@ -37,7 +37,7 @@ However, human-programmed binary search algorithm doesn't tolerate mistakes and 
 
 Moreover, I think there is some room for improvement in the priority function. Currently I use polynomial priority: pow(distance, 12) / pow(nExpectedTargets, 6), which empirically showed the best results in my limited number of priority function experimented with. Still I think that even better results can be produced with exponential priority function. Now let's see if it's better to devise and try some exponential functions now, or proceed with (less exciting) engineering tasks like saving&loading the knowledge base to&from a file, etc.
 
-# Update 2017-11-26: Ready to try
+# Update 2017-11-26: Ready to try (release 0.1.0.0)
 Recently the implementation of loading and saving of the knowledge base was finished. Training and prediction were finished more than a month ago, and were tested/fixed and tuned after that.
 
 What's not yet finished is resizing the KB. It will not be possible to change the number of answer options after a KB is created. However, I am still to implement the changing of the number of questions and targets.
