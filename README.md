@@ -21,7 +21,6 @@ From the data&diagram it seems that the program learns faster and reaches higher
 There is also a flaw currently in the key theory, which makes the program stubborn (I think it's close to "overfitting" term of Machine Learning). After the program mistakenly selects some target as the most probable, it start asking such questions which let it stick to its mistake, rather than questions which would let the program see that other targets are more probable. Although it is what happens in life, technically it is an error in the key algorithm/theory behind the program.
 
 # Update 2017-10-17: Faster learning, higher accuracy, and machine learning of algorithms
-
 Current machine learning methods do not an learn algorithm. A classifier, a neural network or, more obviously, regression methods learn at most a function: given some input data, produce output data. That can be at most one step of an algorithm. Without learning algorithms, these methods are far from Artificial General Intelligence. On the path to AGI we should find a way for programs to learn algorithms with branching, loops and subroutines. Then we should find a way to teach programs to comprehend other programs. Then to comprehend and improve itself.
 
 So in contrast to other machine learning methods, I'm currently developing and showing the first results of a computer program that learns algorithms. It has showed good results in learning the binary search algorithm (dichotomy). We can say that it learns an algorithm because what the program really does with its knowledge is interaction with the user in several steps: it asks the user for input, then depending on the input, takes some branch and asks the user something else.
@@ -37,3 +36,18 @@ So that is quite competitive with the binary search algorithm programmed by a hu
 However, human-programmed binary search algorithm doesn't tolerate mistakes and doesn't rate the targets by their probability of being the desired one. And of course it doesn't learn along the way. While probabilistic question-asking/answering system does this.
 
 Moreover, I think there is some room for improvement in the priority function. Currently I use polynomial priority: pow(distance, 12) / pow(nExpectedTargets, 6), which empirically showed the best results in my limited number of priority function experimented with. Still I think that even better results can be produced with exponential priority function. Now let's see if it's better to devise and try some exponential functions now, or proceed with (less exciting) engineering tasks like saving&loading the knowledge base to&from a file, etc.
+
+# Update 2017-11-26: Ready to try
+Recently the implementation of loading and saving of the knowledge base was finished. Training and prediction were finished more than a month ago, and were tested/fixed and tuned after that.
+
+What's not yet finished is resizing the KB. It will not be possible to change the number of answer options after a KB is created. However, I am still to implement the changing of the number of questions and targets.
+
+You can try integrating the engine into your systems. If not too busy, I may be able to answer your questions this integration.
+
+To compile you need MSVS2017 v15.4.2 or higher. An external dependency is gtest: https://github.com/google/googletest (only if you want to run tests or dislike compilation errors in unrelated projects too much).
+
+Earlier I published the results of experiments for top 10 targets (where a target is considered to have been guessed correctly if it's listed among 10 most probable targets). Here's the result for more challenging task - guessing the targets among top 1, i.e. it must be selected as the single most probable target. After many experiments and tuning, currently the learning curve of accuracy looks like the following for learning binary search algorithm:
+![Accuracy Top1](https://raw.githubusercontent.com/srogatch/ProbQA/master/ProbQA/Notes/Metrics/TrainingProgress/top1/SquareCounts/lack/best_2017-11-19.png)
+So for KB of size 1000 questions by 5 answer options by 1000 targets, the accuracy reaches 100% after about 4.5 millions of questions answered, and then stays at 100% too.
+
+More introduction to this program can be found in my articles: https://www.linkedin.com/in/sergerogatch/detail/recent-activity/posts/
