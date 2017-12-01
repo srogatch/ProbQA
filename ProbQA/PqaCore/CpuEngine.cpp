@@ -826,15 +826,19 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::FinishMaintenance() {
   try {
+    PqaError err;
     constexpr auto cTargMode = MaintenanceSwitch::Mode::Regular;
     _maintSwitch.SwitchMode<cTargMode>([&]() {
-      // Adjust workers' stack size if more is needed for the new dimensions
-      const size_t newStackSize = CalcWorkerStackSize(_dims);
-      if (newStackSize > _tpWorkers.GetStackSize()) {
-        _tpWorkers.ChangeStackSize(newStackSize);
+      try {
+        // Adjust workers' stack size if more is needed for the new dimensions
+        const size_t newStackSize = CalcWorkerStackSize(_dims);
+        if (newStackSize > _tpWorkers.GetStackSize()) {
+          _tpWorkers.ChangeStackSize(newStackSize);
+        }
       }
+      CATCH_TO_ERR_SET(err);
     });
-    return PqaError();
+    return err;
   }
   CATCH_TO_ERR_RETURN;
 }
