@@ -38,7 +38,7 @@ struct SRThreadPool::RareData {
 #define TPLOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, GetLogger())
 
 SRThreadPool::SRThreadPool(const SRThreadCount nThreads, const size_t stackSize) : _qu(SRMath::CeilLog2(nThreads)),
-  _nWorkers(nThreads), _shutdownRequested(0), _stackSize(stackSize + _cReserveStackSize)
+  _nWorkers(nThreads), _shutdownRequested(0), _stackSize(stackSize)
 {
   _pRd = SRCast::Ptr<RareData>(malloc(sizeof(RareData) + sizeof(HANDLE) * _nWorkers));
   _pRd->_pLogger = SRDefaultLogger::Get();
@@ -56,7 +56,7 @@ void SRThreadPool::LaunchThreads() {
   assert(!_shutdownRequested);
   for (size_t i = 0; i < _nWorkers; i++) {
     // Use WinAPI threads in order to be able to set the stack size
-    HANDLE hThread = CreateThread(nullptr, _stackSize, &RareData::PlatformEntry, this, 0, nullptr);
+    HANDLE hThread = CreateThread(nullptr, _stackSize + _cReserveStackSize, &RareData::PlatformEntry, this, 0, nullptr);
     if (hThread == nullptr) {
       SR_LOG_WINFAIL_GLE(Critical, GetLogger());
       SRUtils::ExitProgram(SRExitCode::ThreadPoolCritical);
@@ -83,7 +83,7 @@ void SRThreadPool::StopThreads() {
 void SRThreadPool::ChangeStackSize(const size_t stackSize) {
   RequestShutdown();
   StopThreads();
-  _stackSize = stackSize + _cReserveStackSize;
+  _stackSize = stackSize;
   _shutdownRequested = 0;
   LaunchThreads();
 }

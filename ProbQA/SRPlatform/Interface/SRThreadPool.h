@@ -31,6 +31,8 @@ private: // variables
   SRQueue<SRBaseSubtask*> _qu;
   SRCriticalSection _cs;
   SRConditionVariable _haveWork;
+  //NOTE: don't forget to add _cReserveStackSize when actually allocating the stack. This variable doesn't include the
+  //  stack requirement for miscellaneous needs.
   size_t _stackSize;
   // It has to be const to allow accessing without locks by the clients.
   const SRThreadCount _nWorkers;

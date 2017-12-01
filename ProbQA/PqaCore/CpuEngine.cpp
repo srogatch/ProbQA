@@ -24,14 +24,14 @@ namespace ProbQA {
 
 #define CELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
 
-template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(const EngineDefinition& engDef) {
-  const size_t szNextQuestion = std::max({CEEvalQsSubtaskConsider<taNumber>::CalcStackReq(engDef)});
+template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(const EngineDimensions& dims) {
+  const size_t szNextQuestion = std::max({CEEvalQsSubtaskConsider<taNumber>::CalcStackReq(dims)});
 
   return std::max({szNextQuestion});
 }
 
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi)
-  : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef))
+  : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef._dims))
 {
   const size_t nQuestions = SRCast::ToSizeT(_dims._nQuestions);
   const size_t nAnswers = SRCast::ToSizeT(_dims._nAnswers);
@@ -825,9 +825,18 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::FinishMaintenance() {
-  //TODO: adjust workers's stack size if more is needed for the new dimensions: SRThreadPool::ChangeStackSize()
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::FinishMaintenance")));
+  try {
+    constexpr auto cTargMode = MaintenanceSwitch::Mode::Regular;
+    _maintSwitch.SwitchMode<cTargMode>([&]() {
+      // Adjust workers' stack size if more is needed for the new dimensions
+      const size_t newStackSize = CalcWorkerStackSize(_dims);
+      if (newStackSize > _tpWorkers.GetStackSize()) {
+        _tpWorkers.ChangeStackSize(newStackSize);
+      }
+    });
+    return PqaError();
+  }
+  CATCH_TO_ERR_RETURN;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) {

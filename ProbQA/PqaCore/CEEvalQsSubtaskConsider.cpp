@@ -11,9 +11,9 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<typename taNumber> size_t CEEvalQsSubtaskConsider<taNumber>::CalcStackReq(const EngineDefinition& engDef) {
-  return SRSimd::GetPaddedBytes(sizeof(taNumber) * engDef._dims._nTargets) * 2
-    + sizeof(AnswerMetrics<taNumber>) * engDef._dims._nAnswers;
+template<typename taNumber> size_t CEEvalQsSubtaskConsider<taNumber>::CalcStackReq(const EngineDimensions& dims) {
+  return SRSimd::GetPaddedBytes(sizeof(taNumber) * dims._nTargets) * 2
+    + sizeof(AnswerMetrics<taNumber>) * dims._nAnswers;
 }
 
 template class CEEvalQsSubtaskConsider<SRDoubleNumber>;

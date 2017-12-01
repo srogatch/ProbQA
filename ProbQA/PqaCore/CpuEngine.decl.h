@@ -42,7 +42,7 @@ private: // variables
 
 private: // methods
 
-  static size_t CalcWorkerStackSize(const EngineDefinition& engDef);
+  static size_t CalcWorkerStackSize(const EngineDimensions& dims);
 
 #pragma region Behind Train() interface method
   PqaError TrainInternal(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,

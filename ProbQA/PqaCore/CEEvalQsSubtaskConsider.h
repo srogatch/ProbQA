@@ -22,7 +22,7 @@ private: // methods
   static double CalcVelocityComponent(const double V, const TPqaId nTargets);
 
 public: // methods
-  static size_t CalcStackReq(const EngineDefinition& engDef);
+  static size_t CalcStackReq(const EngineDimensions& dims);
 
   using SRPlat::SRStandardSubtask::SRStandardSubtask;
   virtual void Run() override final;
