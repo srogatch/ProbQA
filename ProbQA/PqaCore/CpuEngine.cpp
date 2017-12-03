@@ -213,7 +213,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
 
     if (_targetGaps.IsGap(iTarget)) {
       rwl.EarlyRelease();
-      return PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iTarget), SRString::MakeUnowned(
+      return PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iTarget), SRString::MakeUnowned(SR_FILE_LINE
         "Target index is not in KB (but rather at a gap)."));
     }
 
@@ -843,29 +843,162 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::FinishMaintenance() {
   CATCH_TO_ERR_RETURN;
 }
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) {
-  (void)nQuestions; (void)pAqps; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::AddQuestions")));
-}
+template<typename taNumber> PqaError CpuEngine<taNumber>::AddQsTs(const TPqaId nQuestions, AddQuestionParam *pAqps,
+  const TPqaId nTargets, AddTargetParam *pAtps)
+{
+  constexpr auto msMode = MaintenanceSwitch::Mode::Maintenance;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform"
+      " maintenance-only mode operation - add questions/targets - because current mode is not maintenance (but"
+      " regular/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+  // Exclusive lock is needed because we are going to change the number of questions/targets in the KB, and also write
+  //   the initial amounts.
+  SRRWLock<true> rwl(_rws);
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::AddTargets(TPqaId nTargets, AddTargetParam *pAtps) {
-  (void)nTargets; (void)pAtps; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::AddTargets")));
+  try {
+    const TPqaId nQReuse = std::min(nQuestions, _questionGaps.GetNGaps());
+    const TPqaId nQNew = nQuestions - nQReuse;
+    const TPqaId nQOld = _dims._nQuestions;
+    const TPqaId totQ = nQOld + nQNew;
+    SRBitArray reusedQs(totQ, false);
+    for (TPqaId i = 0; i < nQReuse; i++) {
+      const TPqaId curQ = _questionGaps.Acquire();
+      assert(curQ < _dims._nQuestions);
+      pAqps[i]._iQuestion = curQ;
+      reusedQs.SetOne(curQ);
+    }
+
+    const TPqaId nTReuse = std::min(nTargets, _targetGaps.GetNGaps());
+    const TPqaId nTNew = nTargets - nTReuse;
+    const TPqaId nTOld = _dims._nTargets;
+    const TPqaId totT = nTOld + nTNew;
+    for (TPqaId i = 0; i < nTReuse; i++) {
+      const TPqaId curT = _targetGaps.Acquire();
+      assert(curT < _dims._nTargets);
+      pAtps[i]._iTarget = curT;
+    }
+
+    if (nQNew > 0) {
+      _sA.resize(totQ);
+      _mD.resize(totQ);
+      for (TPqaId i = 0; i < nQNew; i++) {
+        const TPqaId curQ = nQOld + i;
+        pAqps[nQReuse + i]._iQuestion = curQ;
+        const taNumber initSqr = taNumber(pAqps[nQReuse + i]._initialAmount).Sqr();
+        _sA[curQ].resize(_dims._nAnswers);
+        for (TPqaId k = 0; k < _dims._nAnswers; k++) {
+          _sA[curQ][k].Resize<false>(totT);
+          _sA[curQ][k].FillAll<false>(initSqr);
+        }
+        const taNumber initMD = initSqr * _dims._nAnswers;
+        _mD[curQ].Resize<false>(totT);
+        _mD[curQ].FillAll<false>(initMD);
+      }
+    }
+    if (nTNew > 0) {
+      for (TPqaId i = 0; i < nQOld; i++) {
+        for (TPqaId k = 0; k < _dims._nAnswers; k++) {
+          _sA[i][k].Resize<false>(totT);
+          for (TPqaId j = 0; j < nTNew; j++) {
+            const taNumber initSqr = taNumber(pAtps[nQReuse + j]._initialAmount).Sqr();
+            _sA[i][k][j + nTOld] = initSqr; //TODO: vectorize and stream without caching
+          }
+        }
+        _mD[i].Resize<false>(totT);
+        for (TPqaId j = 0; j < nTNew; j++) {
+          const taNumber initMD = taNumber(pAtps[nQReuse + j]._initialAmount).Sqr() * _dims._nAnswers;
+          _mD[i][j + nTOld] = initMD; //TODO: vectorize and stream without caching
+        }
+      }
+      _vB.Resize<false>(totT);
+      for (TPqaId j = 0; j < nTNew; j++) {
+        const TPqaId parPos = nQReuse + j;
+        const TPqaId curT = nTOld + j;
+        pAtps[parPos]._iTarget = curT;
+        const taNumber init1(pAtps[parPos]._initialAmount);
+        _vB[curT] = init1; //TODO: vectorize and stream without caching
+      }
+    }
+
+    // As all the memory allocations have succeeded, it is safe to update the dimensions
+    _dims._nQuestions = totQ;
+    _dims._nTargets = totT;
+
+    // Set the initial amounts for questions and targets acquired from gaps
+    for (TPqaId i = 0; i < nQReuse; i++) {
+      const TPqaId curQ = pAqps[i]._iQuestion;
+      const taNumber initSqr = taNumber(pAqps[i]._initialAmount).Sqr();
+      for (TPqaId k = 0; k < _dims._nAnswers; k++) {
+        _sA[curQ][k].FillAll<false>(initSqr);
+      }
+      const taNumber initMD = initSqr * _dims._nAnswers;
+      _mD[curQ].FillAll<false>(initMD);
+    }
+    for (TPqaId j = 0; j < nTReuse; j++) {
+      const TPqaId curT = pAtps[j]._iTarget;
+      const taNumber init1(pAtps[j]._initialAmount);
+      const taNumber initSqr = taNumber(init1).Sqr();
+      const taNumber initMD = initSqr * _dims._nAnswers;
+      for (TPqaId i = 0; i < nQOld; i++) {
+        if (reusedQs.GetOne(i)) {
+          continue; // already initialized by question initialization
+        }
+        for (TPqaId k = 0; k < _dims._nAnswers; k++) {
+          _sA[i][k][curT] = initSqr;
+        }
+        _mD[i][curT] = initMD;
+      }
+      _vB[curT] = init1;
+    }
+    return PqaError();
+  } CATCH_TO_ERR_RETURN;
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds)
 {
-  (void)nQuestions; (void)pQIds; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::RemoveQuestions")));
+  constexpr auto msMode = MaintenanceSwitch::Mode::Maintenance;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform"
+      " maintenance-only mode operation - remove questions - because current mode is not maintenance (but"
+      " regular/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+  // Exclusive lock is needed because we are going to change the number of questions in the KB.
+  SRRWLock<true> rwl(_rws);
+
+  for (TPqaId i = 0; i < nQuestions; i++) {
+    const TPqaId iQuestion = pQIds[i];
+    if (iQuestion >= _dims._nQuestions || _questionGaps.IsGap(iQuestion)) {
+      return PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iQuestion), SRString::MakeUnowned(SR_FILE_LINE
+        "Question index is not in KB."));
+    }
+    _questionGaps.Release(iQuestion);
+  }
+  return PqaError();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) {
-  (void)nTargets; (void)pTIds; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::RemoveTargets")));
+  constexpr auto msMode = MaintenanceSwitch::Mode::Maintenance;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform"
+      " maintenance-only mode operation - remove targets - because current mode is not maintenance (but"
+      " regular/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+  // Exclusive lock is needed because we are going to change the number of targets in the KB.
+  SRRWLock<true> rwl(_rws);
+
+  for (TPqaId i = 0; i < nTargets; i++) {
+    const TPqaId iTarget = pTIds[i];
+    if (iTarget >= _dims._nTargets || _targetGaps.IsGap(iTarget)) {
+      return PqaError(PqaErrorCode::AbsentId, new AbsentIdErrorParams(iTarget), SRString::MakeUnowned(SR_FILE_LINE
+        "Target index is not in KB (but rather at a gap)."));
+    }
+    _targetGaps.Release(iTarget);
+  }
+  return PqaError();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResult &cr) {

@@ -95,8 +95,8 @@ public: // Client interface methods
   virtual PqaError StartMaintenance(const bool forceQuizes) override final;
   virtual PqaError FinishMaintenance() override final;
 
-  virtual PqaError AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) override final;
-  virtual PqaError AddTargets(TPqaId nTargets, AddTargetParam *pAtps) override final;
+  virtual PqaError AddQsTs(const TPqaId nQuestions, AddQuestionParam *pAqps, const TPqaId nTargets,
+    AddTargetParam *pAtps) override final;
   virtual PqaError RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds) override final;
   virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) override final;
 

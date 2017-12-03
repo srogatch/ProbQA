@@ -28,7 +28,9 @@ private:
 
 protected: // variables
   TMemPool _memPool; // thread-safe itself
-  SRPlat::SRThreadPool _tpWorkers; // thread-safe itself
+  // Most operations are thread-safe already.
+  // ChangeStackSize() is not thread-safe, therefore guarded by _maintSwitch intraswitch mode.
+  SRPlat::SRThreadPool _tpWorkers;
 
   const PrecisionDefinition _precDef;
   EngineDimensions _dims; // Guarded by _rws in maintenance mode. Read-only in regular mode.

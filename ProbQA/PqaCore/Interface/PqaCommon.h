@@ -71,11 +71,27 @@ struct CompactionResult {
 struct AddQuestionParam {
   TPqaId _iQuestion; // filled in by the engine
   TPqaAmount _initialAmount; // filled in by the client before passing to the engine.
+
+  static std::unique_ptr<AddQuestionParam[]> Uniform(const TPqaId nQuestions, const TPqaAmount initialAmount) {
+    std::unique_ptr<AddQuestionParam[]> ans(new AddQuestionParam[nQuestions]);
+    for (TPqaId i = 0; i < nQuestions; i++) {
+      ans[i]._initialAmount = initialAmount;
+    }
+    return std::move(ans);
+  }
 };
 
 struct AddTargetParam {
   TPqaId _iTarget; // filled in by the engine.
   TPqaAmount _initialAmount; // filled in by the client before passing to the engine.
+
+  static std::unique_ptr<AddTargetParam[]> Uniform(const TPqaId nTargets, const TPqaAmount initialAmount) {
+    std::unique_ptr<AddTargetParam[]> ans(new AddTargetParam[nTargets]);
+    for (TPqaId i = 0; i < nTargets; i++) {
+      ans[i]._initialAmount = initialAmount;
+    }
+    return std::move(ans);
+  }
 };
 
 } // namespace ProbQA

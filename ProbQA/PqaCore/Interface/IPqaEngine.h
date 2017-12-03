@@ -65,8 +65,11 @@ public:
   ////   target probabilities may change without this question answered.
   //// Removal of a target requires recomputation of all target probabilities in each quiz, so this is also undesired
   ////   to keep the engine fast.
-  virtual PqaError AddQuestions(TPqaId nQuestions, AddQuestionParam *pAqps) = 0;
-  virtual PqaError AddTargets(TPqaId nTargets, AddTargetParam *pAtps) = 0;
+
+  // For the cells where both question and target are added (the intersection), the initial amount for the question
+  //   is used and the initial amount for the target is ignored.
+  virtual PqaError AddQsTs(const TPqaId nQuestions, AddQuestionParam *pAqps, const TPqaId nTargets,
+    AddTargetParam *pAtps) = 0;
   virtual PqaError RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds) = 0;
   virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) = 0;
 

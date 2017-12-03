@@ -119,6 +119,7 @@ public: // methods
   //   current operations of the current mode to finish, then switch to the new mode.
   // Throws if it is already in the target mode or in the process of state change.
   // Throws when shut(ting) down.
+  // |sf| is the operation to perform in intraswitch mode (i.e. when noone else can obtain a lock).
   template <Mode taMode, typename taSimultaneous> SpecificLeaver<taMode> SwitchMode(const taSimultaneous& sf);
   template <Mode taMode> SpecificLeaver<taMode> SwitchMode() { return SwitchMode<taMode>([]() {}); }
   // Wait for completion of any current operations (except mode switch) and forbid starting any new operations in any
