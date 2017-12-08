@@ -12,6 +12,7 @@
 #include "../PqaCore/GapTracker.h"
 #include "../PqaCore/MaintenanceSwitch.h"
 #include "../PqaCore/Interface/PqaCommon.h"
+#include "../PqaCore/KBFileInfo.h"
 
 namespace ProbQA {
 
@@ -58,6 +59,9 @@ protected: // methods
   explicit BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize);
 
   TPqaId FindNearestQuestion(const TPqaId iMiddle, const CEBaseQuiz &quiz);
+
+  bool ReadGaps(GapTracker<TPqaId> &gt, KBFileInfo &kbfi);
+  bool WriteGaps(const GapTracker<TPqaId> &gt, KBFileInfo &kbfi);
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() const { return _pLogger.load(std::memory_order_relaxed); }

@@ -88,4 +88,32 @@ TPqaId BaseCpuEngine::FindNearestQuestion(const TPqaId iMiddle, const CEBaseQuiz
   return cInvalidPqaId;
 }
 
+bool BaseCpuEngine::ReadGaps(GapTracker<TPqaId> &gt, KBFileInfo &kbfi) {
+  FILE *fpin = kbfi._sf.Get();
+  TPqaId nGaps;
+  if (std::fread(&nGaps, sizeof(nGaps), 1, fpin) != 1) {
+    return false;
+  }
+  SRSmartMPP<TPqaId> gaps(_memPool, nGaps);
+  if (TPqaId(std::fread(gaps.Get(), sizeof(TPqaId), nGaps, fpin)) != nGaps) {
+    return false;
+  }
+  for (TPqaId i = 0; i < nGaps; i++) {
+    gt.Release(gaps.Get()[i]);
+  }
+  return true;
+}
+
+bool BaseCpuEngine::WriteGaps(const GapTracker<TPqaId> &gt, KBFileInfo &kbfi) {
+  FILE *fpout = kbfi._sf.Get();
+  const TPqaId nGaps = gt.GetNGaps();
+  if (std::fwrite(&nGaps, sizeof(nGaps), 1, fpout) != 1) {
+    return false;
+  }
+  if (TPqaId(std::fwrite(gt.ListGaps(), sizeof(TPqaId), nGaps, fpout)) != nGaps) {
+    return false;
+  }
+  return true;
+}
+
 } // namespace ProbQA

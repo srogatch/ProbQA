@@ -55,6 +55,7 @@ public:
   std::vector<taId>& Gaps() { return _gaps; }
 
   taId GetNGaps() const { return _gaps.size(); }
+  const taId* ListGaps() const { return _gaps.data(); }
 
   void Compact(const taId newLength) {
     assert(newLength <= taId(_isGap.Size()));

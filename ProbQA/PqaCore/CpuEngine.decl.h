@@ -8,7 +8,6 @@
 #include "../PqaCore/CEQuiz.fwd.h"
 #include "../PqaCore/CECreateQuizOperation.fwd.h"
 
-#include "../PqaCore/KBFileInfo.h"
 #include "../PqaCore/BaseCpuEngine.h"
 #include "../PqaCore/CENormPriorsTask.h"
 #include "../PqaCore/CENormPriorsSubtaskMax.h"
@@ -55,7 +54,7 @@ private: // methods
 
   CEQuiz<taNumber>* UseQuiz(PqaError& err, const TPqaId iQuiz);
 
-  PqaError LockedSaveKB(SRPlat::SRSmartFile &sf, const bool bDoubleBuffer, const char* const filePath);
+  PqaError LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer);
 
 public: // Internal interface methods
 
