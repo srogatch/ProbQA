@@ -34,6 +34,14 @@ template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(cons
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi)
   : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef._dims))
 {
+  if (pKbFi != nullptr) {
+    uint64_t nQuestionsAsked;
+    if (std::fread(&nQuestionsAsked, sizeof(nQuestionsAsked), 1, pKbFi->_sf.Get()) != 1) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the number of questions asked.")).ThrowMoving();
+    }
+    _nQuestionsAsked.store(nQuestionsAsked, std::memory_order_release);
+  }
   const size_t nQuestions = SRCast::ToSizeT(_dims._nQuestions);
   const size_t nAnswers = SRCast::ToSizeT(_dims._nAnswers);
   const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
@@ -722,6 +730,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::LockedSaveKB(KBFileInf
   size_t bufSize;
   if (bDoubleBuffer) {
     bufSize = /* reserve */ SRSimd::_cNBytes + sizeof(_precDef) + sizeof(_dims)
+      + sizeof(decltype(_nQuestionsAsked)::value_type)
       + sizeof(taNumber) * nTargets * (_dims._nQuestions * _dims._nAnswers + _dims._nQuestions + 1);
   }
   else {
@@ -741,6 +750,12 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::LockedSaveKB(KBFileInf
   if (std::fwrite(&_dims, sizeof(_dims), 1, kbfi._sf.Get()) != 1) {
     return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
       "Can't write engine dimensions header."));
+  }
+
+  const uint64_t nQuestionsAsked = _nQuestionsAsked.load(std::memory_order_acquire);
+  if (std::fwrite(&nQuestionsAsked, sizeof(nQuestionsAsked), 1, kbfi._sf.Get()) != 1) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the number of questions asked."));
   }
 
   TargetRowPersistence<taNumber> trp(kbfi._sf, nTargets);

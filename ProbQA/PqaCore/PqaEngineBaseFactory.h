@@ -21,7 +21,8 @@ private: // methods
 
 public: // methods
   IPqaEngine* CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) override final;
-  IPqaEngine* LoadCpuEngine(PqaError& err, const char* const filePath) override final;
+  IPqaEngine* LoadCpuEngine(PqaError& err, const char* const filePath,
+    size_t memPoolMaxBytes = EngineDefinition::_cDefaultMemPoolMaxBytes) override final;
 
   IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) override final;
   IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) override final;

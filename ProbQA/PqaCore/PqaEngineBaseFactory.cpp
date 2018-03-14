@@ -44,7 +44,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
   return MakeCpuEngine(err, engDef, nullptr);
 }
 
-IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const filePath) {
+IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const filePath, size_t memPoolMaxBytes) {
   SRSmartFile sf(std::fopen(filePath, "rb"));
   if (sf.Get() == nullptr) {
     err = PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(filePath), SRString::MakeUnowned(
@@ -58,6 +58,7 @@ IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const
   }
 
   EngineDefinition engDef;
+  engDef._memPoolMaxBytes = memPoolMaxBytes;
   if (std::fread(&engDef._prec, sizeof(engDef._prec), 1, sf.Get()) != 1) {
     err = PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
       "Can't read precision definition header."));

@@ -38,10 +38,11 @@ struct EngineDimensions {
 };
 
 struct EngineDefinition {
+  static const size_t _cDefaultMemPoolMaxBytes = 512 * 1024 * 1024;
   EngineDimensions _dims;
   PrecisionDefinition _prec;
   TPqaAmount _initAmount = 1;
-  size_t _memPoolMaxBytes = 512 * 1024 * 1024;
+  size_t _memPoolMaxBytes = _cDefaultMemPoolMaxBytes;
 };
 
 struct AnsweredQuestion {
