@@ -80,9 +80,6 @@ public:
   virtual PqaError Compact(CompactionResult &cr) = 0;
 #pragma endregion
 
-  //// Helpers to maintenance mode that can be run later
-  virtual PqaError ReleaseCompactionResult(CompactionResult &cr) = 0;
-
   //// Control operations
   // Shutdown the engine, optionally saving the data to the given file path. The engine can't be brought back to
   //   operational state after this method is called.

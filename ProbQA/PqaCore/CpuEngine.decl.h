@@ -102,8 +102,6 @@ public: // Client interface methods
 
   virtual PqaError Compact(CompactionResult &cr) override final;
 
-  virtual PqaError ReleaseCompactionResult(CompactionResult &cr) override final;
-
   virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override final;
   virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) override final;
 };

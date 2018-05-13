@@ -1043,15 +1043,11 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTargets(const TP
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResult &cr) {
+  constexpr auto msMode = MaintenanceSwitch::Mode::Maintenance;
+
   (void)cr; //TODO: remove when implemented
   return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
     "CpuEngine<taNumber>::Compact")));
-}
-
-template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseCompactionResult(CompactionResult &cr) {
-  (void)cr; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::ReleaseCompactionResult")));
 }
 
 //// Instantiations

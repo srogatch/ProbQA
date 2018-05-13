@@ -326,30 +326,30 @@ void MultibenchMemory() {
   _mm_free(gpdOutput);
 }
 
-void BenchmarkStdFunctionMemPool() {
-  const int64_t nItems = 32 * 1024 * 1024;
-  typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, 1 << 10> TMemPool;
-  typedef SRPlat::SRMPAllocator<std::function<void()>, TMemPool> TAllocator;
-  TMemPool memPool;
-  TAllocator alloc(memPool);
-
-  std::queue<std::function<void()>, std::deque<std::function<void()>, TAllocator>> qu(alloc);
-  volatile int64_t sum = 0;
-  auto start = std::chrono::high_resolution_clock::now();
-  for (int64_t i = 0; i < nItems; i++) {
-    qu.emplace(std::allocator_arg, alloc, [&sum]() { sum++; });
-  }
-
-  while (!qu.empty()) {
-    std::function<void()> f(std::move(qu.front()));
-    qu.pop();
-    f();
-  }
-  auto elapsed = std::chrono::high_resolution_clock::now() - start;
-  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-  printf("std::function with MemPool: %.3lf push&pop per second. Sum: %lld\n", nItems / nSec,
-    (long long)sum);
-}
+//void BenchmarkStdFunctionMemPool() {
+//  const int64_t nItems = 32 * 1024 * 1024;
+//  typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, 1 << 10> TMemPool;
+//  typedef SRPlat::SRMPAllocator<std::function<void()>, TMemPool> TAllocator;
+//  TMemPool memPool;
+//  TAllocator alloc(memPool);
+//
+//  std::queue<std::function<void()>, std::deque<std::function<void()>, TAllocator>> qu(alloc);
+//  volatile int64_t sum = 0;
+//  auto start = std::chrono::high_resolution_clock::now();
+//  for (int64_t i = 0; i < nItems; i++) {
+//    qu.emplace(std::allocator_arg, alloc, [&sum]() { sum++; });
+//  }
+//
+//  while (!qu.empty()) {
+//    std::function<void()> f(std::move(qu.front()));
+//    qu.pop();
+//    f();
+//  }
+//  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+//  double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+//  printf("std::function with MemPool: %.3lf push&pop per second. Sum: %lld\n", nItems / nSec,
+//    (long long)sum);
+//}
 
 void BenchmarkStdFunctionStdAlloc() {
   const int64_t nItems = 32 * 1024 * 1024;

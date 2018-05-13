@@ -62,11 +62,16 @@ struct RatedTarget {
 
 struct CompactionResult {
   //// New counts of targets and questions
-  TPqaId _nTargets;
-  TPqaId _nQuestions;
+  TPqaId _nTargets = cInvalidPqaId;
+  TPqaId _nQuestions = cInvalidPqaId;
   //// i-th item contains the old id for the new id=i
-  TPqaId *_pOldTargets;
-  TPqaId *_pOldQuestions;
+  TPqaId *_pOldTargets = nullptr;
+  TPqaId *_pOldQuestions = nullptr;
+
+  ~CompactionResult() {
+    _mm_free(_pOldTargets);
+    _mm_free(_pOldQuestions);
+  }
 };
 
 struct AddQuestionParam {
