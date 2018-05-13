@@ -200,6 +200,11 @@ public: // methods
   taItem* Get() const {
     return _pItems;
   }
+
+  template<bool taFellowCD> void Swap(SRFastArray<taItem, taFellowCD>& fellow) {
+    std::swap(_count, fellow._count);
+    std::swap(_pItems, fellow._pItems);
+  }
 };
 
 } // namespace SRPlat

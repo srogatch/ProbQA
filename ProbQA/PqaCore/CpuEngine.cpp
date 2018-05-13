@@ -1044,10 +1044,67 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTargets(const TP
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResult &cr) {
   constexpr auto msMode = MaintenanceSwitch::Mode::Maintenance;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform"
+      " maintenance-only mode operation - compact the KB - because current mode is not maintenance (but"
+      " regular/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+  // Exclusive lock is needed because we are going to change the number of targets and questions in the KB.
+  SRRWLock<true> rwl(_rws);
 
-  (void)cr; //TODO: remove when implemented
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(
-    "CpuEngine<taNumber>::Compact")));
+  cr._nQuestions = _dims._nQuestions - _questionGaps.GetNGaps();
+  cr._nTargets = _dims._nTargets - _targetGaps.GetNGaps();
+  cr._pOldQuestions = static_cast<TPqaId*>(SRUtils::ThrowingSimdAlloc(SRSimd::PaddedBytesFromItems<sizeof(TPqaId)>(
+    cr._nQuestions)));
+  cr._pOldTargets = static_cast<TPqaId*>(SRUtils::ThrowingSimdAlloc(SRSimd::PaddedBytesFromItems<sizeof(TPqaId)>(
+    cr._nTargets)));
+  TPqaId iFirst, iLast;
+  for (iFirst = 0, iLast = _dims._nQuestions - 1; iFirst <= iLast; iFirst++) {
+    if (!_questionGaps.IsGap(iFirst)) {
+      cr._pOldQuestions[iFirst] = iFirst;
+      continue;
+    }
+    while (_questionGaps.IsGap(iLast) && iLast > iFirst) {
+      iLast--;
+    }
+    if (iFirst == iLast) {
+      break;
+    }
+    cr._pOldQuestions[iFirst] = iLast;
+    _sA[iFirst].swap(_sA[iLast]);
+    _mD[iFirst].Swap(_mD[iLast]);
+    iLast--;
+  }
+  assert(iFirst == cr._nQuestions);
+  _questionGaps.Compact(cr._nQuestions);
+  _dims._nQuestions = cr._nQuestions;
+
+  for (iFirst = 0, iLast = _dims._nTargets - 1; iFirst <= iLast; iFirst++) {
+    if (!_targetGaps.IsGap(iFirst)) {
+      continue;
+    }
+    while (_targetGaps.IsGap(iLast) && iLast > iFirst) {
+      iLast--;
+    }
+    if (iFirst == iLast) {
+      break;
+    }
+    cr._pOldTargets[iFirst] = iLast;
+    for (TPqaId iQuestion = 0; iQuestion < cr._nQuestions; iQuestion++) {
+      for (TPqaId iAnswer = 0; iAnswer < _dims._nAnswers; iAnswer++) {
+        _sA[iQuestion][iAnswer][iFirst] = _sA[iQuestion][iAnswer][iLast];
+      }
+      _mD[iQuestion][iFirst] = _mD[iQuestion][iLast];
+    }
+    _vB[iFirst] = _vB[iLast];
+    iLast--;
+  }
+  assert(iFirst == cr._nTargets);
+  _targetGaps.Compact(cr._nTargets);
+  _dims._nTargets = cr._nTargets;
+
+  return PqaError();
 }
 
 //// Instantiations
