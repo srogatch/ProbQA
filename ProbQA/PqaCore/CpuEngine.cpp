@@ -1054,7 +1054,8 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResu
   SRRWLock<true> rwl(_rws);
 
   cr._nQuestions = _dims._nQuestions - _questionGaps.GetNGaps();
-  cr._nTargets = _dims._nTargets - _targetGaps.GetNGaps();
+  const TPqaId nTargetGaps = _targetGaps.GetNGaps();
+  cr._nTargets = _dims._nTargets - nTargetGaps;
   cr._pOldQuestions = static_cast<TPqaId*>(SRUtils::ThrowingSimdAlloc(SRSimd::PaddedBytesFromItems<sizeof(TPqaId)>(
     cr._nQuestions)));
   cr._pOldTargets = static_cast<TPqaId*>(SRUtils::ThrowingSimdAlloc(SRSimd::PaddedBytesFromItems<sizeof(TPqaId)>(
@@ -1080,6 +1081,12 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResu
   _questionGaps.Compact(cr._nQuestions);
   _dims._nQuestions = cr._nQuestions;
 
+  struct Move {
+    TPqaId _iSrc;
+    TPqaId _iDest;
+  };
+  SRSmartMPP<Move> moves(_memPool, nTargetGaps);
+  TPqaId iGap = 0;
   for (iFirst = 0, iLast = _dims._nTargets - 1; iFirst <= iLast; iFirst++) {
     if (!_targetGaps.IsGap(iFirst)) {
       continue;
@@ -1090,17 +1097,34 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResu
     if (iFirst == iLast) {
       break;
     }
-    cr._pOldTargets[iFirst] = iLast;
-    for (TPqaId iQuestion = 0; iQuestion < cr._nQuestions; iQuestion++) {
-      for (TPqaId iAnswer = 0; iAnswer < _dims._nAnswers; iAnswer++) {
-        _sA[iQuestion][iAnswer][iFirst] = _sA[iQuestion][iAnswer][iLast];
-      }
-      _mD[iQuestion][iFirst] = _mD[iQuestion][iLast];
-    }
-    _vB[iFirst] = _vB[iLast];
+    moves.Get()[iGap]._iDest = iFirst;
+    iGap++;
+    moves.Get()[nTargetGaps - iGap]._iSrc = iLast;
     iLast--;
   }
   assert(iFirst == cr._nTargets);
+  assert(iGap == nTargetGaps);
+
+  for (iGap = 0; iGap < nTargetGaps; iGap++) {
+    const Move &cm = moves.Get()[iGap];
+    cr._pOldTargets[cm._iDest] = cm._iSrc;
+    _vB[cm._iDest] = _vB[cm._iSrc];
+  }
+  for (TPqaId iQuestion = 0; iQuestion < cr._nQuestions; iQuestion++) {
+    for (iGap = 0; iGap < nTargetGaps; iGap++) {
+      const Move &cm = moves.Get()[iGap];
+      _mD[iQuestion][cm._iDest] = _mD[iQuestion][cm._iSrc];
+    }
+  }
+  for (TPqaId iQuestion = 0; iQuestion < cr._nQuestions; iQuestion++) {
+    for (TPqaId iAnswer = 0; iAnswer < _dims._nAnswers; iAnswer++) {
+      for (iGap = 0; iGap < nTargetGaps; iGap++) {
+        const Move &cm = moves.Get()[iGap];
+        _sA[iQuestion][iAnswer][cm._iDest] = _sA[iQuestion][iAnswer][cm._iSrc];
+      }
+    }
+  }
+
   _targetGaps.Compact(cr._nTargets);
   _dims._nTargets = cr._nTargets;
 
