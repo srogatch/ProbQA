@@ -22,6 +22,8 @@ BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef, const size_t worker
   _tpWorkers(std::thread::hardware_concurrency(), workerStackSize), _nMemOpThreads(CalcMemOpThreads()),
   _nLooseWorkers(std::max<SRThreadCount>(1, std::thread::hardware_concurrency()-1))
 {
+  _pimQuestions.GrowTo(_dims._nQuestions);
+  _pimTargets.GrowTo(_dims._nTargets);
 }
 
 TPqaId BaseCpuEngine::FindNearestQuestion(const TPqaId iMiddle, const CEBaseQuiz &quiz) {
@@ -112,6 +114,42 @@ bool BaseCpuEngine::WriteGaps(const GapTracker<TPqaId> &gt, KBFileInfo &kbfi) {
   }
   if (TPqaId(std::fwrite(gt.ListGaps(), sizeof(TPqaId), nGaps, fpout)) != nGaps) {
     return false;
+  }
+  return true;
+}
+
+bool BaseCpuEngine::QuestionPermFromComp(const TPqaId count, TPqaId *ids) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<false> rwl(_rws);
+  for (TPqaId i = 0; i < count; i++) {
+    ids[i] = _pimQuestions.PermFromComp(ids[i]);
+  }
+  return true;
+}
+
+bool BaseCpuEngine::QuestionCompFromPerm(const TPqaId count, TPqaId *ids) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<false> rwl(_rws);
+  for (TPqaId i = 0; i < count; i++) {
+    ids[i] = _pimQuestions.CompFromPerm(ids[i]);
+  }
+  return true;
+}
+
+bool BaseCpuEngine::TargetPermFromComp(const TPqaId count, TPqaId *ids) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<false> rwl(_rws);
+  for (TPqaId i = 0; i < count; i++) {
+    ids[i] = _pimTargets.PermFromComp(ids[i]);
+  }
+  return true;
+}
+
+bool BaseCpuEngine::TargetCompFromPerm(const TPqaId count, TPqaId *ids) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<false> rwl(_rws);
+  for (TPqaId i = 0; i < count; i++) {
+    ids[i] = _pimTargets.CompFromPerm(ids[i]);
   }
   return true;
 }

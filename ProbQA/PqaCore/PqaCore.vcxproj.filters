@@ -243,6 +243,9 @@
     <ClInclude Include="TargetRowPersistence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PermanentIdManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -313,6 +316,9 @@
     </ClCompile>
     <ClCompile Include="CETrainOperation.cpp">
       <Filter>Source Files\CPU Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="PermanentIdManager.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

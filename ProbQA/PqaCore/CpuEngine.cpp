@@ -109,6 +109,15 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
         "Can't read the target gaps.")).ThrowMoving();
     }
+
+    if (!_pimQuestions.Load(pKbFi->_sf.Get())) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the question permanent-compact ID mapping.")).ThrowMoving();
+    }
+    if (!_pimTargets.Load(pKbFi->_sf.Get())) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the target permanent-compact ID mapping.")).ThrowMoving();
+    }
   }
 }
 
@@ -789,6 +798,15 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::LockedSaveKB(KBFileInf
       "Can't write the target gaps."));
   }
 
+  if (!_pimQuestions.Save(kbfi._sf.Get())) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the question permanent-compact ID mappings."));
+  }
+  if (!_pimTargets.Save(kbfi._sf.Get())) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the target permanent-compact ID mappings."));
+  }
+
   return PqaError();
 }
 
@@ -967,6 +985,9 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::AddQsTs(const TPqaId n
     _dims._nQuestions = totQ;
     _dims._nTargets = totT;
 
+    _pimQuestions.GrowTo(totQ);
+    _pimTargets.GrowTo(totT);
+
     // Set the initial amounts for questions and targets acquired from gaps
     for (TPqaId i = 0; i < nQReuse; i++) {
       const TPqaId curQ = pAqps[i]._iQuestion;
@@ -1016,6 +1037,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveQuestions(const 
         "Question index is not in KB."));
     }
     _questionGaps.Release(iQuestion);
+    _pimQuestions.RemoveComp(iQuestion);
   }
   return PqaError();
 }
@@ -1038,6 +1060,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RemoveTargets(const TP
         "Target index is not in KB (but rather at a gap)."));
     }
     _targetGaps.Release(iTarget);
+    _pimTargets.RemoveComp(iTarget);
   }
   return PqaError();
 }
@@ -1080,6 +1103,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResu
   assert(iFirst == cr._nQuestions);
   _questionGaps.Compact(cr._nQuestions);
   _dims._nQuestions = cr._nQuestions;
+  _pimQuestions.OnCompact(cr._nQuestions, cr._pOldQuestions);
 
   struct Move {
     TPqaId _iSrc;
@@ -1127,6 +1151,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResu
 
   _targetGaps.Compact(cr._nTargets);
   _dims._nTargets = cr._nTargets;
+  _pimTargets.OnCompact(cr._nTargets, cr._pOldTargets);
 
   return PqaError();
 }

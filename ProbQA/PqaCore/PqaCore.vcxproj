@@ -254,6 +254,7 @@
     <ClInclude Include="ErrorHelper.h" />
     <ClInclude Include="KBFileInfo.h" />
     <ClInclude Include="MaintenanceSwitch.h" />
+    <ClInclude Include="PermanentIdManager.h" />
     <ClInclude Include="PqaEngineBaseFactory.h" />
     <ClInclude Include="PqaException.h" />
     <ClInclude Include="PqaRange.h" />
@@ -295,6 +296,7 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="MaintenanceSwitch.cpp" />
+    <ClCompile Include="PermanentIdManager.cpp" />
     <ClCompile Include="PqaCore.cpp" />
     <ClCompile Include="PqaEngineBaseFactory.cpp" />
     <ClCompile Include="PqaEngineFactorySelector.cpp" />

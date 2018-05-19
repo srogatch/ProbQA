@@ -13,6 +13,7 @@
 #include "../PqaCore/MaintenanceSwitch.h"
 #include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/KBFileInfo.h"
+#include "../PqaCore/PermanentIdManager.h"
 
 namespace ProbQA {
 
@@ -32,6 +33,9 @@ protected: // variables
   // Most operations are thread-safe already.
   // ChangeStackSize() is not thread-safe, therefore guarded by _maintSwitch intraswitch mode.
   SRPlat::SRThreadPool _tpWorkers;
+
+  PermanentIdManager _pimQuestions; // Guarded by _rws in maintenance mode. Read-only in regular mode.
+  PermanentIdManager _pimTargets; // Guarded by _rws in maintenance mode. Read-only in regular mode.
 
   const PrecisionDefinition _precDef;
   EngineDimensions _dims; // Guarded by _rws in maintenance mode. Read-only in regular mode.
@@ -69,11 +73,17 @@ public: // Internal interface methods
   SRPlat::SRThreadPool& GetWorkers() { return _tpWorkers; }
   SRPlat::SRReaderWriterSync& GetRws() { return _rws; }
 
-  const EngineDimensions& GetDims() const override { return _dims; }
   const GapTracker<TPqaId>& GetQuestionGaps() const { return _questionGaps; }
   const GapTracker<TPqaId>& GetTargetGaps() const { return _targetGaps; }
 
   const SRPlat::SRThreadCount GetNLooseWorkers() const { return _nLooseWorkers; }
+
+public: // External interface methods
+  const EngineDimensions& GetDims() const override final { return _dims; }
+  bool QuestionPermFromComp(const TPqaId count, TPqaId *ids) override final;
+  bool QuestionCompFromPerm(const TPqaId count, TPqaId *ids) override final;
+  bool TargetPermFromComp(const TPqaId count, TPqaId *ids) override final;
+  bool TargetCompFromPerm(const TPqaId count, TPqaId *ids) override final;
 };
 
 } // namespace ProbQA
