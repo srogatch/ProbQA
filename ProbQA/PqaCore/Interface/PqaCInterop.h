@@ -25,7 +25,16 @@ extern "C" {
 #endif // __cplusplus
 
 PQACORE_API void* CiPqaGetEngineFactory();
-PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pFactory, CiEngineDefinition *pEngDef);
+
+PQACORE_API void CiReleasePqaError(void *pvErr);
+PQACORE_API void CiReleasePqaEngine(void *pvEngine);
+PQACORE_API void CiReleaseString(void *pvString);
+
+PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef);
+
+PQACORE_API void* CiPqaError_ToString(void *pvError, const bool withParams);
+
+PQACORE_API bool CiLogger_Init(void **ppStrErr, const char* baseName);
 
 #ifdef __cplusplus
 } // extern "C"
