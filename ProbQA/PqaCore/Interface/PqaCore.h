@@ -4,6 +4,8 @@
 
 #pragma once
 
+//NOTE: this file can be included from both C and C++
+
 #ifdef PQACORE_EXPORTS
 #define PQACORE_API __declspec(dllexport)
 #else

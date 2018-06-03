@@ -868,7 +868,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const
           SRCheckingRelease(_memPool, pQuiz);
           _quizGaps.Release(i);
         }
-        assert(_quizzes.size() == _quizGaps.GetNGaps());
+        assert(TPqaId(_quizzes.size()) == _quizGaps.GetNGaps());
       }
       else {
         csl.EarlyRelease();
