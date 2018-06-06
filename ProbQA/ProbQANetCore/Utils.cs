@@ -7,7 +7,7 @@ namespace ProbQANetCore
 {
   internal class Utils
   {
-    [DllImport("PqaCore.dll")]
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern void CiReleaseString(IntPtr pString);
 
     // Take char*, convert to C# and release C++ memory.

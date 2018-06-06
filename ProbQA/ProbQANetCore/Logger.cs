@@ -7,7 +7,7 @@ namespace ProbQANetCore
 {
   public class Logger
   {
-    [DllImport("PqaCore.dll")]
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern bool CiLogger_Init(out IntPtr pStrErr, string baseName);
 
     public static bool Init(string baseName)

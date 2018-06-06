@@ -7,10 +7,10 @@ namespace ProbQANetCore
 {
   public class PqaError
   {
-    [DllImport("PqaCore.dll")]
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern void CiReleasePqaError(IntPtr pError);
 
-    [DllImport("PqaCore.dll")]
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CiPqaError_ToString(IntPtr pError, bool withParams);
 
     private IntPtr _native;

@@ -7,7 +7,7 @@ namespace ProbQANetCore
 {
   public class PqaEngine
   {
-    [DllImport("PqaCore.dll")]
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern void CiReleasePqaEngine(IntPtr pEngine);
 
     private IntPtr _native;

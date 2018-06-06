@@ -20,11 +20,11 @@ namespace ProbQANetCore
       public long _memPoolMaxBytes;
     }
 
-    [DllImport("PqaCore.dll")]
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CiPqaGetEngineFactory();
 
-    [DllImport("PqaCore.dll")]
-    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(out IntPtr pError, CiEngineDefinition ciEngDef);
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, out IntPtr pError, CiEngineDefinition ciEngDef);
 
     private static PqaEngineFactory _instance;
     private static Object _sync = new Object();
@@ -53,7 +53,7 @@ namespace ProbQANetCore
       return _instance;
     }
 
-    PqaEngine CreateCpuEngine(out PqaError err, EngineDefinition engDef)
+    public PqaEngine CreateCpuEngine(out PqaError err, EngineDefinition engDef)
     {
       if(engDef.AnswerCount == null || engDef.QuestionCount == null || engDef.TargetCount == null)
       {
@@ -70,9 +70,16 @@ namespace ProbQANetCore
         _initAmount = engDef.InitAmount,
         _memPoolMaxBytes = engDef.MemPoolMaxBytes
       };
-      IntPtr nativeEngine = CiPqaEngineFactory_CreateCpuEngine(out nativeError, ciEngDef);
+      IntPtr nativeEngine = CiPqaEngineFactory_CreateCpuEngine(_nativeFactory, out nativeError, ciEngDef);
       err = new PqaError(nativeError);
-      return new PqaEngine(nativeEngine);
+      if(nativeEngine == IntPtr.Zero)
+      {
+        return null;
+      }
+      else
+      {
+        return new PqaEngine(nativeEngine);
+      }
     }
   }
 }
