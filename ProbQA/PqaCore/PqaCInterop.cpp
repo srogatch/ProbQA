@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "../PqaCore/Interface/PqaCInterop.h"
 #include "../PqaCore/Interface/IPqaEngineFactory.h"
+#include "../PqaCore/Interface/IPqaEngine.h"
 
 //TODO: catch exceptions
 //TODO: handle null pointers
@@ -94,11 +95,6 @@ PQACORE_API void CiReleasePqaError(void *pvErr) {
   delete pPe;
 }
 
-PQACORE_API void CiReleasePqaEngine(void *pvEngine) {
-  IPqaEngine *pPe = static_cast<IPqaEngine*>(pvEngine);
-  delete pPe;
-}
-
 PQACORE_API void CiReleaseString(void *pvString) {
   char *pS = static_cast<char*>(pvString);
   delete pS;
@@ -129,3 +125,26 @@ PQACORE_API bool CiLogger_Init(void **ppStrErr, const char* baseName) {
   }
 }
 
+PQACORE_API void CiReleasePqaEngine(void *pvEngine) {
+  IPqaEngine *pPe = static_cast<IPqaEngine*>(pvEngine);
+  delete pPe;
+}
+
+PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAnsweredQuestion* const pAQs,
+  const int64_t iTarget, const double amount)
+{
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+  }
+  // Otherwise we have to do a translation here, placing AnsweredQuestion objects on the stack
+  static_assert(sizeof(CiAnsweredQuestion) == sizeof(AnsweredQuestion)
+    && offsetof(CiAnsweredQuestion, _iQuestion) == offsetof(AnsweredQuestion, _iQuestion)
+    && offsetof(CiAnsweredQuestion, _iAnswer) == offsetof(AnsweredQuestion, _iAnswer));
+  PqaError err = pEng->Train(nQuestions, reinterpret_cast<const AnsweredQuestion*>(pAQs), iTarget, amount);
+  if (err.IsOk()) {
+    return nullptr;
+  }
+  return new PqaError(std::move(err));
+}

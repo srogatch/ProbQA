@@ -18,24 +18,31 @@ typedef struct {
   uint64_t _memPoolMaxBytes;
 } CiEngineDefinition;
 
+typedef struct {
+  int64_t _iQuestion;
+  int64_t _iAnswer;
+} CiAnsweredQuestion;
+
 #pragma pack(pop)
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-PQACORE_API void* CiPqaGetEngineFactory();
-
-PQACORE_API void CiReleasePqaError(void *pvErr);
-PQACORE_API void CiReleasePqaEngine(void *pvEngine);
+PQACORE_API bool CiLogger_Init(void **ppStrErr, const char* baseName);
 PQACORE_API void CiReleaseString(void *pvString);
 
+PQACORE_API void* CiPqaGetEngineFactory();
 PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef);
-PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath, uint64_t memPoolMaxBytes);
+PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath,
+  uint64_t memPoolMaxBytes);
 
+PQACORE_API void CiReleasePqaError(void *pvErr);
 PQACORE_API void* CiPqaError_ToString(void *pvError, const bool withParams);
 
-PQACORE_API bool CiLogger_Init(void **ppStrErr, const char* baseName);
+PQACORE_API void CiReleasePqaEngine(void *pvEngine);
+PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAnsweredQuestion* const pAQs,
+  const int64_t iTarget, const double amount = 1.0);
 
 #ifdef __cplusplus
 } // extern "C"
