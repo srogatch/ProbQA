@@ -31,6 +31,7 @@ PQACORE_API void CiReleasePqaEngine(void *pvEngine);
 PQACORE_API void CiReleaseString(void *pvString);
 
 PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef);
+PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath, uint64_t memPoolMaxBytes);
 
 PQACORE_API void* CiPqaError_ToString(void *pvError, const bool withParams);
 

@@ -45,6 +45,11 @@ IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDef
 }
 
 IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const filePath, size_t memPoolMaxBytes) {
+  if (filePath == nullptr) {
+    err = PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of KB file name."));
+    return nullptr;
+  }
   SRSmartFile sf(std::fopen(filePath, "rb"));
   if (sf.Get() == nullptr) {
     err = PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(filePath), SRString::MakeUnowned(

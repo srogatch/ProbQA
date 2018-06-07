@@ -17,14 +17,19 @@ namespace ProbQANetCore
       public ushort _precExponent;
       public uint _precMantissa;
       public double _initAmount;
-      public long _memPoolMaxBytes;
+      public ulong _memPoolMaxBytes;
     }
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CiPqaGetEngineFactory();
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, out IntPtr pError, CiEngineDefinition ciEngDef);
+    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, out IntPtr pError,
+      CiEngineDefinition ciEngDef);
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr CiqaEngineFactory_LoadCpuEngine(IntPtr pFactory, out IntPtr pError, string filePath,
+      ulong memPoolMaxBytes = EngineDefinition.cDefaultMemPoolMaxBytes);
 
     private static PqaEngineFactory _instance;
     private static Object _sync = new Object();
@@ -76,10 +81,21 @@ namespace ProbQANetCore
       {
         return null;
       }
-      else
+      return new PqaEngine(nativeEngine);
+    }
+
+    public PqaEngine LoadCpuEngine(out PqaError err, string filePath,
+      ulong memPoolMaxBytes = EngineDefinition.cDefaultMemPoolMaxBytes)
+    {
+      IntPtr nativeError = IntPtr.Zero;
+      IntPtr nativeEngine = CiqaEngineFactory_LoadCpuEngine(_nativeFactory, out nativeError, filePath,
+        memPoolMaxBytes);
+      err = new PqaError(nativeError);
+      if(nativeEngine == IntPtr.Zero)
       {
-        return new PqaEngine(nativeEngine);
+        return null;
       }
+      return new PqaEngine(nativeEngine);
     }
   }
 }

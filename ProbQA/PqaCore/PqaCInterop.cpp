@@ -41,7 +41,9 @@ PQACORE_API void* CiPqaGetEngineFactory() {
 PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef) {
   IPqaEngineFactory *pEf = static_cast<IPqaEngineFactory *>(pvFactory);
   if (pEf == nullptr) {
-    //TODO: return nullptr, log error, fill *ppError
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngineFactory."));
+    return nullptr;
   }
   EngineDefinition engDef;
   engDef._dims._nAnswers = pEngDef->_nAnswers;
@@ -54,6 +56,28 @@ PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppE
   engDef._memPoolMaxBytes = pEngDef->_memPoolMaxBytes;
   PqaError err;
   IPqaEngine *pEngine = pEf->CreateCpuEngine(err, engDef);
+  if (err.IsOk()) {
+    *ppError = nullptr;
+  }
+  else
+  {
+    PqaError *pErr = new PqaError(std::move(err));
+    *ppError = pErr;
+  }
+  return pEngine;
+}
+
+PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath,
+  uint64_t memPoolMaxBytes)
+{
+  IPqaEngineFactory *pEf = static_cast<IPqaEngineFactory *>(pvFactory);
+  if (pEf == nullptr) {
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngineFactory."));
+    return nullptr;
+  }
+  PqaError err;
+  IPqaEngine *pEngine = pEf->LoadCpuEngine(err, filePath, memPoolMaxBytes);
   if (err.IsOk()) {
     *ppError = nullptr;
   }

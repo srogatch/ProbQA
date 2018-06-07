@@ -149,7 +149,7 @@ template <typename taItem> class SRSmartMPP {
 public:
   explicit SRSmartMPP(SRBaseMemPool &mp, const size_t nItems) : _pMp(&mp), _nBytes(nItems * sizeof(taItem)) {
     _pItems = static_cast<taItem*>(_pMp->AllocMem(_nBytes));
-    if (_pItems == nullptr) {
+    if (_pItems == nullptr && nItems != 0) {
       throw SRException(SRMessageBuilder(SR_FILE_LINE " Failed to allocate ")(nItems)(" items, ")(sizeof(taItem))
         (" bytes each on memory pool ")(intptr_t(_pMp)).GetOwnedSRString());
     }

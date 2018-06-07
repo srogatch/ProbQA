@@ -33,7 +33,8 @@ enum class PqaErrorCode : int64_t {
   NoQuizActiveQuestion = 16, // NoQuizActiveQuestionErrorParams
   CantOpenFile = 17, // CantOpenFileErrorParams
   FileOp = 18, // FileOpErrorParams
-  QuizzesActive = 19 // QuizzesActiveErrorParams
+  QuizzesActive = 19, // QuizzesActiveErrorParams
+  NullArgument = 20 // No error params (yet?)
 };
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);
