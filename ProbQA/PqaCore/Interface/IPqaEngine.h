@@ -20,10 +20,10 @@ public:
     const TPqaAmount amount = 1) = 0;
 
   //// Permanent-compact ID mappers
-  virtual bool QuestionPermFromComp(const TPqaId count, TPqaId *ids) = 0;
-  virtual bool QuestionCompFromPerm(const TPqaId count, TPqaId *ids) = 0;
-  virtual bool TargetPermFromComp(const TPqaId count, TPqaId *ids) = 0;
-  virtual bool TargetCompFromPerm(const TPqaId count, TPqaId *ids) = 0;
+  virtual bool QuestionPermFromComp(const TPqaId count, TPqaId *pIds) = 0;
+  virtual bool QuestionCompFromPerm(const TPqaId count, TPqaId *pIds) = 0;
+  virtual bool TargetPermFromComp(const TPqaId count, TPqaId *pIds) = 0;
+  virtual bool TargetCompFromPerm(const TPqaId count, TPqaId *pIds) = 0;
 
   // Statistics method, especially useful for charging.
   virtual uint64_t GetTotalQuestionsAsked(PqaError& err) = 0;

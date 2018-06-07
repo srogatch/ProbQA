@@ -38,11 +38,12 @@ PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppErro
   uint64_t memPoolMaxBytes);
 
 PQACORE_API void CiReleasePqaError(void *pvErr);
-PQACORE_API void* CiPqaError_ToString(void *pvError, const bool withParams);
+PQACORE_API void* CiPqaError_ToString(void *pvError, const uint8_t withParams);
 
 PQACORE_API void CiReleasePqaEngine(void *pvEngine);
 PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAnsweredQuestion* const pAQs,
   const int64_t iTarget, const double amount = 1.0);
+PQACORE_API uint8_t PqaEngine_QuestionPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds);
 
 #ifdef __cplusplus
 } // extern "C"

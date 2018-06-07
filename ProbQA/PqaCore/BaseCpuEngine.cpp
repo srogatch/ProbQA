@@ -118,38 +118,38 @@ bool BaseCpuEngine::WriteGaps(const GapTracker<TPqaId> &gt, KBFileInfo &kbfi) {
   return true;
 }
 
-bool BaseCpuEngine::QuestionPermFromComp(const TPqaId count, TPqaId *ids) {
+bool BaseCpuEngine::QuestionPermFromComp(const TPqaId count, TPqaId *pIds) {
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<false> rwl(_rws);
   for (TPqaId i = 0; i < count; i++) {
-    ids[i] = _pimQuestions.PermFromComp(ids[i]);
+    pIds[i] = _pimQuestions.PermFromComp(pIds[i]);
   }
   return true;
 }
 
-bool BaseCpuEngine::QuestionCompFromPerm(const TPqaId count, TPqaId *ids) {
+bool BaseCpuEngine::QuestionCompFromPerm(const TPqaId count, TPqaId *pIds) {
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<false> rwl(_rws);
   for (TPqaId i = 0; i < count; i++) {
-    ids[i] = _pimQuestions.CompFromPerm(ids[i]);
+    pIds[i] = _pimQuestions.CompFromPerm(pIds[i]);
   }
   return true;
 }
 
-bool BaseCpuEngine::TargetPermFromComp(const TPqaId count, TPqaId *ids) {
+bool BaseCpuEngine::TargetPermFromComp(const TPqaId count, TPqaId *pIds) {
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<false> rwl(_rws);
   for (TPqaId i = 0; i < count; i++) {
-    ids[i] = _pimTargets.PermFromComp(ids[i]);
+    pIds[i] = _pimTargets.PermFromComp(pIds[i]);
   }
   return true;
 }
 
-bool BaseCpuEngine::TargetCompFromPerm(const TPqaId count, TPqaId *ids) {
+bool BaseCpuEngine::TargetCompFromPerm(const TPqaId count, TPqaId *pIds) {
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   SRRWLock<false> rwl(_rws);
   for (TPqaId i = 0; i < count; i++) {
-    ids[i] = _pimTargets.CompFromPerm(ids[i]);
+    pIds[i] = _pimTargets.CompFromPerm(pIds[i]);
   }
   return true;
 }

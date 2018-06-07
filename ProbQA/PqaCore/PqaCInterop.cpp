@@ -100,7 +100,7 @@ PQACORE_API void CiReleaseString(void *pvString) {
   delete pS;
 }
 
-PQACORE_API void* CiPqaError_ToString(void *pvError, const bool withParams) {
+PQACORE_API void* CiPqaError_ToString(void *pvError, const uint8_t withParams) {
   PqaError *pErr = static_cast<PqaError*>(pvError);
   SRString srStr = pErr->ToString(withParams);
   return PrepareSRString(srStr);
@@ -147,4 +147,14 @@ PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAn
     return nullptr;
   }
   return new PqaError(std::move(err));
+}
+
+PQACORE_API uint8_t PqaEngine_QuestionPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return false;
+  }
+  return pEng->QuestionPermFromComp(count, pIds) ? 1 : 0;
 }

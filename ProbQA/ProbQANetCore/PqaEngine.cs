@@ -11,8 +11,11 @@ namespace ProbQANetCore
     private static extern void CiReleasePqaEngine(IntPtr pEngine);
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr PqaEngine_Train(IntPtr pEngine, long nQuestions, IntPtr pAQs, long iTarget,
+    private static extern IntPtr PqaEngine_Train(IntPtr pEngine, Int64 nQuestions, IntPtr pAQs, Int64 iTarget,
       double amount = 1.0);
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern byte PqaEngine_QuestionPermFromComp(IntPtr pEngine, Int64 count, IntPtr pIds);
 
     private IntPtr _nativeEngine;
 
@@ -36,6 +39,19 @@ namespace ProbQANetCore
       finally
       {
         pAQs.Free();
+      }
+    }
+
+    public bool QuestionPermFromComp(Int64[] ids)
+    {
+      GCHandle pIds = GCHandle.Alloc(ids, GCHandleType.Pinned);
+      try
+      {
+        return PqaEngine_QuestionPermFromComp(_nativeEngine, ids.LongLength, pIds.AddrOfPinnedObject()) != 0;
+      }
+      finally
+      {
+        pIds.Free();
       }
     }
   }

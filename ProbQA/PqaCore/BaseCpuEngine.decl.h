@@ -80,10 +80,10 @@ public: // Internal interface methods
 
 public: // External interface methods
   const EngineDimensions& GetDims() const override final { return _dims; }
-  bool QuestionPermFromComp(const TPqaId count, TPqaId *ids) override final;
-  bool QuestionCompFromPerm(const TPqaId count, TPqaId *ids) override final;
-  bool TargetPermFromComp(const TPqaId count, TPqaId *ids) override final;
-  bool TargetCompFromPerm(const TPqaId count, TPqaId *ids) override final;
+  bool QuestionPermFromComp(const TPqaId count, TPqaId *pIds) override final;
+  bool QuestionCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
+  bool TargetPermFromComp(const TPqaId count, TPqaId *pIds) override final;
+  bool TargetCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
 };
 
 } // namespace ProbQA

@@ -11,7 +11,7 @@ namespace ProbQANetCore
     private static extern void CiReleasePqaError(IntPtr pError);
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr CiPqaError_ToString(IntPtr pError, bool withParams);
+    private static extern IntPtr CiPqaError_ToString(IntPtr pError, byte withParams);
 
     private IntPtr _native;
 
@@ -36,7 +36,7 @@ namespace ProbQANetCore
       {
         return "Success";
       }
-      return Utils.HandleNativeString(CiPqaError_ToString(_native, withParams));
+      return Utils.HandleNativeString(CiPqaError_ToString(_native, (byte)(withParams ? 1 : 0)));
     }
   }
 }

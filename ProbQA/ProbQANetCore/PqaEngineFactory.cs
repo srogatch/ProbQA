@@ -7,17 +7,18 @@ namespace ProbQANetCore
 {
   public class PqaEngineFactory
   {
+    // Cannot promote this to EngineDefinition because structs cannot have default initializers
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
     private struct CiEngineDefinition
     {
-      public long _nAnswers;
-      public long _nQuestions;
-      public long _nTargets;
+      public Int64 _nAnswers;
+      public Int64 _nQuestions;
+      public Int64 _nTargets;
       public byte _precType;
-      public ushort _precExponent;
-      public uint _precMantissa;
+      public UInt16 _precExponent;
+      public UInt32 _precMantissa;
       public double _initAmount;
-      public ulong _memPoolMaxBytes;
+      public UInt64 _memPoolMaxBytes;
     }
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -29,7 +30,7 @@ namespace ProbQANetCore
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CiqaEngineFactory_LoadCpuEngine(IntPtr pFactory, out IntPtr pError, string filePath,
-      ulong memPoolMaxBytes = EngineDefinition.cDefaultMemPoolMaxBytes);
+      UInt64 memPoolMaxBytes = EngineDefinition.cDefaultMemPoolMaxBytes);
 
     private static PqaEngineFactory _instance;
     private static Object _sync = new Object();
