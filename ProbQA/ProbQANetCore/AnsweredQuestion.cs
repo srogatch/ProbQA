@@ -6,7 +6,7 @@ using System.Text;
 namespace ProbQANetCore
 {
   [StructLayout(LayoutKind.Sequential, Pack = 8)]
-  public class AnsweredQuestion
+  public struct AnsweredQuestion
   {
     public Int64 _iQuestion;
     public Int64 _iAnswer;

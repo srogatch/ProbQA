@@ -8,7 +8,7 @@ namespace ProbQANetCore
   public class PqaEngineFactory
   {
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    private class CiEngineDefinition
+    private struct CiEngineDefinition
     {
       public long _nAnswers;
       public long _nQuestions;
