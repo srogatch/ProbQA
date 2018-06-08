@@ -109,13 +109,20 @@ namespace ProbQANetCore
     }
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern UInt64 PqaEngine_GetTotalQuestionsAsked(IntPtr pEngine, out IntPtr ppError);
+    private static extern UInt64 PqaEngine_GetTotalQuestionsAsked(IntPtr pEngine, ref IntPtr ppError);
 
     public ulong GetTotalQuestionsAsked(out PqaError err)
     {
       IntPtr nativeErr = IntPtr.Zero;
-      ulong res = PqaEngine_GetTotalQuestionsAsked(_nativeEngine, out nativeErr);
-      err = PqaError.Factor(nativeErr);
+      ulong res;
+      try
+      {
+        res = PqaEngine_GetTotalQuestionsAsked(_nativeEngine, ref nativeErr);
+      }
+      finally
+      {
+        err = PqaError.Factor(nativeErr);
+      }
       return res;
     }
 
@@ -133,34 +140,47 @@ namespace ProbQANetCore
     }
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern Int64 PqaEngine_StartQuiz(IntPtr pEngine, out IntPtr ppError);
+    private static extern Int64 PqaEngine_StartQuiz(IntPtr pEngine, ref IntPtr ppError);
 
     public Int64 StartQuiz(out PqaError err)
     {
+      Int64 iQuiz;
       IntPtr nativeErr = IntPtr.Zero;
-      Int64 iQuiz = PqaEngine_StartQuiz(_nativeEngine, out nativeErr);
-      err = PqaError.Factor(nativeErr);
+      try
+      {
+        iQuiz = PqaEngine_StartQuiz(_nativeEngine, ref nativeErr);
+      }
+      finally
+      {
+        err = PqaError.Factor(nativeErr);
+      }
       return iQuiz;
     }
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern Int64 PqaEngine_ResumeQuiz(IntPtr pEngine, out IntPtr ppError, Int64 nAnswered,
+    private static extern Int64 PqaEngine_ResumeQuiz(IntPtr pEngine, ref IntPtr ppError, Int64 nAnswered,
       IntPtr pAQs);
 
     public Int64 ResumeQuiz(out PqaError err, Int64 nAnswered, AnsweredQuestion[] AQs)
     {
-      IntPtr nativeErr = IntPtr.Zero;
       GCHandle pAQs = GCHandle.Alloc(AQs, GCHandleType.Pinned);
       Int64 iQuiz;
       try
       {
-        iQuiz = PqaEngine_ResumeQuiz(_nativeEngine, out nativeErr, nAnswered, pAQs.AddrOfPinnedObject());
+        IntPtr nativeErr = IntPtr.Zero;
+        try
+        {
+          iQuiz = PqaEngine_ResumeQuiz(_nativeEngine, ref nativeErr, nAnswered, pAQs.AddrOfPinnedObject());
+        }
+        finally
+        {
+          err = PqaError.Factor(nativeErr);
+        }
       }
       finally
       {
         pAQs.Free();
       }
-      err = PqaError.Factor(nativeErr);
       return iQuiz;
     }
   }

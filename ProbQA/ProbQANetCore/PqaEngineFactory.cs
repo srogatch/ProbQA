@@ -25,11 +25,11 @@ namespace ProbQANetCore
     private static extern IntPtr CiPqaGetEngineFactory();
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, out IntPtr ppError,
+    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, ref IntPtr ppError,
       ref CiEngineDefinition pEngDef);
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr CiqaEngineFactory_LoadCpuEngine(IntPtr pFactory, out IntPtr ppError, string filePath,
+    private static extern IntPtr CiqaEngineFactory_LoadCpuEngine(IntPtr pFactory, ref IntPtr ppError, string filePath,
       UInt64 memPoolMaxBytes = EngineDefinition.cDefaultMemPoolMaxBytes);
 
     private static PqaEngineFactory _instance;
@@ -65,7 +65,6 @@ namespace ProbQANetCore
       {
         throw new PqaException("Answer, question and target counts must be all set.");
       }
-      IntPtr nativeError = IntPtr.Zero;
       CiEngineDefinition ciEngDef = new CiEngineDefinition() {
         _nAnswers = engDef.AnswerCount.Value,
         _nQuestions = engDef.QuestionCount.Value,
@@ -76,8 +75,16 @@ namespace ProbQANetCore
         _initAmount = engDef.InitAmount,
         _memPoolMaxBytes = engDef.MemPoolMaxBytes
       };
-      IntPtr nativeEngine = CiPqaEngineFactory_CreateCpuEngine(_nativeFactory, out nativeError, ref ciEngDef);
-      err = PqaError.Factor(nativeError);
+      IntPtr nativeEngine;
+      IntPtr nativeError = IntPtr.Zero;
+      try
+      {
+        nativeEngine = CiPqaEngineFactory_CreateCpuEngine(_nativeFactory, ref nativeError, ref ciEngDef);
+      }
+      finally
+      {
+        err = PqaError.Factor(nativeError);
+      }
       if(nativeEngine == IntPtr.Zero)
       {
         return null;
@@ -88,10 +95,16 @@ namespace ProbQANetCore
     public PqaEngine LoadCpuEngine(out PqaError err, string filePath,
       ulong memPoolMaxBytes = EngineDefinition.cDefaultMemPoolMaxBytes)
     {
+      IntPtr nativeEngine;
       IntPtr nativeError = IntPtr.Zero;
-      IntPtr nativeEngine = CiqaEngineFactory_LoadCpuEngine(_nativeFactory, out nativeError, filePath,
-        memPoolMaxBytes);
-      err = PqaError.Factor(nativeError);
+      try
+      {
+        nativeEngine = CiqaEngineFactory_LoadCpuEngine(_nativeFactory, ref nativeError, filePath, memPoolMaxBytes);
+      }
+      finally
+      {
+        err = PqaError.Factor(nativeError);
+      }
       if(nativeEngine == IntPtr.Zero)
       {
         return null;
