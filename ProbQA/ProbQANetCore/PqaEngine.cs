@@ -95,7 +95,7 @@ namespace ProbQANetCore
     private static extern IntPtr PqaEngine_Train(IntPtr pEngine, Int64 nQuestions, IntPtr pAQs, Int64 iTarget,
       double amount = 1.0);
 
-    public PqaError Train(long nQuestions, AnsweredQuestion[] AQs, long iTarget, double amount = 1.0)
+    public PqaError Train(Int64 nQuestions, AnsweredQuestion[] AQs, Int64 iTarget, double amount = 1.0)
     {
       GCHandle pAQs = GCHandle.Alloc(AQs, GCHandleType.Pinned);
       try
@@ -135,9 +135,33 @@ namespace ProbQANetCore
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern Int64 PqaEngine_StartQuiz(IntPtr pEngine, out IntPtr ppError);
 
-    //public Int64 StartQuiz(out PqaError err)
-    //{
+    public Int64 StartQuiz(out PqaError err)
+    {
+      IntPtr nativeErr = IntPtr.Zero;
+      Int64 iQuiz = PqaEngine_StartQuiz(_nativeEngine, out nativeErr);
+      err = PqaError.Factor(nativeErr);
+      return iQuiz;
+    }
 
-    //}
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern Int64 PqaEngine_ResumeQuiz(IntPtr pEngine, out IntPtr ppError, Int64 nAnswered,
+      IntPtr pAQs);
+
+    public Int64 ResumeQuiz(out PqaError err, Int64 nAnswered, AnsweredQuestion[] AQs)
+    {
+      IntPtr nativeErr = IntPtr.Zero;
+      GCHandle pAQs = GCHandle.Alloc(AQs, GCHandleType.Pinned);
+      Int64 iQuiz;
+      try
+      {
+        iQuiz = PqaEngine_ResumeQuiz(_nativeEngine, out nativeErr, nAnswered, pAQs.AddrOfPinnedObject());
+      }
+      finally
+      {
+        pAQs.Free();
+      }
+      err = PqaError.Factor(nativeErr);
+      return iQuiz;
+    }
   }
 }

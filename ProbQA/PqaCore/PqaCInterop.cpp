@@ -14,6 +14,11 @@
 using namespace ProbQA;
 using namespace SRPlat;
 
+// Otherwise we have to do translations, placing AnsweredQuestion objects on the stack
+static_assert(sizeof(CiAnsweredQuestion) == sizeof(AnsweredQuestion)
+  && offsetof(CiAnsweredQuestion, _iQuestion) == offsetof(AnsweredQuestion, _iQuestion)
+  && offsetof(CiAnsweredQuestion, _iAnswer) == offsetof(AnsweredQuestion, _iAnswer));
+
 namespace {
 
 char *PrepareSRString(const SRString &s) {
@@ -142,10 +147,6 @@ PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAn
     return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
       SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
   }
-  // Otherwise we have to do a translation here, placing AnsweredQuestion objects on the stack
-  static_assert(sizeof(CiAnsweredQuestion) == sizeof(AnsweredQuestion)
-    && offsetof(CiAnsweredQuestion, _iQuestion) == offsetof(AnsweredQuestion, _iQuestion)
-    && offsetof(CiAnsweredQuestion, _iAnswer) == offsetof(AnsweredQuestion, _iAnswer));
   return ReturnPqaError(pEng->Train(nQuestions, reinterpret_cast<const AnsweredQuestion*>(pAQs), iTarget, amount));
 }
 
@@ -229,3 +230,17 @@ PQACORE_API int64_t PqaEngine_StartQuiz(void *pvEngine, void **ppError) {
   return iQuiz;
 }
 
+PQACORE_API int64_t PqaEngine_ResumeQuiz(void *pvEngine, void **ppError, const int64_t nAnswered,
+  const CiAnsweredQuestion* const pAQs)
+{
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return cInvalidPqaId;
+  }
+  PqaError err;
+  const TPqaId iQuiz = pEng->ResumeQuiz(err, nAnswered, reinterpret_cast<const AnsweredQuestion*>(pAQs));
+  AssignPqaError(ppError, err);
+  return iQuiz;
+}

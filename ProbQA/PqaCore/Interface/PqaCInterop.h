@@ -56,6 +56,8 @@ PQACORE_API uint8_t PqaEngine_TargetCompFromPerm(void *pvEngine, const int64_t c
 PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError);
 PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims);
 PQACORE_API int64_t PqaEngine_StartQuiz(void *pvEngine, void **ppError);
+PQACORE_API int64_t PqaEngine_ResumeQuiz(void *pvEngine, void **ppError, const int64_t nAnswered,
+  const CiAnsweredQuestion* const pAQs);
 
 #ifdef __cplusplus
 } // extern "C"
