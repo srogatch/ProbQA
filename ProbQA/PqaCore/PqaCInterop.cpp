@@ -119,22 +119,22 @@ PQACORE_API void* CiPqaError_ToString(void *pvError, const uint8_t withParams) {
   return PrepareSRString(srStr);
 }
 
-PQACORE_API bool CiLogger_Init(void **ppStrErr, const char* baseName) {
+PQACORE_API uint8_t CiLogger_Init(void **ppStrErr, const char* baseName) {
   try {
     SRDefaultLogger::Init(SRString::MakeUnowned(baseName));
     *ppStrErr = nullptr;
-    return true;
+    return 1;
   }
   catch (const std::exception& ex) {
     size_t len = strlen(ex.what());
     char *pMsg = new char[len+1];
     memcpy(pMsg, ex.what(), len + 1);
     *ppStrErr = pMsg;
-    return false;
+    return 0;
   }
   catch (...) {
     SendUnexpectedError(ppStrErr);
-    return false;
+    return 0;
   }
 }
 

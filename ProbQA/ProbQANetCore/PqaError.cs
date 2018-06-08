@@ -34,6 +34,11 @@ namespace ProbQANetCore
       return new PqaError(nativeErr);
     }
 
+    public override string ToString()
+    {
+      return ToString(true);
+    }
+
     public string ToString(bool withParams)
     {
       if (_nativeErr == IntPtr.Zero)

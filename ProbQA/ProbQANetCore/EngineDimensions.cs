@@ -8,8 +8,8 @@ namespace ProbQANetCore
   [StructLayout(LayoutKind.Sequential, Pack = 8)]
   public struct EngineDimensions
   {
-    Int64 _nAnswers;
-    Int64 _nQuestions;
-    Int64 _nTargets;
+    public Int64 _nAnswers;
+    public Int64 _nQuestions;
+    public Int64 _nTargets;
   }
 }
