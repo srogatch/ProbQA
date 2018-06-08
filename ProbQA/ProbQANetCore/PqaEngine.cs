@@ -75,6 +75,9 @@ namespace ProbQANetCore
 
     private IntPtr _nativeEngine;
 
+    internal IntPtr GetNativePtr()
+    { return _nativeEngine; }
+
     internal PqaEngine(IntPtr native)
     {
       _nativeEngine = native;
@@ -97,7 +100,7 @@ namespace ProbQANetCore
       GCHandle pAQs = GCHandle.Alloc(AQs, GCHandleType.Pinned);
       try
       {
-        return new PqaError(PqaEngine_Train(_nativeEngine, nQuestions, pAQs.AddrOfPinnedObject(), iTarget, amount));
+        return PqaError.Factor(PqaEngine_Train(_nativeEngine, nQuestions, pAQs.AddrOfPinnedObject(), iTarget, amount));
       }
       finally
       {
@@ -112,7 +115,7 @@ namespace ProbQANetCore
     {
       IntPtr nativeErr = IntPtr.Zero;
       ulong res = PqaEngine_GetTotalQuestionsAsked(_nativeEngine, out nativeErr);
-      err = new PqaError(nativeErr);
+      err = PqaError.Factor(nativeErr);
       return res;
     }
 
@@ -128,5 +131,13 @@ namespace ProbQANetCore
       }
       return ed;
     }
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern Int64 PqaEngine_StartQuiz(IntPtr pEngine, out IntPtr ppError);
+
+    //public Int64 StartQuiz(out PqaError err)
+    //{
+
+    //}
   }
 }

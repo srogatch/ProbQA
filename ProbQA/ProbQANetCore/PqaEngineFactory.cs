@@ -77,7 +77,7 @@ namespace ProbQANetCore
         _memPoolMaxBytes = engDef.MemPoolMaxBytes
       };
       IntPtr nativeEngine = CiPqaEngineFactory_CreateCpuEngine(_nativeFactory, out nativeError, ref ciEngDef);
-      err = new PqaError(nativeError);
+      err = PqaError.Factor(nativeError);
       if(nativeEngine == IntPtr.Zero)
       {
         return null;
@@ -91,7 +91,7 @@ namespace ProbQANetCore
       IntPtr nativeError = IntPtr.Zero;
       IntPtr nativeEngine = CiqaEngineFactory_LoadCpuEngine(_nativeFactory, out nativeError, filePath,
         memPoolMaxBytes);
-      err = new PqaError(nativeError);
+      err = PqaError.Factor(nativeError);
       if(nativeEngine == IntPtr.Zero)
       {
         return null;

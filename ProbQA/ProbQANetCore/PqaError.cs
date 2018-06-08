@@ -13,30 +13,37 @@ namespace ProbQANetCore
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CiPqaError_ToString(IntPtr pError, byte withParams);
 
-    private IntPtr _native;
+    private IntPtr _nativeErr;
 
-    internal PqaError(IntPtr native)
+    private PqaError(IntPtr nativeErr)
     {
-      _native = native;
+      _nativeErr = nativeErr;
     }
 
     ~PqaError()
     {
-      if(_native != IntPtr.Zero)
+      if(_nativeErr != IntPtr.Zero)
       {
-        CiReleasePqaError(_native);
+        CiReleasePqaError(_nativeErr);
       }
     }
 
-    bool IsOk { get { return _native == IntPtr.Zero; } }
-
-    string ToString(bool withParams)
+    public static PqaError Factor(IntPtr nativeErr)
     {
-      if (_native == IntPtr.Zero)
+      if(nativeErr == IntPtr.Zero)
+      {
+        return null;
+      }
+      return new PqaError(nativeErr);
+    }
+
+    public string ToString(bool withParams)
+    {
+      if (_nativeErr == IntPtr.Zero)
       {
         return "Success";
       }
-      return Utils.HandleNativeString(CiPqaError_ToString(_native, (byte)(withParams ? 1 : 0)));
+      return Utils.HandleNativeString(CiPqaError_ToString(_nativeErr, (byte)(withParams ? 1 : 0)));
     }
   }
 }

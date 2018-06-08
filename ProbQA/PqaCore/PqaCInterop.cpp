@@ -33,6 +33,24 @@ void SendUnexpectedError(void **ppStrErr) {
   *ppStrErr = pMsg;
 }
 
+void AssignPqaError(void **ppError, PqaError &err) {
+  if (err.IsOk()) {
+    *ppError = nullptr;
+  }
+  else
+  {
+    PqaError *pErr = new PqaError(std::move(err));
+    *ppError = pErr;
+  }
+}
+
+void* ReturnPqaError(PqaError &&err) {
+  if (err.IsOk()) {
+    return nullptr;
+  }
+  return new PqaError(std::move(err));
+}
+
 } // anonymous namespace
 
 PQACORE_API void* CiPqaGetEngineFactory() {
@@ -57,14 +75,7 @@ PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppE
   engDef._memPoolMaxBytes = pEngDef->_memPoolMaxBytes;
   PqaError err;
   IPqaEngine *pEngine = pEf->CreateCpuEngine(err, engDef);
-  if (err.IsOk()) {
-    *ppError = nullptr;
-  }
-  else
-  {
-    PqaError *pErr = new PqaError(std::move(err));
-    *ppError = pErr;
-  }
+  AssignPqaError(ppError, err);
   return pEngine;
 }
 
@@ -79,14 +90,7 @@ PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppErro
   }
   PqaError err;
   IPqaEngine *pEngine = pEf->LoadCpuEngine(err, filePath, memPoolMaxBytes);
-  if (err.IsOk()) {
-    *ppError = nullptr;
-  }
-  else
-  {
-    PqaError *pErr = new PqaError(std::move(err));
-    *ppError = pErr;
-  }
+  AssignPqaError(ppError, err);
   return pEngine;
 }
 
@@ -142,11 +146,7 @@ PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAn
   static_assert(sizeof(CiAnsweredQuestion) == sizeof(AnsweredQuestion)
     && offsetof(CiAnsweredQuestion, _iQuestion) == offsetof(AnsweredQuestion, _iQuestion)
     && offsetof(CiAnsweredQuestion, _iAnswer) == offsetof(AnsweredQuestion, _iAnswer));
-  PqaError err = pEng->Train(nQuestions, reinterpret_cast<const AnsweredQuestion*>(pAQs), iTarget, amount);
-  if (err.IsOk()) {
-    return nullptr;
-  }
-  return new PqaError(std::move(err));
+  return ReturnPqaError(pEng->Train(nQuestions, reinterpret_cast<const AnsweredQuestion*>(pAQs), iTarget, amount));
 }
 
 PQACORE_API uint8_t PqaEngine_QuestionPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds) {
@@ -198,14 +198,7 @@ PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppE
   }
   PqaError err;
   const uint64_t nQAs = pEng->GetTotalQuestionsAsked(err);
-  if (err.IsOk()) {
-    *ppError = nullptr;
-  }
-  else
-  {
-    PqaError *pErr = new PqaError(std::move(err));
-    *ppError = pErr;
-  }
+  AssignPqaError(ppError, err);
   return nQAs;
 }
 
@@ -222,3 +215,17 @@ PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims
   pDims->_nTargets = dims._nTargets;
   return 1;
 }
+
+PQACORE_API int64_t PqaEngine_StartQuiz(void *pvEngine, void **ppError) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return cInvalidPqaId;
+  }
+  PqaError err;
+  const TPqaId iQuiz = pEng->StartQuiz(err);
+  AssignPqaError(ppError, err);
+  return iQuiz;
+}
+
