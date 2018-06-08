@@ -123,7 +123,7 @@ int LearnBinarySearch(const char* const initKbFp) {
       prevQAsked = totQAsked;
       pcStart = GetPerfCnt();
     }
-    const TPqaId guess = ea.Generate<TPqaId>(pEngine->GetDims()._nTargets);
+    const TPqaId guess = ea.Generate<TPqaId>(pEngine->CopyDims()._nTargets);
     volatile TPqaId dbgGuess = guess;
     const TPqaId iQuiz = pEngine->StartQuiz(err);
     if (!err.IsOk() || iQuiz == cInvalidPqaId) {

@@ -116,5 +116,17 @@ namespace ProbQANetCore
       return res;
     }
 
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern byte PqaEngine_CopyDims(IntPtr pEngine, out EngineDimensions pDims);
+
+    public EngineDimensions CopyDims()
+    {
+      EngineDimensions ed;
+      if(PqaEngine_CopyDims(_nativeEngine, out ed) == 0)
+      {
+        throw new PqaException("C++ Engine has failed to return dimensions.");
+      }
+      return ed;
+    }
   }
 }

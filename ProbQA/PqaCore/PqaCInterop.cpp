@@ -209,3 +209,16 @@ PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppE
   return nQAs;
 }
 
+PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return 0;
+  }
+  const EngineDimensions dims = pEng->CopyDims();
+  pDims->_nAnswers = dims._nAnswers;
+  pDims->_nQuestions = dims._nQuestions;
+  pDims->_nTargets = dims._nTargets;
+  return 1;
+}

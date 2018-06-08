@@ -45,8 +45,8 @@ protected: // variables
   //// Don't violate the order of obtaining these locks, so to avoid a deadlock.
   //// Actually the locks form directed acyclic graph indicating which locks must be obtained one after another.
   //// However, to simplify the code we list them here topologically sorted.
-  MaintenanceSwitch _maintSwitch; // regular/maintenance mode switch
-  SRPlat::SRReaderWriterSync _rws; // KB read-write
+  mutable MaintenanceSwitch _maintSwitch; // regular/maintenance mode switch
+  mutable SRPlat::SRReaderWriterSync _rws; // KB read-write
   SRPlat::SRCriticalSection _csQuizReg; // quiz registry
 
   GapTracker<TPqaId> _quizGaps; // Guarded by _csQuizReg
@@ -78,8 +78,11 @@ public: // Internal interface methods
 
   const SRPlat::SRThreadCount GetNLooseWorkers() const { return _nLooseWorkers; }
 
+  // Can't be used externally because the dimensions may change when not under a lock
+  const EngineDimensions& GetDims() const { return _dims; }
+
 public: // External interface methods
-  const EngineDimensions& GetDims() const override final { return _dims; }
+  virtual EngineDimensions CopyDims() const override final;
   bool QuestionPermFromComp(const TPqaId count, TPqaId *pIds) override final;
   bool QuestionCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
   bool TargetPermFromComp(const TPqaId count, TPqaId *pIds) override final;

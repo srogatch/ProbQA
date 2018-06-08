@@ -154,4 +154,14 @@ bool BaseCpuEngine::TargetCompFromPerm(const TPqaId count, TPqaId *pIds) {
   return true;
 }
 
+EngineDimensions BaseCpuEngine::CopyDims() const {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  if (msal.GetMode() == MaintenanceSwitch::Mode::Regular) {
+    return _dims;
+  }
+  //// Maintenance mode: dimensions may be modified concurrently
+  SRRWLock<false> rwl(_rws);
+  return _dims;
+}
+
 } // namespace ProbQA

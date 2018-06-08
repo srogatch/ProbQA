@@ -26,7 +26,7 @@ namespace ProbQANetCore
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, out IntPtr ppError,
-      CiEngineDefinition ciEngDef);
+      ref CiEngineDefinition pEngDef);
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CiqaEngineFactory_LoadCpuEngine(IntPtr pFactory, out IntPtr ppError, string filePath,
@@ -63,7 +63,7 @@ namespace ProbQANetCore
     {
       if(engDef.AnswerCount == null || engDef.QuestionCount == null || engDef.TargetCount == null)
       {
-        throw new Exception("Answer, question and target counts must be all set.");
+        throw new PqaException("Answer, question and target counts must be all set.");
       }
       IntPtr nativeError = IntPtr.Zero;
       CiEngineDefinition ciEngDef = new CiEngineDefinition() {
@@ -76,7 +76,7 @@ namespace ProbQANetCore
         _initAmount = engDef.InitAmount,
         _memPoolMaxBytes = engDef.MemPoolMaxBytes
       };
-      IntPtr nativeEngine = CiPqaEngineFactory_CreateCpuEngine(_nativeFactory, out nativeError, ciEngDef);
+      IntPtr nativeEngine = CiPqaEngineFactory_CreateCpuEngine(_nativeFactory, out nativeError, ref ciEngDef);
       err = new PqaError(nativeError);
       if(nativeEngine == IntPtr.Zero)
       {

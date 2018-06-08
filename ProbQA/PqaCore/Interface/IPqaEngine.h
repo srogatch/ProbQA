@@ -28,7 +28,7 @@ public:
   // Statistics method, especially useful for charging.
   virtual uint64_t GetTotalQuestionsAsked(PqaError& err) = 0;
   // Get engine dimensions: the number of questions, answers and targets
-  virtual const EngineDimensions& GetDims() const = 0;
+  virtual EngineDimensions CopyDims() const = 0;
 
   //// There must be no concurrent requests on the same quiz. This is not thread-safe.
 #pragma region Regular-only mode operations

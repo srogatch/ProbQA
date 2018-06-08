@@ -23,6 +23,12 @@ typedef struct {
   int64_t _iAnswer;
 } CiAnsweredQuestion;
 
+typedef struct {
+  int64_t _nAnswers;
+  int64_t _nQuestions;
+  int64_t _nTargets;
+} CiEngineDimensions;
+
 #pragma pack(pop)
 
 #ifdef __cplusplus
@@ -48,6 +54,7 @@ PQACORE_API uint8_t PqaEngine_QuestionCompFromPerm(void *pvEngine, const int64_t
 PQACORE_API uint8_t PqaEngine_TargetPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds);
 PQACORE_API uint8_t PqaEngine_TargetCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds);
 PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError);
+PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims);
 
 #ifdef __cplusplus
 } // extern "C"
