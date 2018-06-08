@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ProbQANetCore
 {
-  public class PqaEngine
+  public class PqaEngine : IPqaEngine
   {
     #region Compact-Permanent ID mapping
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -75,9 +75,6 @@ namespace ProbQANetCore
 
     private IntPtr _nativeEngine;
 
-    internal IntPtr GetNativePtr()
-    { return _nativeEngine; }
-
     internal PqaEngine(IntPtr native)
     {
       _nativeEngine = native;
@@ -111,10 +108,10 @@ namespace ProbQANetCore
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern UInt64 PqaEngine_GetTotalQuestionsAsked(IntPtr pEngine, ref IntPtr ppError);
 
-    public ulong GetTotalQuestionsAsked(out PqaError err)
+    public UInt64 GetTotalQuestionsAsked(out PqaError err)
     {
       IntPtr nativeErr = IntPtr.Zero;
-      ulong res;
+      UInt64 res;
       try
       {
         res = PqaEngine_GetTotalQuestionsAsked(_nativeEngine, ref nativeErr);
