@@ -244,3 +244,26 @@ PQACORE_API int64_t PqaEngine_ResumeQuiz(void *pvEngine, void **ppError, const i
   AssignPqaError(ppError, err);
   return iQuiz;
 }
+
+PQACORE_API int64_t PqaEngine_NextQuestion(void *pvEngine, void **ppError, const int64_t iQuiz) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return cInvalidPqaId;
+  }
+  PqaError err;
+  const TPqaId iQuestion = pEng->NextQuestion(err, iQuiz);
+  AssignPqaError(ppError, err);
+  return iQuestion;
+}
+
+PQACORE_API void* PqaEngine_RecordAnswer(void *pvEngine, const int64_t iQuiz, const int64_t iAnswer) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+  }
+  return ReturnPqaError(pEng->RecordAnswer(iQuiz, iAnswer));
+}
+

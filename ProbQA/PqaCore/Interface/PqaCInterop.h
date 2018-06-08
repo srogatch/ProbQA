@@ -58,6 +58,8 @@ PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims
 PQACORE_API int64_t PqaEngine_StartQuiz(void *pvEngine, void **ppError);
 PQACORE_API int64_t PqaEngine_ResumeQuiz(void *pvEngine, void **ppError, const int64_t nAnswered,
   const CiAnsweredQuestion* const pAQs);
+PQACORE_API int64_t PqaEngine_NextQuestion(void *pvEngine, void **ppError, const int64_t iQuiz);
+PQACORE_API void* PqaEngine_RecordAnswer(void *pvEngine, const int64_t iQuiz, const int64_t iAnswer);
 
 #ifdef __cplusplus
 } // extern "C"
