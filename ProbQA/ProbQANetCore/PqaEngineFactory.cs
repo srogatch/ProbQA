@@ -25,11 +25,11 @@ namespace ProbQANetCore
     private static extern IntPtr CiPqaGetEngineFactory();
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, out IntPtr pError,
+    private static extern IntPtr CiPqaEngineFactory_CreateCpuEngine(IntPtr pFactory, out IntPtr ppError,
       CiEngineDefinition ciEngDef);
 
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr CiqaEngineFactory_LoadCpuEngine(IntPtr pFactory, out IntPtr pError, string filePath,
+    private static extern IntPtr CiqaEngineFactory_LoadCpuEngine(IntPtr pFactory, out IntPtr ppError, string filePath,
       UInt64 memPoolMaxBytes = EngineDefinition.cDefaultMemPoolMaxBytes);
 
     private static PqaEngineFactory _instance;

@@ -154,7 +154,58 @@ PQACORE_API uint8_t PqaEngine_QuestionPermFromComp(void *pvEngine, const int64_t
   if (pEng == nullptr) {
     SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
       SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return false;
+    return 0;
   }
   return pEng->QuestionPermFromComp(count, pIds) ? 1 : 0;
 }
+
+PQACORE_API uint8_t PqaEngine_QuestionCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return 0;
+  }
+  return pEng->QuestionCompFromPerm(count, pIds) ? 1 : 0;
+}
+
+PQACORE_API uint8_t PqaEngine_TargetPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return 0;
+  }
+  return pEng->TargetPermFromComp(count, pIds) ? 1 : 0;
+}
+
+PQACORE_API uint8_t PqaEngine_TargetCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return 0;
+  }
+  return pEng->TargetCompFromPerm(count, pIds) ? 1 : 0;
+}
+
+PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return 0;
+  }
+  PqaError err;
+  const uint64_t nQAs = pEng->GetTotalQuestionsAsked(err);
+  if (err.IsOk()) {
+    *ppError = nullptr;
+  }
+  else
+  {
+    PqaError *pErr = new PqaError(std::move(err));
+    *ppError = pErr;
+  }
+  return nQAs;
+}
+

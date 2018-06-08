@@ -38,6 +38,24 @@ SRPlat::SRString ToSRString(const PqaErrorCode pec) {
     return SRString::MakeUnowned("The amount is not positive");
   case PqaErrorCode::AbsentId:
     return SRString::MakeUnowned("The ID is absent from KB");
+  case PqaErrorCode::WrongMode:
+    return SRString::MakeUnowned("An attempt to execute an operation in a wrong mode");
+  case PqaErrorCode::UnhandledCase:
+    return SRString::MakeUnowned("Unhandled case");
+  case PqaErrorCode::I64Underflow:
+    return SRString::MakeUnowned("Underflow of a 64-bit integer");
+  case PqaErrorCode::QuestionsExhausted:
+    return SRString::MakeUnowned("Engine has run out of questions");
+  case PqaErrorCode::NoQuizActiveQuestion:
+    return SRString::MakeUnowned("No active question in the quiz");
+  case PqaErrorCode::CantOpenFile:
+    return SRString::MakeUnowned("Cannot open file");
+  case PqaErrorCode::FileOp:
+    return SRString::MakeUnowned("File operation failed");
+  case PqaErrorCode::QuizzesActive:
+    return SRString::MakeUnowned("There are still active quizzes");
+  case PqaErrorCode::NullArgument:
+    return SRString::MakeUnowned("Expected non-null argument");
   default: {
     std::string message("Unhandled");
     message += std::to_string(static_cast<int64_t>(pec));

@@ -29,13 +29,14 @@ enum class PqaErrorCode : int64_t {
   WrongMode = 14, // No error params
   UnhandledCase = 15, // No error params
   I64Underflow = 16, // I64UnderflowErrorParams
-  QuestionsExhausted = 15, // No error params (yet?)
-  NoQuizActiveQuestion = 16, // NoQuizActiveQuestionErrorParams
-  CantOpenFile = 17, // CantOpenFileErrorParams
-  FileOp = 18, // FileOpErrorParams
-  QuizzesActive = 19, // QuizzesActiveErrorParams
-  NullArgument = 20 // No error params (yet?)
+  QuestionsExhausted = 17, // No error params (yet?)
+  NoQuizActiveQuestion = 18, // NoQuizActiveQuestionErrorParams
+  CantOpenFile = 19, // CantOpenFileErrorParams
+  FileOp = 20, // FileOpErrorParams
+  QuizzesActive = 21, // QuizzesActiveErrorParams
+  NullArgument = 22 // No error params (yet?)
 };
+// Don't forget to update SRPlat::SRString ToSRString(const PqaErrorCode pec)
 
 SRPlat::SRString ToSRString(const PqaErrorCode pec);
 
