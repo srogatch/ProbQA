@@ -22,10 +22,7 @@ namespace ProbQANetCore
 
     ~PqaError()
     {
-      if(_nativeErr != IntPtr.Zero)
-      {
         CiReleasePqaError(_nativeErr);
-      }
     }
 
     public static PqaError Factor(IntPtr nativeErr)

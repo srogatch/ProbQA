@@ -19,6 +19,10 @@ static_assert(sizeof(CiAnsweredQuestion) == sizeof(AnsweredQuestion)
   && offsetof(CiAnsweredQuestion, _iQuestion) == offsetof(AnsweredQuestion, _iQuestion)
   && offsetof(CiAnsweredQuestion, _iAnswer) == offsetof(AnsweredQuestion, _iAnswer));
 
+static_assert(sizeof(CiRatedTarget) == sizeof(RatedTarget)
+  && offsetof(CiRatedTarget, _iTarget) == offsetof(RatedTarget, _iTarget)
+  && offsetof(CiRatedTarget, _prob) == offsetof(RatedTarget, _prob));
+
 namespace {
 
 char *PrepareSRString(const SRString &s) {
@@ -267,3 +271,46 @@ PQACORE_API void* PqaEngine_RecordAnswer(void *pvEngine, const int64_t iQuiz, co
   return ReturnPqaError(pEng->RecordAnswer(iQuiz, iAnswer));
 }
 
+PQACORE_API int64_t PqaEngine_ListTopTargets(void *pvEngine, void **ppError, const int64_t iQuiz,
+  const int64_t maxCount, CiRatedTarget *pDest)
+{
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return cInvalidPqaId;
+  }
+  PqaError err;
+  const TPqaId nListed = pEng->ListTopTargets(err, iQuiz, maxCount, reinterpret_cast<RatedTarget*>(pDest));
+  AssignPqaError(ppError, err);
+  return nListed;
+}
+
+PQACORE_API void* PqaEngine_RecordQuizTarget(void *pvEngine, const int64_t iQuiz, const int64_t iTarget,
+  const double amount)
+{
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+  }
+  return ReturnPqaError(pEng->RecordQuizTarget(iQuiz, iTarget, amount));
+}
+
+PQACORE_API void* PqaEngine_ReleaseQuiz(void *pvEngine, const int64_t iQuiz) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+  }
+  return ReturnPqaError(pEng->ReleaseQuiz(iQuiz));
+}
+
+PQACORE_API void* PqaEngine_SaveKB(void *pvEngine, const char* const filePath, const uint8_t bDoubleBuffer) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+  }
+  return ReturnPqaError(pEng->SaveKB(filePath, bDoubleBuffer != 0));
+}

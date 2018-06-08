@@ -139,6 +139,7 @@ namespace ProbQANetCore
       return ed;
     }
 
+    #region Regular-only mode operations
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern Int64 PqaEngine_StartQuiz(IntPtr pEngine, ref IntPtr ppError);
 
@@ -208,6 +209,62 @@ namespace ProbQANetCore
     public PqaError RecordAnswer(Int64 iQuiz, Int64 iAnswer)
     {
       return PqaError.Factor(PqaEngine_RecordAnswer(_nativeEngine, iQuiz, iAnswer));
+    }
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern Int64 PqaEngine_ListTopTargets(IntPtr pEngine, ref IntPtr ppError, Int64 iQuiz,
+      Int64 maxCount, IntPtr pDest);
+
+    // Fills the array |dest| with top targets and returns the number of targets filled, which can be less than the
+    //   length of array |dest|.
+    public Int64 ListTopTargets(out PqaError err, Int64 iQuiz, RatedTarget[] dest)
+    {
+      GCHandle pDest = GCHandle.Alloc(dest, GCHandleType.Pinned);
+      Int64 nListed;
+      try
+      {
+        IntPtr nativeErr = IntPtr.Zero;
+        try
+        {
+          nListed = PqaEngine_ListTopTargets(_nativeEngine, ref nativeErr, iQuiz, dest.LongLength,
+            pDest.AddrOfPinnedObject());
+        }
+        finally
+        {
+          err = PqaError.Factor(nativeErr);
+        }
+      }
+      finally
+      {
+        pDest.Free();
+      }
+      return nListed;
+    }
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr PqaEngine_RecordQuizTarget(IntPtr pEngine, Int64 iQuiz, Int64 iTarget,
+      double amount = 1.0);
+
+    public PqaError RecordQuizTarget(Int64 iQuiz, Int64 iTarget, double amount = 1.0)
+    {
+      return PqaError.Factor(PqaEngine_RecordQuizTarget(_nativeEngine, iQuiz, iTarget, amount));
+    }
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr PqaEngine_ReleaseQuiz(IntPtr pEngine, Int64 iQuiz);
+
+    public PqaError ReleaseQuiz(Int64 iQuiz)
+    {
+      return PqaError.Factor(PqaEngine_ReleaseQuiz(_nativeEngine, iQuiz));
+    }
+    #endregion
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr PqaEngine_SaveKB(IntPtr pEngine, string filePath, byte bDoubleBuffer);
+
+    public PqaError SaveKB(string filePath, bool bDoubleBuffer)
+    {
+      return PqaError.Factor(PqaEngine_SaveKB(_nativeEngine, filePath, (byte)(bDoubleBuffer ? 1 : 0)));
     }
   }
 }
