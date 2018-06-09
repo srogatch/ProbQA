@@ -8,7 +8,7 @@ namespace ProbQANetCore
   [StructLayout(LayoutKind.Sequential, Pack = 8)]
   public struct RatedTarget
   {
-    Int64 _iTarget;
-    double _prob; // probability that this target is what the user needs
+    public Int64 _iTarget;
+    public double _prob; // probability that this target is what the user needs
   }
 }
