@@ -208,6 +208,25 @@ namespace ProbQANetCore
       return PqaError.Factor(PqaEngine_RecordAnswer(_nativeEngine, iQuiz, iAnswer));
     }
 
+
+    [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern Int64 PqaEngine_GetActiveQuestionId(IntPtr pEngine, ref IntPtr ppError, Int64 iQuiz);
+
+    public Int64 GetActiveQuestionId(out PqaError err, Int64 iQuiz)
+    {
+      IntPtr nativeErr = IntPtr.Zero;
+      Int64 iQuestion;
+      try
+      {
+        iQuestion = PqaEngine_GetActiveQuestionId(_nativeEngine, ref nativeErr, iQuiz);
+      }
+      finally
+      {
+        err = PqaError.Factor(nativeErr);
+      }
+      return iQuestion;
+    }
+
     [DllImport("PqaCore.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern Int64 PqaEngine_ListTopTargets(IntPtr pEngine, ref IntPtr ppError, Int64 iQuiz,
       Int64 maxCount, IntPtr pDest);

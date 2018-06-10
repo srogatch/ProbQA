@@ -81,6 +81,7 @@ public: // Client interface methods
   virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs) override final;
   virtual TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) override final;
   virtual PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) override final;
+  virtual TPqaId GetActiveQuestionId(PqaError &err, const TPqaId iQuiz) override final;
   virtual TPqaId ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest)
     override final;
   virtual PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1)

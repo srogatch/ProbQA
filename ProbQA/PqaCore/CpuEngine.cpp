@@ -598,6 +598,27 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::RecordAnswer(const TPq
   return pQuiz->RecordAnswer(iAnswer);
 }
 
+template<typename taNumber> TPqaId CpuEngine<taNumber>::GetActiveQuestionId(PqaError &err, const TPqaId iQuiz) {
+  constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
+      " mode operation (record an answer) because current mode is not regular (but maintenance/shutdown?)."));
+    return cInvalidPqaId;
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+  CEQuiz<taNumber> *pQuiz;
+  {
+    pQuiz = UseQuiz(err, iQuiz);
+    if (pQuiz == nullptr) {
+      assert(!err.IsOk());
+      return cInvalidPqaId;
+    }
+  }
+
+  return pQuiz->GetActiveQuestion();
+}
+
 template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargets(PqaError& err, const TPqaId iQuiz,
   const TPqaId maxCount, RatedTarget *pDest) 
 {

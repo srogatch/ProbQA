@@ -19,6 +19,7 @@ namespace ProbQANetCore
     Int64 StartQuiz(out PqaError err);
     Int64 ResumeQuiz(out PqaError err, Int64 nAnswered, AnsweredQuestion[] AQs);
     Int64 NextQuestion(out PqaError err, Int64 iQuiz);
+    Int64 GetActiveQuestionId(out PqaError err, Int64 iQuiz);
     PqaError RecordAnswer(Int64 iQuiz, Int64 iAnswer);
     Int64 ListTopTargets(out PqaError err, Int64 iQuiz, RatedTarget[] dest);
     PqaError RecordQuizTarget(Int64 iQuiz, Int64 iTarget, double amount = 1.0);

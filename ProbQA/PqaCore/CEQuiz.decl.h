@@ -43,6 +43,7 @@ public: // methods
   std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
   const std::vector<AnsweredQuestion>& GetAnswers() const { return _answers; }
   void SetActiveQuestion(TPqaId iQuestion) { _activeQuestion = iQuestion; }
+  TPqaId GetActiveQuestion() const { return _activeQuestion; }
 };
 
 template<typename taNumber> class CEQuiz : public CEBaseQuiz {

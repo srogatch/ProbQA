@@ -314,3 +314,16 @@ PQACORE_API void* PqaEngine_SaveKB(void *pvEngine, const char* const filePath, c
   }
   return ReturnPqaError(pEng->SaveKB(filePath, bDoubleBuffer != 0));
 }
+
+PQACORE_API int64_t PqaEngine_GetActiveQuestionId(void *pvEngine, void **ppError, const int64_t iQuiz) {
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
+  if (pEng == nullptr) {
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
+    return cInvalidPqaId;
+  }
+  PqaError err;
+  int64_t iQuestion = pEng->GetActiveQuestionId(err, iQuiz);
+  AssignPqaError(ppError, err);
+  return iQuestion;
+}
