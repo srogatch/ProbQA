@@ -109,6 +109,26 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
     SRPoolRunner::Keeper<TSubtask> kp = pr.RunPreSplit<TSubtask>(raTask, targSplit);
     Summator<taNumber>::ForPriors(kp, raTask);
   }
+  //TODO: vectorize and parallelize
+  double range = log(dims._nTargets) / log(dims._nAnswers);
+  double Lmin = _pPriorMants[0].ToAmount();
+  double Lmax = _pPriorMants[0].ToAmount();
+  for (TPqaId i = 1; i < dims._nTargets; i++) {
+    double cur = _pPriorMants[i].ToAmount();
+    Lmin = std::min(cur, Lmin);
+    Lmax = std::max(cur, Lmax);
+  }
+  double Ldiff = Lmax - Lmin;
+  if (Ldiff > 1e-20) { // If not all the likelihoods are equal
+    SRAccumulator<taNumber> acc(taNumber(0));
+    for (TPqaId i = 0; i < dims._nTargets; i++) {
+      double x = (_pPriorMants[i].ToAmount() - Lmin) / Ldiff;
+      _pPriorMants[i] = taNumber::FromDouble(pow(range, x));
+      acc.Add(_pPriorMants[i]);
+    }
+    raTask._sumPriors.Set1(acc.Get());
+  }
+
   // Divide the likelihoods by their sum calculated above
   pr.RunPreSplit<CEDivTargPriorsSubtask<CERecordAnswerTask<taNumber>>>(raTask, targSplit);
   return PqaError();
