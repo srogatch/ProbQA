@@ -116,14 +116,25 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         const __m256d invDij = SRSimd::Load<true>(pInvDi + j);
         accL.Add(_mm256_div_pd(_mm256_mul_pd(invDij, invDij), l2post));
 
-        const __m256d diff = _mm256_sub_pd(posteriors, priors);
+        //const __m256d diff = _mm256_sub_pd(posteriors, priors);
 
-        //const __m256d priorsGood = _mm256_cmp_pd(priors, gcProbEps, _CMP_GT_OQ);
-        //const __m256d ratio = _mm256_div_pd(posteriors, priors);
-        //const __m256d diff = _mm256_and_pd(priorsGood, SRVectMath::Log2Hot(ratio));
+        const __m256d probMins = _mm256_min_pd(posteriors, priors);
+        const __m256d probMaxes = _mm256_max_pd(posteriors, priors);
+        const __m256d log2maxes = SRVectMath::Log2Hot(probMaxes);
+        const __m256d numsGood = _mm256_and_pd(_mm256_and_pd(
+          _mm256_cmp_pd(probMaxes, gcProbEps, _CMP_GT_OQ),
+          _mm256_cmp_pd(probMins, gcProbEps, _CMP_GT_OQ)),
+          //_mm256_cmp_pd(_mm256_sub_pd(_mm256_setzero_pd(), log2maxes), gcProbEps, _CMP_GT_OQ)
+          _mm256_cmp_pd(SRSimd::AbsF64(log2maxes), gcProbEps, _CMP_GT_OQ)
+        );
+        //const __m256d ratioM1 = _mm256_sub_pd(_mm256_div_pd(probMaxes, probMins), _mm256_set1_pd(1.0));
+        const __m256d ratio = _mm256_div_pd(SRVectMath::Log2Hot(probMins), log2maxes);
+        const __m256d ratioM1 = _mm256_sub_pd(ratio, _mm256_set1_pd(1.0));
+        const __m256d diff = _mm256_and_pd(numsGood, ratioM1);
         //const __m256d absDiff = SRSimd::AbsF64(diff);
 
-        const __m256d square = _mm256_mul_pd(diff, diff);
+        //const __m256d square = _mm256_mul_pd(diff, diff);
+        const __m256d square = diff;
         accV.Add(square);
       }
       double velocity;
@@ -153,7 +164,8 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       accAvgH.Add(weightedEntropy);
 
       const __m256d curV2 = EASY_SET(_velocity, k);
-      const __m256d curV = _mm256_sqrt_pd(curV2);
+      //const __m256d curV = _mm256_sqrt_pd(curV2);
+      const __m256d curV = curV2;
       const __m256d weightedVelocity = _mm256_mul_pd(curW, curV);
       accAvgV.Add(weightedVelocity);
     }
@@ -184,12 +196,13 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
 
     const double avgV = averages.m128d_f64[1];
-    if (avgV < 0 || avgV > _cMaxV) {
+    if (avgV < 0 /*|| avgV > _cMaxV*/) {
       LOCLOG(Warning) << SR_FILE_LINE "Got avgV=" << avgV;
     }
 
-    const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
-    if (vComp <= 0) {
+    //const double vComp = CalcVelocityComponent(avgV, task._nValidTargets+1);
+    double vComp = avgV;
+    if (vComp < 0) {
       LOCLOG(Warning) << SR_FILE_LINE "Got vComp=" << vComp;
     }
 
@@ -204,11 +217,12 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     }
 
     //TODO: change to integer powers algorithm after best powers are found experimentally.
-    const double priority = std::pow(lack, 2) * std::pow(vComp, 9) * std::pow(nExpectedTargets, -2);
+    double priority = std::pow(lack, 2) * std::pow(vComp, 0.5) * std::pow(nExpectedTargets, -2);
 
-    if (priority <= 0 || !std::isfinite(priority)) {
+    if (priority < 0 || !std::isfinite(priority)) {
       LOCLOG(Warning) << SR_FILE_LINE "Got priority=" << priority;
     }
+    priority += gcProbEps.m256d_f64[0];
     accRunLength.Add(SRDoubleNumber::FromDouble(priority));
 
     task._pRunLength[i] = accRunLength.Get(); 
