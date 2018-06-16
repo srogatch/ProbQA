@@ -18,8 +18,10 @@ public:
   virtual IPqaEngine* LoadCpuEngine(PqaError& err, const char* const filePath,
     size_t memPoolMaxBytes = EngineDefinition::_cDefaultMemPoolMaxBytes) = 0;
 
+  virtual PqaError SetCudaDevice(int iDevice) = 0;
   // Computing on a graphics card with CUDA technology.
   virtual IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) = 0;
+
   // Grid computing over a network
   virtual IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) = 0;
 };

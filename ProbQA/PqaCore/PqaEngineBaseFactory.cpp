@@ -96,4 +96,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDe
   return nullptr;
 }
 
+PqaError PqaEngineBaseFactory::SetCudaDevice(int iDevice) {
+}
+
 } // namespace ProbQA

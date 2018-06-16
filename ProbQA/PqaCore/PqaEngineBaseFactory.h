@@ -24,7 +24,9 @@ public: // methods
   IPqaEngine* LoadCpuEngine(PqaError& err, const char* const filePath,
     size_t memPoolMaxBytes = EngineDefinition::_cDefaultMemPoolMaxBytes) override final;
 
+  PqaError SetCudaDevice(int iDevice) override final;
   IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) override final;
+
   IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) override final;
 };
 
