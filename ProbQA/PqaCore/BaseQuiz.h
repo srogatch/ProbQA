@@ -4,9 +4,11 @@
 
 #pragma once
 
-#include "../PqaCore/Interface/PqaCommon.h"
+#include "../PqaCore/BaseEngine.h"
 
 namespace ProbQA {
+
+class BaseEngine;
 
 class BaseQuiz {
 protected: // types
@@ -15,18 +17,24 @@ protected: // types
 protected: // variables
   std::vector<AnsweredQuestion> _answers;
   TPqaId _activeQuestion = cInvalidPqaId;
+  BaseEngine *_pEngine;
 
 private: // variables
-  BaseEngine *_pEngine;
   // For each question, the corresponding bit indicates whether it has already been asked in this quiz
   __m256i *_isQAsked;
 
 protected: // methods
   BaseEngine * GetBaseEngine() const { return _pEngine; }
   virtual ~BaseQuiz();
+  explicit BaseQuiz(BaseEngine *pEngine);
 
 public: // methods
   __m256i* GetQAsked() const { return _isQAsked; }
+  virtual PqaError RecordAnswer(const TPqaId iAnswer) = 0;
+  std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
+  const std::vector<AnsweredQuestion>& GetAnswers() const { return _answers; }
+  void SetActiveQuestion(TPqaId iQuestion) { _activeQuestion = iQuestion; }
+  TPqaId GetActiveQuestion() const { return _activeQuestion; }
 };
 
 } // namespace ProbQA

@@ -13,6 +13,8 @@
 
 namespace ProbQA {
 
+class BaseQuiz;
+
 class BaseEngine : public IPqaEngine {
 public: // constants
   static constexpr size_t _cMemPoolMaxSimds = size_t(1) << 10;
@@ -38,6 +40,7 @@ protected: // variables
   mutable SRPlat::SRReaderWriterSync _rws; // KB read-write
   SRPlat::SRCriticalSection _csQuizReg; // quiz registry
 
+  std::vector<BaseQuiz*> _quizzes; // Guarded by _csQuizReg
   GapTracker<TPqaId> _quizGaps; // Guarded by _csQuizReg
 
   GapTracker<TPqaId> _questionGaps; // Guarded by _rws in maintenance mode. Read-only in regular mode.
@@ -56,12 +59,26 @@ protected: // methods
   bool WriteGaps(const GapTracker<TPqaId> &gt, KBFileInfo &kbfi);
 
   PqaError LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer);
+  BaseQuiz* UseQuiz(PqaError& err, const TPqaId iQuiz);
 
 protected: // Specific methods for this engine
   virtual PqaError TrainSpec(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount) = 0;
+  virtual TPqaId ResumeQuizSpec(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs) = 0;
+  virtual TPqaId NextQuestionSpec(PqaError& err, BaseQuiz *pBaseQuiz) = 0;
+  virtual TPqaId ListTopTargetsSpec(PqaError& err, BaseQuiz *pBaseQuiz, const TPqaId maxCount,
+    RatedTarget *pDest) = 0;
+  virtual PqaError RecordQuizTargetSpec(BaseQuiz *pBaseQuiz, const TPqaId iTarget, const TPqaAmount amount) = 0;
+  virtual PqaError AddQsTsSpec(const TPqaId nQuestions, AddQuestionParam *pAqps, const TPqaId nTargets,
+    AddTargetParam *pAtps) = 0;
+  virtual PqaError CompactSpec(CompactionResult &cr) = 0;
+
   virtual size_t NumberSize() = 0;
   virtual PqaError SaveStatistics(KBFileInfo &kbfi) = 0;
+  virtual PqaError DestroyQuiz(BaseQuiz *pQuiz) = 0;
+  virtual PqaError ShutdownWorkers() = 0;
+  virtual PqaError DestroyStatistics() = 0;
+  virtual void UpdateWorkerStacks() = 0;
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() const { return _pLogger.load(std::memory_order_relaxed); }
@@ -75,8 +92,6 @@ public: // Internal interface methods
   const EngineDimensions& GetDims() const { return _dims; }
 
 public:
-  ~BaseEngine() override;
-
   PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount = 1) override final;
 
@@ -88,7 +103,6 @@ public:
   uint64_t GetTotalQuestionsAsked(PqaError& err) override final;
   EngineDimensions CopyDims() const override final;
 
-  TPqaId StartQuiz(PqaError& err) override final;
   TPqaId ResumeQuiz(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs) override final;
   TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) override final;
   PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) override final;

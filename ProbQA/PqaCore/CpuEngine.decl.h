@@ -37,28 +37,31 @@ private: // variables
   // vector B: [iTarget] . Guarded by _rws
   SRPlat::SRFastArray<taNumber, false> _vB;
 
-  std::vector<CEQuiz<taNumber>*> _quizzes; // Guarded by _csQuizReg
-
 private: // methods
 
   static size_t CalcWorkerStackSize(const EngineDimensions& dims);
-
-#pragma region Behind Train() interface method
-  PqaError TrainInternal(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
-    const TPqaAmount amount);
-#pragma endregion
 
 #pragma region Behind StartQuiz() and ResumeQuiz() currently. May be needed by something else.
   TPqaId CreateQuizInternal(CECreateQuizOpBase &op);
 #pragma endregion
 
-  CEQuiz<taNumber>* UseQuiz(PqaError& err, const TPqaId iQuiz);
-
 protected: // Specific methods for this kind of engine
   PqaError TrainSpec(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount) override final;
+  TPqaId ResumeQuizSpec(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs) override final;
+  TPqaId NextQuestionSpec(PqaError& err, BaseQuiz *pBaseQuiz) override final;
+  TPqaId ListTopTargetsSpec(PqaError& err, BaseQuiz *pBaseQuiz, const TPqaId maxCount,
+    RatedTarget *pDest) override final;
+  PqaError RecordQuizTargetSpec(BaseQuiz *pBaseQuiz, const TPqaId iTarget, const TPqaAmount amount) override final;
+  PqaError AddQsTsSpec(const TPqaId nQuestions, AddQuestionParam *pAqps, const TPqaId nTargets,
+    AddTargetParam *pAtps) override final;
+  PqaError CompactSpec(CompactionResult &cr) override final;
+
   size_t NumberSize() override final;
   PqaError SaveStatistics(KBFileInfo &kbfi) override final;
+  PqaError DestroyQuiz(BaseQuiz *pQuiz) override final;
+  PqaError DestroyStatistics() override final;
+  void UpdateWorkerStacks() override final;
 
 public: // Internal interface methods
 
@@ -79,31 +82,6 @@ public: // Client interface methods
   virtual ~CpuEngine() override final;
 
   virtual TPqaId StartQuiz(PqaError& err) override final;
-  virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs) override final;
-  virtual TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) override final;
-  virtual PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) override final;
-  virtual TPqaId GetActiveQuestionId(PqaError &err, const TPqaId iQuiz) override final;
-  virtual TPqaId ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest)
-    override final;
-  virtual PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1)
-    override final;
-  virtual PqaError ReleaseQuiz(const TPqaId iQuiz) override final;
-
-
-  virtual PqaError SaveKB(const char* const filePath, const bool bDoubleBuffer) override final;
-
-  virtual PqaError StartMaintenance(const bool forceQuizes) override final;
-  virtual PqaError FinishMaintenance() override final;
-
-  virtual PqaError AddQsTs(const TPqaId nQuestions, AddQuestionParam *pAqps, const TPqaId nTargets,
-    AddTargetParam *pAtps) override final;
-  virtual PqaError RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds) override final;
-  virtual PqaError RemoveTargets(const TPqaId nTargets, const TPqaId *pTIds) override final;
-
-
-  virtual PqaError Compact(CompactionResult &cr) override final;
-
-  virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override final;
 };
 
 } // namespace ProbQA

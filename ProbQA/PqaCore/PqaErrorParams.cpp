@@ -39,7 +39,9 @@ AggregateErrorParams::Impl* AggregateErrorParams::EnsureImpl() {
 }
 
 void AggregateErrorParams::Add(PqaError&& pe) {
-  EnsureImpl()->_errors.push_back(std::forward<PqaError>(pe));
+  if (!pe.IsOk()) {
+    EnsureImpl()->_errors.push_back(std::forward<PqaError>(pe));
+  }
 }
 
 SRPlat::SRString AggregateErrorParams::ToString() {
@@ -67,6 +69,13 @@ AggregateErrorParams* AggregateErrorParams::Move() {
   AggregateErrorParams *ans = new AggregateErrorParams(_pImpl);
   _pImpl = nullptr;
   return ans;
+}
+
+PqaError AggregateErrorParams::ToError(SRString &&message) {
+  if (Count() == 0) {
+    return PqaError();
+  }
+  return PqaError(PqaErrorCode::Aggregate, Move(), std::forward<SRString>(message));
 }
 
 } // namespace ProbQA

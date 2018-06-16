@@ -128,6 +128,8 @@ public:
 
   AggregateErrorParams* Move();
 
+  PqaError ToError(SRPlat::SRString &&message = SRPlat::SRString());
+
   virtual SRPlat::SRString ToString() override final;
 };
 
@@ -208,6 +210,16 @@ public:
   explicit QuizzesActiveErrorParams(const TPqaId nQuizzes) : _nQuizzes(nQuizzes) { }
   virtual SRPlat::SRString ToString() override final {
     return SRPlat::SRMessageBuilder("nQuizzes=[")(_nQuizzes)("]").GetOwnedSRString();
+  }
+};
+
+class PQACORE_API WrongRuntimeTypeErrorParams : public IPqaErrorParams {
+  SRPlat::SRString _typeName;
+public:
+  explicit WrongRuntimeTypeErrorParams(const char* const typeName)
+    : _typeName(SRPlat::SRString::MakeClone(typeName)) { }
+  virtual SRPlat::SRString ToString() override final {
+    return SRPlat::SRMessageBuilder("typeName=[")(_typeName)("]").GetOwnedSRString();
   }
 };
 

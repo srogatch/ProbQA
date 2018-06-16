@@ -199,6 +199,7 @@
     <ClInclude Include="BaseCpuEngine.h" />
     <ClInclude Include="BaseCudaEngine.h" />
     <ClInclude Include="BaseEngine.h" />
+    <ClInclude Include="BaseQuiz.h" />
     <ClInclude Include="CEBaseTask.decl.h" />
     <ClInclude Include="CEBaseTask.fwd.h" />
     <ClInclude Include="CEBaseTask.h" />
@@ -274,6 +275,7 @@
     <ClCompile Include="BaseCpuEngine.cpp" />
     <ClCompile Include="BaseCudaEngine.cpp" />
     <ClCompile Include="BaseEngine.cpp" />
+    <ClCompile Include="BaseQuiz.cpp" />
     <ClCompile Include="CECreateQuizOperation.cpp" />
     <ClCompile Include="CEEvalQsSubtaskConsider.cpp" />
     <ClCompile Include="CEHeapifyPriorsSubtaskMake.cpp" />

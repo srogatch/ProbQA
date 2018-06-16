@@ -25,10 +25,6 @@ protected: // methods
 
 public: // methods
   TExponent* GetTlhExps() const { return _pTlhExps; }
-  std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
-  const std::vector<AnsweredQuestion>& GetAnswers() const { return _answers; }
-  void SetActiveQuestion(TPqaId iQuestion) { _activeQuestion = iQuestion; }
-  TPqaId GetActiveQuestion() const { return _activeQuestion; }
 };
 
 template<typename taNumber> class CEQuiz : public CEBaseQuiz {
@@ -38,10 +34,10 @@ template<typename taNumber> class CEQuiz : public CEBaseQuiz {
 
 public: // methods
   explicit CEQuiz(CpuEngine<taNumber> *pEngine);
-  ~CEQuiz() override;
+  ~CEQuiz() override final;
   taNumber* GetPriorMants() const { return _pPriorMants; }
   CpuEngine<taNumber>* GetEngine() const;
-  inline PqaError RecordAnswer(const TPqaId iAnswer);
+  PqaError RecordAnswer(const TPqaId iAnswer) override final;
 };
 
 } // namespace ProbQA

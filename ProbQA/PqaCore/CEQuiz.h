@@ -15,19 +15,16 @@ namespace ProbQA {
 
 //////////////////////////////// CEBaseQuiz implementation /////////////////////////////////////////////////////////////
 
-inline CEBaseQuiz::CEBaseQuiz(BaseCpuEngine *pEngine) : _pEngine(pEngine) {
+inline CEBaseQuiz::CEBaseQuiz(BaseCpuEngine *pEngine) : BaseQuiz(pEngine) {
   using namespace SRPlat;
   const EngineDimensions& dims = _pEngine->GetDims();
-  const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
 
   SRMemTotal mtCommon;
-  SRMemItem<__m256i> miIsQAsked(SRPlat::SRSimd::VectsFromBits(nQuestions), SRPlat::SRMemPadding::Both, mtCommon);
   SRMemItem<TExponent> miExponents(nTargets, SRPlat::SRMemPadding::Both, mtCommon);
   // First allocate all the memory so to revert if anything fails.
   SRSmartMPP<uint8_t> commonBuf(_pEngine->GetMemPool(), mtCommon._nBytes);
   // Must be the first memory block, because it's used for releasing the memory
-  _isQAsked = miIsQAsked.Ptr(commonBuf);
   _pTlhExps = miExponents.Ptr(commonBuf);
   // As all the memory is allocated, safely proceed with finishing construction of CEBaseQuiz object.
   commonBuf.Detach();
@@ -38,13 +35,11 @@ inline CEBaseQuiz::~CEBaseQuiz() {
   //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
   //  of targets and questions.
   const EngineDimensions& dims = _pEngine->GetDims();
-  const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
   const size_t nTargets = SRPlat::SRCast::ToSizeT(dims._nTargets);
 
   SRMemTotal mtCommon;
-  SRMemItem<__m256i> miIsQAsked(SRPlat::SRSimd::VectsFromBits(nQuestions), SRPlat::SRMemPadding::Both, mtCommon);
   SRMemItem<TExponent> miExponents(nTargets, SRPlat::SRMemPadding::Both, mtCommon);
-  _pEngine->GetMemPool().ReleaseMem(_isQAsked, mtCommon._nBytes);
+  _pEngine->GetMemPool().ReleaseMem(_pTlhExps, mtCommon._nBytes);
 }
 
 //////////////////////////////// CEQuiz implementation /////////////////////////////////////////////////////////////////

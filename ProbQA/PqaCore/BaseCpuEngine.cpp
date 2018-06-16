@@ -25,4 +25,9 @@ BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef, const size_t worker
   _pimTargets.GrowTo(_dims._nTargets);
 }
 
+PqaError BaseCpuEngine::ShutdownWorkers() {
+  _tpWorkers.RequestShutdown();
+  return PqaError();
+}
+
 } // namespace ProbQA

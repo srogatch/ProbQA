@@ -270,6 +270,9 @@
     <ClInclude Include="BaseEngine.h">
       <Filter>Header Files\Base Engine</Filter>
     </ClInclude>
+    <ClInclude Include="BaseQuiz.h">
+      <Filter>Header Files\Base Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -351,6 +354,9 @@
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
     <ClCompile Include="BaseEngine.cpp">
+      <Filter>Source Files\Base Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseQuiz.cpp">
       <Filter>Source Files\Base Engine</Filter>
     </ClCompile>
   </ItemGroup>

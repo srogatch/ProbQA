@@ -25,8 +25,9 @@ protected: // variables
 
 protected: // methods
   static SRPlat::SRThreadCount CalcMemOpThreads();
-
   explicit BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize, KBFileInfo *pKbFi);
+
+  PqaError ShutdownWorkers() override final;
 
 public: // Internal interface methods
   SRPlat::SRThreadPool& GetWorkers() { return _tpWorkers; }
