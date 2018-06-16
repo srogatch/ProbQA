@@ -31,6 +31,18 @@
     <Filter Include="Header Files\CPU Engine\Subtasks">
       <UniqueIdentifier>{a1afe85d-aa58-4374-9aa6-57086103d035}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\CUDA Engine">
+      <UniqueIdentifier>{3e126c56-291d-496f-b3ab-ad0da68be00e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\CUDA Engine">
+      <UniqueIdentifier>{e9f33861-fa1b-40d1-9247-0e173235b08e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Base Engine">
+      <UniqueIdentifier>{2a76ab7c-c354-4f4e-8404-55327178dd36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Base Engine">
+      <UniqueIdentifier>{76b66636-8cb3-4c54-9a99-acf136b484f3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -249,6 +261,15 @@
     <ClInclude Include="Interface\PqaCInterop.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="CudaEngineFloat.h">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseCudaEngine.h">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseEngine.h">
+      <Filter>Header Files\Base Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -325,6 +346,12 @@
     </ClCompile>
     <ClCompile Include="PqaCInterop.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseCudaEngine.cpp">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseEngine.cpp">
+      <Filter>Source Files\Base Engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

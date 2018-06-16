@@ -197,6 +197,8 @@
     <ClInclude Include="BaseCpuEngine.fwd.h" />
     <ClInclude Include="BaseCpuEngine.decl.h" />
     <ClInclude Include="BaseCpuEngine.h" />
+    <ClInclude Include="BaseCudaEngine.h" />
+    <ClInclude Include="BaseEngine.h" />
     <ClInclude Include="CEBaseTask.decl.h" />
     <ClInclude Include="CEBaseTask.fwd.h" />
     <ClInclude Include="CEBaseTask.h" />
@@ -244,6 +246,7 @@
     <ClInclude Include="CpuEngine.decl.h" />
     <ClInclude Include="CpuEngine.fwd.h" />
     <ClInclude Include="CpuEngine.h" />
+    <ClInclude Include="CudaEngineFloat.h" />
     <ClInclude Include="GapTracker.h" />
     <ClInclude Include="Interface\IPqaEngine.h" />
     <ClInclude Include="Interface\IPqaEngineFactory.h" />
@@ -269,6 +272,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BaseCpuEngine.cpp" />
+    <ClCompile Include="BaseCudaEngine.cpp" />
+    <ClCompile Include="BaseEngine.cpp" />
     <ClCompile Include="CECreateQuizOperation.cpp" />
     <ClCompile Include="CEEvalQsSubtaskConsider.cpp" />
     <ClCompile Include="CEHeapifyPriorsSubtaskMake.cpp" />
