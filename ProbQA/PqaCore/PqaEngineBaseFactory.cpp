@@ -36,51 +36,52 @@ IPqaEngine* PqaEngineBaseFactory::MakeCpuEngine(PqaError& err, const EngineDefin
 }
 
 IPqaEngine* PqaEngineBaseFactory::CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) {
-  if (engDef._dims._nAnswers < _cMinAnswers || engDef._dims._nQuestions < _cMinQuestions
-    || engDef._dims._nTargets < _cMinTargets)
-  {
-    err = PqaError(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
-      engDef._dims._nAnswers, _cMinAnswers, engDef._dims._nQuestions, _cMinQuestions, engDef._dims._nTargets,
-      _cMinTargets));
+  err = CheckDimensions(engDef);
+  if (!err.IsOk()) {
     return nullptr;
   }
   return MakeCpuEngine(err, engDef, nullptr);
 }
 
 IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const filePath, size_t memPoolMaxBytes) {
-  if (filePath == nullptr) {
-    err = PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of KB file name."));
+  SRSmartFile sf;
+  EngineDefinition engDef;
+  err = LoadEngineDefinition(sf, filePath, engDef);
+  if (!err.IsOk()) {
     return nullptr;
   }
-  SRSmartFile sf(std::fopen(filePath, "rb"));
+  engDef._memPoolMaxBytes = memPoolMaxBytes;
+  KBFileInfo kbFi(sf, filePath);
+  return MakeCpuEngine(err, engDef, &kbFi);
+}
+
+PqaError PqaEngineBaseFactory::LoadEngineDefinition(SRSmartFile &sf, const char* const filePath,
+  EngineDefinition& engDef)
+{
+  if (filePath == nullptr) {
+    return PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "Nullptr is passed in place of KB file name."));
+  }
+  sf.Set(std::fopen(filePath, "rb"));
   if (sf.Get() == nullptr) {
-    err = PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(filePath), SRString::MakeUnowned(
+    return PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(filePath), SRString::MakeUnowned(
       SR_FILE_LINE "Can't open the KB file to read."));
-    return nullptr;
   }
   if (std::setvbuf(sf.Get(), nullptr, _IOFBF, BaseCpuEngine::_cFileBufSize) != 0) {
-    err = PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRMessageBuilder(SR_FILE_LINE
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRMessageBuilder(SR_FILE_LINE
       "Can't set file buffer size to ")(BaseCpuEngine::_cFileBufSize).GetOwnedSRString());
-    return nullptr;
   }
 
-  EngineDefinition engDef;
-  engDef._memPoolMaxBytes = memPoolMaxBytes;
   if (std::fread(&engDef._prec, sizeof(engDef._prec), 1, sf.Get()) != 1) {
-    err = PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
       "Can't read precision definition header."));
-    return nullptr;
   }
 
   if (std::fread(&engDef._dims, sizeof(engDef._dims), 1, sf.Get()) != 1) {
-    err = PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
       "Can't read engine dimensions header."));
-    return nullptr;
   }
-
-  KBFileInfo kbFi(sf, filePath);
-  return MakeCpuEngine(err, engDef, &kbFi);
+  return PqaError();
 }
 
 IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDefinition& engDef) {
@@ -102,9 +103,44 @@ PqaError PqaEngineBaseFactory::SetCudaDevice(int iDevice, const bool bFirstInPro
 IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef)
 {
   if (!_cudaInitialized.load(std::memory_order_acquire)) {
-    //TODO: report error
+    err = PqaError(PqaErrorCode::NotInitialized, nullptr, SRString::MakeUnowned(
+      SR_FILE_LINE "CUDA has not been initialized before creating a CUDA engine."));
+    return nullptr;
   }
-  (void)engDef; //TODO: remove when implemented
+  err = CheckDimensions(engDef);
+  if (!err.IsOk()) {
+    return nullptr;
+  }
+  return MakeCudaEngine(err, engDef, nullptr);
+}
+
+IPqaEngine* PqaEngineBaseFactory::LoadCudaEngine(PqaError& err, const char* const filePath, size_t memPoolMaxBytes) {
+  SRSmartFile sf;
+  EngineDefinition engDef;
+  err = LoadEngineDefinition(sf, filePath, engDef);
+  if (!err.IsOk()) {
+    return nullptr;
+  }
+  engDef._memPoolMaxBytes = memPoolMaxBytes;
+  KBFileInfo kbFi(sf, filePath);
+  return MakeCudaEngine(err, engDef, &kbFi);
+}
+
+PqaError PqaEngineBaseFactory::CheckDimensions(const EngineDefinition& engDef) {
+  if (engDef._dims._nAnswers < _cMinAnswers || engDef._dims._nQuestions < _cMinQuestions
+    || engDef._dims._nTargets < _cMinTargets)
+  {
+    return PqaError(PqaErrorCode::InsufficientEngineDimensions, new InsufficientEngineDimensionsErrorParams(
+      engDef._dims._nAnswers, _cMinAnswers, engDef._dims._nQuestions, _cMinQuestions, engDef._dims._nTargets,
+      _cMinTargets));
+  }
+  return PqaError();
+}
+
+IPqaEngine* PqaEngineBaseFactory::MakeCudaEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi) {
+  //TODO: remove when implemented
+  (void)pKbFi;
+  (void)engDef;
   //TODO: implement
   err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
     "ProbQA Engine on CUDA.")));

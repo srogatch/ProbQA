@@ -35,7 +35,8 @@ enum class PqaErrorCode : int64_t {
   FileOp = 20, // FileOpErrorParams
   QuizzesActive = 21, // QuizzesActiveErrorParams
   NullArgument = 22, // No error params (yet?)
-  WrongRuntimeType = 23 // WrongRuntimeTypeErrorParams
+  WrongRuntimeType = 23, // WrongRuntimeTypeErrorParams
+  NotInitialized = 24 // No error params
 };
 // Don't forget to update SRPlat::SRString ToSRString(const PqaErrorCode pec)
 

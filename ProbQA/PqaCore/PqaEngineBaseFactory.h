@@ -21,6 +21,9 @@ private: // variables
 
 private: // methods
   IPqaEngine* MakeCpuEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi);
+  IPqaEngine* MakeCudaEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi);
+  PqaError CheckDimensions(const EngineDefinition& engDef);
+  PqaError LoadEngineDefinition(SRPlat::SRSmartFile &sf, const char* const filePath, EngineDefinition& engDef);
 
 public: // methods
   IPqaEngine* CreateCpuEngine(PqaError& err, const EngineDefinition& engDef) override final;
@@ -29,6 +32,8 @@ public: // methods
 
   PqaError SetCudaDevice(int iDevice, const bool bFirstInProcess) override final;
   IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) override final;
+  IPqaEngine* LoadCudaEngine(PqaError& err, const char* const filePath,
+    size_t memPoolMaxBytes = EngineDefinition::_cDefaultMemPoolMaxBytes) override final;
 
   IPqaEngine* CreateGridEngine(PqaError& err, const EngineDefinition& engDef) override final;
 };

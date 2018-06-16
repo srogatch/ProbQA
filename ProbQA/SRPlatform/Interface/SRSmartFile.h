@@ -12,11 +12,17 @@ namespace SRPlat {
 class SRSmartFile {
   FILE *_fp;
 public:
-  // SRSmartFile() : _fp(nullptr) { }
+  SRSmartFile() : _fp(nullptr) { }
 
   explicit SRSmartFile(FILE *fp) : _fp(fp) { }
 
   FILE* Get() { return _fp; }
+
+  bool Set(FILE *fp) {
+    const bool bRet = EarlyClose();
+    _fp = fp;
+    return bRet;
+  }
 
   ~SRSmartFile() {
     if (_fp != nullptr) {
@@ -31,7 +37,7 @@ public:
 
   bool EarlyClose() {
     if (_fp == nullptr) {
-      return false;
+      return true; // no error
     }
     const bool ans = (std::fclose(_fp) == 0);
     _fp = nullptr;
