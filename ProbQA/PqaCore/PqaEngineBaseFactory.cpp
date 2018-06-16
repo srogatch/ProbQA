@@ -9,8 +9,11 @@
 #include "../PqaCore/ErrorHelper.h"
 
 using namespace SRPlat;
+using namespace PqaCuda;
 
 namespace ProbQA {
+
+std::atomic<bool> PqaEngineBaseFactory::_cudaInitialized = false;
 
 IPqaEngine* PqaEngineBaseFactory::MakeCpuEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi) {
   try {
@@ -80,14 +83,6 @@ IPqaEngine* PqaEngineBaseFactory::LoadCpuEngine(PqaError& err, const char* const
   return MakeCpuEngine(err, engDef, &kbFi);
 }
 
-IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) {
-  (void)engDef; //TODO: remove when implemented
-  //TODO: implement
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
-    "ProbQA Engine on CUDA.")));
-  return nullptr;
-}
-
 IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDefinition& engDef) {
   (void)engDef; //TODO: remove when implemented
   //TODO: implement
@@ -96,7 +91,24 @@ IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDe
   return nullptr;
 }
 
-PqaError PqaEngineBaseFactory::SetCudaDevice(int iDevice) {
+PqaError PqaEngineBaseFactory::SetCudaDevice(int iDevice, const bool bFirstInProcess) {
+  try {
+    CudaMain::SetDevice(iDevice, bFirstInProcess);
+    _cudaInitialized.store(true, std::memory_order_release);
+  }
+  CATCH_TO_ERR_RETURN;
+}
+
+IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef)
+{
+  if (!_cudaInitialized.load(std::memory_order_acquire)) {
+    //TODO: report error
+  }
+  (void)engDef; //TODO: remove when implemented
+  //TODO: implement
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "ProbQA Engine on CUDA.")));
+  return nullptr;
 }
 
 } // namespace ProbQA

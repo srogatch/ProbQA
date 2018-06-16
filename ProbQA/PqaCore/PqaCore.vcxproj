@@ -320,6 +320,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PqaCuda\PqaCuda.vcxproj">
+      <Project>{75060d21-a023-4147-9ce6-03d8c82465d2}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\SRPlatform\SRPlatform.vcxproj">
       <Project>{66ebbc7d-97c5-4a7e-84d8-623da032f3d3}</Project>
     </ProjectReference>

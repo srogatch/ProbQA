@@ -74,3 +74,6 @@
 #include "../SRPlatform/Interface/SRThreadPool.h"
 #include "../SRPlatform/Interface/SRUtils.h"
 #include "../SRPlatform/Interface/SRVectMath.h"
+
+// PqaCuda library includes
+#include "../PqaCuda/CudaMain.h"

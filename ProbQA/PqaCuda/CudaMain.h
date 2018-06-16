@@ -7,12 +7,10 @@
 #include "../PqaCuda/PqaCuda.h"
 
 namespace PqaCuda {
-  class PQACUDA_API CudaError {
-    int64_t _code;
-    SRPlat::SRString _message;
 
-  public:
-    explicit CudaError(int64_t code, SRPlat::SRString&& message) : _code(code),
-      _message(std::forward<SRPlat::SRString>(message)) { }
-  };
-}
+class PQACUDA_API CudaMain {
+public:
+  static void SetDevice(const int iDevice, const bool bFirstInProcess);
+};
+
+} // namespace PqaCuda

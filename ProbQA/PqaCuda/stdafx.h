@@ -34,6 +34,9 @@
 #include <vector>
 #pragma warning( pop )
 
+// CUDA
+#include <cuda_runtime.h>
+
 // SRPlatform library includes
 #include "../SRPlatform/Interface/ISRLogger.h"
 #include "../SRPlatform/Interface/SRAccumulator.h"

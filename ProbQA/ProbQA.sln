@@ -27,6 +27,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProbQANetCore", "ProbQANetC
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PqaCuda", "PqaCuda\PqaCuda.vcxproj", "{75060D21-A023-4147-9CE6-03D8C82465D2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{66EBBC7D-97C5-4A7E-84D8-623DA032F3D3} = {66EBBC7D-97C5-4A7E-84D8-623DA032F3D3}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
