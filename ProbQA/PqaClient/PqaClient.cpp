@@ -81,9 +81,8 @@ int LearnBinarySearch(const char* const initKbFp) {
   SRFastRandom fr;
   SREntropyAdapter ea(fr);
 
-  constexpr int64_t cnTrainings = 1000 * 1000;
-  constexpr int64_t cMaxQuizLen = 100;
-  constexpr int64_t cMaxTrialLen = 30;
+  constexpr int64_t cnTrainings = 4 * 1000 * 1000;
+  constexpr int64_t cMaxQuizLen = 25;
   constexpr int64_t cnTopRated = 1;
 
   int64_t nCorrect = 0;
@@ -96,13 +95,13 @@ int LearnBinarySearch(const char* const initKbFp) {
     return int(SRExitCode::UnspecifiedError);
   }
   for (int64_t i = 0; i < cnTrainings; i++) {
-    if (((i & 255) == 0) && (i != 0)) {
+    if (((i & 1023) == 0) && (i != 0)) {
       const uint64_t totQAsked = pEngine->GetTotalQuestionsAsked(err);
       if (!err.IsOk()) {
         fprintf(stderr, SR_FILE_LINE "Failed to query the total number of questions asked.\n");
         return int(SRExitCode::UnspecifiedError);
       }
-      const double precision = nCorrect * 100.0 / 256;
+      const double precision = nCorrect * 100.0 / 1024;
       const double elapsedSec = double(GetPerfCnt() - pcStart) / gPerfCntFreq;
       printf("\n*%" PRIu64 ";%.2lf%%*", totQAsked, precision);
       fprintf(fpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\t%lf\t%lf\t%lf\n", i, totQAsked, precision,
