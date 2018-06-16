@@ -16,8 +16,8 @@ SRThreadCount BaseCpuEngine::CalcMemOpThreads() {
   return std::max(1ui32, std::min(std::thread::hardware_concurrency(), 5ui32));
 }
 
-BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize)
-  : BaseEngine(engDef),
+BaseCpuEngine::BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize, KBFileInfo *pKbFi)
+  : BaseEngine(engDef, pKbFi),
   _tpWorkers(std::thread::hardware_concurrency(), workerStackSize), _nMemOpThreads(CalcMemOpThreads()),
   _nLooseWorkers(std::max<SRThreadCount>(1, std::thread::hardware_concurrency()-1))
 {

@@ -32,16 +32,8 @@ template<typename taNumber> size_t CpuEngine<taNumber>::CalcWorkerStackSize(cons
 }
 
 template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi)
-  : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef._dims))
+  : BaseCpuEngine(engDef, CalcWorkerStackSize(engDef._dims), pKbFi)
 {
-  if (pKbFi != nullptr) {
-    uint64_t nQuestionsAsked;
-    if (std::fread(&nQuestionsAsked, sizeof(nQuestionsAsked), 1, pKbFi->_sf.Get()) != 1) {
-      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-        "Can't read the number of questions asked.")).ThrowMoving();
-    }
-    _nQuestionsAsked.store(nQuestionsAsked, std::memory_order_release);
-  }
   const size_t nQuestions = SRCast::ToSizeT(_dims._nQuestions);
   const size_t nAnswers = SRCast::ToSizeT(_dims._nAnswers);
   const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
@@ -101,23 +93,7 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
   _targetGaps.GrowTo(nTargets);
 
   if (pKbFi != nullptr) {
-    if (!ReadGaps(_questionGaps, *pKbFi)) {
-      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-        "Can't read the question gaps.")).ThrowMoving();
-    }
-    if (!ReadGaps(_targetGaps, *pKbFi)) {
-      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-        "Can't read the target gaps.")).ThrowMoving();
-    }
-
-    if (!_pimQuestions.Load(pKbFi->_sf.Get())) {
-      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-        "Can't read the question permanent-compact ID mapping.")).ThrowMoving();
-    }
-    if (!_pimTargets.Load(pKbFi->_sf.Get())) {
-      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-        "Can't read the target permanent-compact ID mapping.")).ThrowMoving();
-    }
+    LoadKBTail(pKbFi);
   }
 }
 
@@ -126,14 +102,6 @@ template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {
   if (!pqaErr.IsOk() && pqaErr.GetCode() != PqaErrorCode::ObjectShutDown) {
     CELOG(Error) << "Failed CpuEngine::Shutdown(): " << pqaErr.ToString(true);
   }
-}
-
-template<typename taNumber> PqaError CpuEngine<taNumber>::SetLogger(ISRLogger *pLogger) {
-  if (pLogger == nullptr) {
-    pLogger = SRDefaultLogger::Get();
-  }
-  _pLogger.store(pLogger, std::memory_order_release);
-  return PqaError();
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* const saveFilePath) {
@@ -189,18 +157,9 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Shutdown(const char* c
   return err;
 }
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TPqaId nQuestions,
+template<typename taNumber> PqaError CpuEngine<taNumber>::TrainSpec(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
-  if (nQuestions < 0) {
-    return PqaError(PqaErrorCode::NegativeCount, new NegativeCountErrorParams(nQuestions), SRString::MakeUnowned(
-      "|nQuestions| must be non-negative."));
-  }
-  if (amount <= 0) {
-    return PqaError(PqaErrorCode::NonPositiveAmount, new NonPositiveAmountErrorParams(amount), SRString::MakeUnowned(
-      SR_FILE_LINE "|amount| must be positive."));
-  }
-
   PqaError resErr;
   const SRThreadCount nWorkers = _tpWorkers.GetWorkerCount();
   //// Do a single allocation for all needs. Allocate memory out of locks.
@@ -279,15 +238,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::TrainInternal(const TP
   }
 
   return PqaError();
-}
-
-template<typename taNumber> PqaError CpuEngine<taNumber>::Train(const TPqaId nQuestions,
-  const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
-{
-  try {
-    return TrainInternal(nQuestions, pAQs, iTarget, amount);
-  }
-  CATCH_TO_ERR_RETURN;
 }
 
 template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECreateQuizOpBase &op) {
@@ -559,7 +509,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::NextQuestion(PqaError& e
 
   // If the selected question is in a gap or already answered, try to select the neighboring questions
   if (_questionGaps.IsGap(selQuestion) || SRBitHelper::Test(pQuiz->GetQAsked(), selQuestion)) {
-    selQuestion = FindNearestQuestion(selQuestion, *pQuiz);
+    selQuestion = FindNearestQuestion(selQuestion, pQuiz->GetQAsked());
   }
   if (selQuestion == cInvalidPqaId) {
     err = PqaError(PqaErrorCode::QuestionsExhausted, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Found no unasked"
@@ -753,84 +703,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::ReleaseQuiz(const TPqa
   return PqaError();
 }
 
-template<typename taNumber> PqaError CpuEngine<taNumber>::LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer)
-{
-  const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
-
-  size_t bufSize;
-  if (bDoubleBuffer) {
-    bufSize = /* reserve */ SRSimd::_cNBytes + sizeof(_precDef) + sizeof(_dims)
-      + sizeof(decltype(_nQuestionsAsked)::value_type)
-      + sizeof(taNumber) * nTargets * (_dims._nQuestions * _dims._nAnswers + _dims._nQuestions + 1);
-  }
-  else {
-    bufSize = _cFileBufSize;
-  }
-  if (std::setvbuf(kbfi._sf.Get(), nullptr, _IOFBF, bufSize) != 0) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRMessageBuilder(SR_FILE_LINE
-      "Can't set file buffer size to ")(bufSize).GetOwnedSRString());
-  }
-
-  // Can be out of locks so long that the member variable is const
-  if (std::fwrite(&_precDef, sizeof(_precDef), 1, kbfi._sf.Get()) != 1) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write precision definition header."));
-  }
-
-  if (std::fwrite(&_dims, sizeof(_dims), 1, kbfi._sf.Get()) != 1) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write engine dimensions header."));
-  }
-
-  const uint64_t nQuestionsAsked = _nQuestionsAsked.load(std::memory_order_acquire);
-  if (std::fwrite(&nQuestionsAsked, sizeof(nQuestionsAsked), 1, kbfi._sf.Get()) != 1) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write the number of questions asked."));
-  }
-
-  TargetRowPersistence<taNumber> trp(kbfi._sf, nTargets);
-  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
-    for (TPqaId k = 0; k < _dims._nAnswers; k++) {
-      if (!trp.Write(_sA[i][k])) {
-        return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRMessageBuilder(SR_FILE_LINE
-          "Can't write the target dimension of _sA weights at [")(i)(", ")(k)("].").GetOwnedSRString());
-      }
-    }
-  }
-
-  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
-    if (!trp.Write(_mD[i])) {
-      return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRMessageBuilder(SR_FILE_LINE
-        "Can't write the target dimension of _mD weights at [")(i)("].").GetOwnedSRString());
-    }
-  }
-
-  if (!trp.Write(_vB)) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write the _vB weights."));
-  }
-
-  if (!WriteGaps(_questionGaps, kbfi)) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write the question gaps."));
-  }
-  if (!WriteGaps(_targetGaps, kbfi)) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write the target gaps."));
-  }
-
-  if (!_pimQuestions.Save(kbfi._sf.Get())) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write the question permanent-compact ID mappings."));
-  }
-  if (!_pimTargets.Save(kbfi._sf.Get())) {
-    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't write the target permanent-compact ID mappings."));
-  }
-
-  return PqaError();
-}
-
 template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* const filePath, const bool bDoubleBuffer) {
   SRSmartFile sf(std::fopen(filePath, "wb"));
   if (sf.Get() == nullptr) {
@@ -858,11 +730,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::SaveKB(const char* con
   }
 
   return PqaError();
-}
-
-template<typename taNumber> uint64_t CpuEngine<taNumber>::GetTotalQuestionsAsked(PqaError& err) {
-  err.Release();
-  return _nQuestionsAsked.load(std::memory_order_relaxed);
 }
 
 template<typename taNumber> PqaError CpuEngine<taNumber>::StartMaintenance(const bool forceQuizes) {
@@ -1173,6 +1040,36 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::Compact(CompactionResu
   _targetGaps.Compact(cr._nTargets);
   _dims._nTargets = cr._nTargets;
   _pimTargets.OnCompact(cr._nTargets, cr._pOldTargets);
+
+  return PqaError();
+}
+
+template<typename taNumber> size_t CpuEngine<taNumber>::DataSize() {
+  return sizeof(taNumber);
+}
+
+template<typename taNumber> PqaError CpuEngine<taNumber>::SaveStatistics(KBFileInfo &kbfi) {
+  TargetRowPersistence<taNumber> trp(kbfi._sf, nTargets);
+  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
+    for (TPqaId k = 0; k < _dims._nAnswers; k++) {
+      if (!trp.Write(_sA[i][k])) {
+        return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRMessageBuilder(SR_FILE_LINE
+          "Can't write the target dimension of _sA weights at [")(i)(", ")(k)("].").GetOwnedSRString());
+      }
+    }
+  }
+
+  for (TPqaId i = 0; i < _dims._nQuestions; i++) {
+    if (!trp.Write(_mD[i])) {
+      return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRMessageBuilder(SR_FILE_LINE
+        "Can't write the target dimension of _mD weights at [")(i)("].").GetOwnedSRString());
+    }
+  }
+
+  if (!trp.Write(_vB)) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the _vB weights."));
+  }
 
   return PqaError();
 }

@@ -54,7 +54,11 @@ private: // methods
 
   CEQuiz<taNumber>* UseQuiz(PqaError& err, const TPqaId iQuiz);
 
-  PqaError LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer);
+protected: // Specific methods for this kind of engine
+  PqaError TrainSpec(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
+    const TPqaAmount amount) override final;
+  size_t NumberSize() override final;
+  PqaError SaveStatistics(KBFileInfo &kbfi) override final;
 
 public: // Internal interface methods
 
@@ -74,9 +78,6 @@ public: // Client interface methods
   explicit CpuEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
   virtual ~CpuEngine() override final;
 
-  virtual PqaError Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
-    const TPqaAmount amount = 1) override final;
-
   virtual TPqaId StartQuiz(PqaError& err) override final;
   virtual TPqaId ResumeQuiz(PqaError& err, const TPqaId nAnswered, const AnsweredQuestion* const pAQs) override final;
   virtual TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) override final;
@@ -90,7 +91,6 @@ public: // Client interface methods
 
 
   virtual PqaError SaveKB(const char* const filePath, const bool bDoubleBuffer) override final;
-  virtual uint64_t GetTotalQuestionsAsked(PqaError& err) override final;
 
   virtual PqaError StartMaintenance(const bool forceQuizes) override final;
   virtual PqaError FinishMaintenance() override final;
@@ -104,7 +104,6 @@ public: // Client interface methods
   virtual PqaError Compact(CompactionResult &cr) override final;
 
   virtual PqaError Shutdown(const char* const saveFilePath = nullptr) override final;
-  virtual PqaError SetLogger(SRPlat::ISRLogger *pLogger) override final;
 };
 
 } // namespace ProbQA

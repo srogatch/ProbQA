@@ -16,6 +16,7 @@ namespace ProbQA {
 class BaseEngine : public IPqaEngine {
 public: // constants
   static constexpr size_t _cMemPoolMaxSimds = size_t(1) << 10;
+  static constexpr size_t _cFileBufSize = size_t(1024) * 1024;
 
 public: // types
   typedef SRPlat::SRMemPool<SRPlat::SRSimd::_cLogNBits, _cMemPoolMaxSimds> TMemPool;
@@ -42,16 +43,25 @@ protected: // variables
   GapTracker<TPqaId> _questionGaps; // Guarded by _rws in maintenance mode. Read-only in regular mode.
   GapTracker<TPqaId> _targetGaps; // Guarded by _rws in maintenance mode. Read-only in regular mode.
 
-                                  //// Cache-insensitive data
+  //// Cache-insensitive data
   std::atomic<SRPlat::ISRLogger*> _pLogger;
 
 protected: // methods
-  explicit BaseEngine(const EngineDefinition& engDef);
+  explicit BaseEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
 
   TPqaId FindNearestQuestion(const TPqaId iMiddle, const __m256i *pQAsked);
 
+  void LoadKBTail(KBFileInfo *pKbFi);
   bool ReadGaps(GapTracker<TPqaId> &gt, KBFileInfo &kbfi);
   bool WriteGaps(const GapTracker<TPqaId> &gt, KBFileInfo &kbfi);
+
+  PqaError LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer);
+
+protected: // Specific methods for this engine
+  virtual PqaError TrainSpec(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
+    const TPqaAmount amount) = 0;
+  virtual size_t NumberSize() = 0;
+  virtual PqaError SaveStatistics(KBFileInfo &kbfi) = 0;
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() const { return _pLogger.load(std::memory_order_relaxed); }

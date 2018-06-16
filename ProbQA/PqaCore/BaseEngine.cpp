@@ -4,16 +4,45 @@
 
 #include "stdafx.h"
 #include "../PqaCore/BaseEngine.h"
+#include "../PqaCore/ErrorHelper.h"
+#include "../PqaCore/PqaException.h"
 
 using namespace SRPlat;
 
 namespace ProbQA {
 
-BaseEngine::BaseEngine(const EngineDefinition& engDef) : _dims(engDef._dims), _precDef(engDef._prec),
-  _maintSwitch(MaintenanceSwitch::Mode::Regular), _pLogger(SRDefaultLogger::Get()),
+BaseEngine::BaseEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi) : _dims(engDef._dims),
+  _precDef(engDef._prec), _maintSwitch(MaintenanceSwitch::Mode::Regular), _pLogger(SRDefaultLogger::Get()),
   _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes))
 {
+  if (pKbFi != nullptr) {
+    uint64_t nQuestionsAsked;
+    if (std::fread(&nQuestionsAsked, sizeof(nQuestionsAsked), 1, pKbFi->_sf.Get()) != 1) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the number of questions asked.")).ThrowMoving();
+    }
+    _nQuestionsAsked.store(nQuestionsAsked, std::memory_order_release);
+  }
+}
 
+void BaseEngine::LoadKBTail(KBFileInfo *pKbFi) {
+  if (!ReadGaps(_questionGaps, *pKbFi)) {
+    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't read the question gaps.")).ThrowMoving();
+  }
+  if (!ReadGaps(_targetGaps, *pKbFi)) {
+    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't read the target gaps.")).ThrowMoving();
+  }
+
+  if (!_pimQuestions.Load(pKbFi->_sf.Get())) {
+    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't read the question permanent-compact ID mapping.")).ThrowMoving();
+  }
+  if (!_pimTargets.Load(pKbFi->_sf.Get())) {
+    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't read the target permanent-compact ID mapping.")).ThrowMoving();
+  }
 }
 
 TPqaId BaseEngine::FindNearestQuestion(const TPqaId iMiddle, const __m256i *pQAsked) {
@@ -154,6 +183,151 @@ EngineDimensions BaseEngine::CopyDims() const {
   //// Maintenance mode: dimensions may be modified concurrently
   SRRWLock<false> rwl(_rws);
   return _dims;
+}
+
+uint64_t BaseEngine::GetTotalQuestionsAsked(PqaError& err) {
+  err.Release();
+  return _nQuestionsAsked.load(std::memory_order_relaxed);
+}
+
+PqaError BaseEngine::Train(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
+  const TPqaAmount amount)
+{
+  try {
+    if (nQuestions < 0) {
+      return PqaError(PqaErrorCode::NegativeCount, new NegativeCountErrorParams(nQuestions), SRString::MakeUnowned(
+        "|nQuestions| must be non-negative."));
+    }
+    if (amount <= 0) {
+      return PqaError(PqaErrorCode::NonPositiveAmount, new NonPositiveAmountErrorParams(amount), SRString::MakeUnowned(
+        SR_FILE_LINE "|amount| must be positive."));
+    }
+    return TrainSpec(nQuestions, pAQs, iTarget, amount);
+  }
+  CATCH_TO_ERR_RETURN;
+}
+
+PqaError BaseEngine::SetLogger(ISRLogger *pLogger) {
+  if (pLogger == nullptr) {
+    pLogger = SRDefaultLogger::Get();
+  }
+  _pLogger.store(pLogger, std::memory_order_release);
+  return PqaError();
+}
+
+PqaError BaseEngine::Shutdown(const char* const saveFilePath) {
+  if (!_maintSwitch.Shutdown()) {
+    // Return an error saying that the engine seems already shut down.
+    SRMessageBuilder mbMsg("MaintenanceSwitch seems already shut down.");
+    if (saveFilePath != nullptr) {
+      mbMsg(" Not saving file: ")(saveFilePath);
+    }
+    return PqaError(PqaErrorCode::ObjectShutDown, new ObjectShutDownErrorParams(SRString::MakeUnowned(
+      "CpuEngine<taNumber>::Shutdown()")), mbMsg.GetOwnedSRString());
+  }
+  // By this moment, all operations must have shut down and no new operations can be started.
+
+  PqaError err;
+  if (saveFilePath != nullptr) do {
+    SRSmartFile sf(std::fopen(saveFilePath, "wb"));
+    if (sf.Get() == nullptr) {
+      err = PqaError(PqaErrorCode::CantOpenFile, new CantOpenFileErrorParams(saveFilePath), SRString::MakeUnowned(
+        SR_FILE_LINE "Can't open the file to write KB to."));
+      break;
+    }
+    KBFileInfo kbfi(sf, saveFilePath);
+    err = LockedSaveKB(kbfi, false);
+  } WHILE_FALSE;
+
+  //// Release quizzes
+  for (size_t i = 0; i < _quizzes.size(); i++) {
+    if (_quizGaps.IsGap(i)) {
+      continue;
+    }
+    SRCheckingRelease(_memPool, _quizzes[i]);
+  }
+  _quizzes.clear();
+  _quizGaps.Compact(0);
+  
+  //TODO: check the order - perhaps some releases should happen while the workers are still operational
+
+  //// Shutdown worker threads
+  _tpWorkers.RequestShutdown();
+
+  //// Release KB
+  _sA.clear();
+  _mD.clear();
+  _vB.Clear();
+  _questionGaps.Compact(0);
+  _targetGaps.Compact(0);
+  _dims._nAnswers = _dims._nQuestions = _dims._nTargets = 0;
+
+  //// Release memory pool
+  _memPool.FreeAllChunks();
+
+  return err;
+}
+
+
+PqaError BaseEngine::LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer)
+{
+  const size_t nTargets = SRCast::ToSizeT(_dims._nTargets);
+
+  size_t bufSize;
+  if (bDoubleBuffer) {
+    bufSize = /* reserve */ SRSimd::_cNBytes + sizeof(_precDef) + sizeof(_dims)
+      + sizeof(decltype(_nQuestionsAsked)::value_type)
+      + NumberSize() * nTargets * (_dims._nQuestions * _dims._nAnswers + _dims._nQuestions + 1);
+  }
+  else {
+    bufSize = _cFileBufSize;
+  }
+  if (std::setvbuf(kbfi._sf.Get(), nullptr, _IOFBF, bufSize) != 0) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRMessageBuilder(SR_FILE_LINE
+      "Can't set file buffer size to ")(bufSize).GetOwnedSRString());
+  }
+
+  // Can be out of locks so long that the member variable is const
+  if (std::fwrite(&_precDef, sizeof(_precDef), 1, kbfi._sf.Get()) != 1) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write precision definition header."));
+  }
+
+  if (std::fwrite(&_dims, sizeof(_dims), 1, kbfi._sf.Get()) != 1) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write engine dimensions header."));
+  }
+
+  const uint64_t nQuestionsAsked = _nQuestionsAsked.load(std::memory_order_acquire);
+  if (std::fwrite(&nQuestionsAsked, sizeof(nQuestionsAsked), 1, kbfi._sf.Get()) != 1) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the number of questions asked."));
+  }
+
+  PqaError err = SaveStatistics(kbfi);
+  if (!err.IsOk()) {
+    return err;
+  }
+
+  if (!WriteGaps(_questionGaps, kbfi)) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the question gaps."));
+  }
+  if (!WriteGaps(_targetGaps, kbfi)) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the target gaps."));
+  }
+
+  if (!_pimQuestions.Save(kbfi._sf.Get())) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the question permanent-compact ID mappings."));
+  }
+  if (!_pimTargets.Save(kbfi._sf.Get())) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the target permanent-compact ID mappings."));
+  }
+
+  return PqaError();
 }
 
 } // namespace ProbQA

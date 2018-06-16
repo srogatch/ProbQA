@@ -14,9 +14,6 @@
 namespace ProbQA {
 
 class BaseCpuEngine : public BaseEngine {
-public: // constants
-  static constexpr size_t _cFileBufSize = size_t(1024) * 1024;
-
 private:
   const SRPlat::SRThreadCount _nLooseWorkers;
   const SRPlat::SRThreadCount _nMemOpThreads;
@@ -29,7 +26,7 @@ protected: // variables
 protected: // methods
   static SRPlat::SRThreadCount CalcMemOpThreads();
 
-  explicit BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize);
+  explicit BaseCpuEngine(const EngineDefinition& engDef, const size_t workerStackSize, KBFileInfo *pKbFi);
 
 public: // Internal interface methods
   SRPlat::SRThreadPool& GetWorkers() { return _tpWorkers; }
