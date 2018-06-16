@@ -23,7 +23,15 @@ BaseQuiz::BaseQuiz(BaseEngine *pEngine) : _pEngine(pEngine) {
 }
 
 BaseQuiz::~BaseQuiz() {
+  using namespace SRPlat;
+  //NOTE: engine dimensions must not change during lifetime of the quiz because below we must provide the same number
+  //  of targets and questions.
+  const EngineDimensions& dims = _pEngine->GetDims();
+  const size_t nQuestions = SRPlat::SRCast::ToSizeT(dims._nQuestions);
 
+  SRMemTotal mtCommon;
+  SRMemItem<__m256i> miIsQAsked(SRPlat::SRSimd::VectsFromBits(nQuestions), SRPlat::SRMemPadding::Both, mtCommon);
+  _pEngine->GetMemPool().ReleaseMem(_isQAsked, mtCommon._nBytes);
 }
 
 } // namespace ProbQA
