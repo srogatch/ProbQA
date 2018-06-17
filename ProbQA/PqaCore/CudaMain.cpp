@@ -97,7 +97,7 @@ bool CudaMain::Initialize(const int iDevice) {
     //SRException(SRMessageBuilder(SR_FILE_LINE "CUDA device ")(iDevice)(" is already initialized.").GetOwnedSRString())
     //  .ThrowMoving();
   }
-  CUDA_MUST(cudaSetDevice(iDevice));
+  CudaDeviceLock cdl = SetDevice(iDevice);
   CUDA_MUST(cudaSetDeviceFlags(
     cudaDeviceScheduleYield // cudaDeviceScheduleBlockingSync //DEBUG
     | cudaDeviceMapHost
@@ -118,9 +118,9 @@ template<bool taTryOnly> CudaDeviceLock CudaMain::SetDeviceInternal(const int iD
         // We are holding the spin lock for a long time here, however, noone is expected to try to acquire it in the
         //  meantime because the reference counter is 0, so everyone has first to acquire critical section
         //  _csDeviceSwitch, which we are holding anyway
+        CUDA_MUST(cudaSetDevice(iDevice));
         gCdli._nRefs = 1;
         gCdli._iDevice = iDevice;
-        CUDA_MUST(cudaSetDevice(iDevice));
         break;
       }
       if (gCdli._iDevice == iDevice) {

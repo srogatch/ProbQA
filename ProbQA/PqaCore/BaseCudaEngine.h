@@ -9,6 +9,8 @@
 namespace ProbQA {
 
 class BaseCudaEngine : public BaseEngine {
+  int _iDevice; // for now, use only one device
+
 protected:
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
 };

@@ -35,7 +35,7 @@ class PQACORE_API CudaMain {
   friend struct CudaDeviceLockInfo;
 
 private: // variables
-  static SRPlat::SRCriticalSection _csInit;
+  static SRPlat::SRCriticalSection _csInit; // acquired before _csDeviceSwitch
   static SRPlat::SRCriticalSection _csDeviceSwitch;
   static SRPlat::SRConditionVariable _cvCanSwitchDevice;
 
@@ -43,7 +43,7 @@ private: // methods
   template<bool taTryOnly> static CudaDeviceLock SetDeviceInternal(const int iDevice);
 
 public:
-  // Initializes the device and sets it as current.
+  // Initializes the device and temporarily sets it as current.
   static bool Initialize(const int iDevice);
   static bool IsInitialized(const int iDevice);
   static CudaDeviceLock SetDevice(const int iDevice);
