@@ -32,8 +32,11 @@ template<typename taNumber> __global__ void InitStatistics(const InitStatisticsK
 template<typename taNumber> void InitStatisticsKernel<taNumber>::Run(const KernelLaunchContext& klc,
   cudaStream_t stream)
 {
-  const int64_t nBlocks = klc.GetBlockCount(_nSAItems);
+  const uint32_t nBlocks = klc.GetBlockCount(_nSAItems);
   InitStatistics<taNumber> <<<nBlocks, klc.GetBlockSize(), /* no shared memory */ 0, stream>>> (*this);
 }
+
+//// Instantinations
+template class InitStatisticsKernel<float>;
 
 } // namespace ProbQA

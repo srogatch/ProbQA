@@ -396,9 +396,6 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="kernel.cu">
-      <Filter>Source Files\CUDA Engine</Filter>
-    </CudaCompile>
     <CudaCompile Include="CudaEngineGpu.cu">
       <Filter>Source Files\CUDA Engine</Filter>
     </CudaCompile>

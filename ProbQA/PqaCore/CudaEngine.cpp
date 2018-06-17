@@ -39,6 +39,7 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
     isk._pvB = _vB.Get();
     CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
     isk.Run(GetKlc(), cuStr.Get());
+    CUDA_MUST(cudaGetLastError());
   } else { // load
     if (std::fread(_sA.Get(), sizeof(taNumber), nSAItems, pKbFi->_sf.Get()) != nSAItems) {
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
@@ -64,49 +65,70 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
 template<typename taNumber> PqaError CudaEngine<taNumber>::TrainSpec(const TPqaId nQuestions,
   const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
 {
-
+  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
 }
 
 template<typename taNumber> TPqaId CudaEngine<taNumber>::ResumeQuizSpec(PqaError& err, const TPqaId nAnswered,
   const AnsweredQuestion* const pAQs)
 {
-
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+  return cInvalidPqaId;
 }
 
 template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaError& err, BaseQuiz *pBaseQuiz) {
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+  return cInvalidPqaId;
 }
 
 template<typename taNumber> TPqaId CudaEngine<taNumber>::ListTopTargetsSpec(PqaError& err, BaseQuiz *pBaseQuiz,
   const TPqaId maxCount, RatedTarget *pDest)
 {
-
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+  return cInvalidPqaId;
 }
 
 template<typename taNumber> PqaError CudaEngine<taNumber>::RecordQuizTargetSpec(BaseQuiz *pBaseQuiz,
   const TPqaId iTarget, const TPqaAmount amount)
 {
+  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
 }
 
 template<typename taNumber> PqaError CudaEngine<taNumber>::AddQsTsSpec(const TPqaId nQuestions,
   AddQuestionParam *pAqps, const TPqaId nTargets, AddTargetParam *pAtps)
 {
+  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
 }
 
 template<typename taNumber> PqaError CudaEngine<taNumber>::CompactSpec(CompactionResult &cr) {
-
+  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
 }
 
 template<typename taNumber> PqaError CudaEngine<taNumber>::SaveStatistics(KBFileInfo &kbfi) {
-
+  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
 }
 
 template<typename taNumber> PqaError CudaEngine<taNumber>::DestroyQuiz(BaseQuiz *pQuiz) {
+  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
 }
 
 template<typename taNumber> PqaError CudaEngine<taNumber>::DestroyStatistics() {
+  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
 }
 
 template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err) {
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+  return cInvalidPqaId;
 }
 
 //// Instantiations

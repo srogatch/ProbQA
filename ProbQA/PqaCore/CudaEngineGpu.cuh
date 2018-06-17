@@ -7,13 +7,13 @@
 namespace ProbQA {
 
 struct KernelLaunchContext {
-  int32_t _maxBlocks;
+  uint32_t _maxBlocks;
   uint8_t _logBlockSize;
 
-  int32_t GetBlockCount(const int64_t nInstances) const {
-    return int32_t(std::min(((nInstances - 1) >> _logBlockSize) + 1, int64_t(_maxBlocks)));
+  uint32_t GetBlockCount(const int64_t nInstances) const {
+    return uint32_t(std::min(((nInstances - 1) >> _logBlockSize) + 1, int64_t(_maxBlocks)));
   }
-  int32_t GetBlockSize() const { return 1 << _logBlockSize; }
+  uint32_t GetBlockSize() const { return 1ui32 << _logBlockSize; }
 };
 
 template<typename taNumber> struct InitStatisticsKernel {
