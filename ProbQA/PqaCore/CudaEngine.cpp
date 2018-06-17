@@ -3,7 +3,7 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
-#include "../PqaCore/CudaEngineFloat.h"
+#include "../PqaCore/CudaEngine.h"
 #include "../PqaCore/PqaException.h"
 #include "../PqaCore/CudaStreamPool.h"
 
@@ -11,7 +11,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-CudaEngineFloat::CudaEngineFloat(const EngineDefinition& engDef, KBFileInfo *pKbFi) : BaseCudaEngine(engDef, pKbFi),
+template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi)
+  : BaseCudaEngine(engDef, pKbFi),
   _sA(size_t(engDef._dims._nQuestions) * engDef._dims._nAnswers * engDef._dims._nTargets),
   _mD(size_t(engDef._dims._nQuestions) * engDef._dims._nTargets),
   _vB(engDef._dims._nTargets)
@@ -27,10 +28,10 @@ CudaEngineFloat::CudaEngineFloat(const EngineDefinition& engDef, KBFileInfo *pKb
   CudaStream cuStr = _cspNb.Acquire();
   if (pKbFi == nullptr) { // init
     CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
-    InitStatisticsKernel<TNumber> isk;
-    isk._init1 = TNumber(engDef._initAmount);
-    isk._initSqr = TNumber(isk._init1 * isk._init1);
-    isk._initMD = TNumber(isk._initSqr * nAnswers);
+    InitStatisticsKernel<taNumber> isk;
+    isk._init1 = taNumber(engDef._initAmount);
+    isk._initSqr = taNumber(isk._init1 * isk._init1);
+    isk._initMD = taNumber(isk._initSqr * nAnswers);
     isk._nSAItems = nSAItems;
     isk._nMDItems = nMDItems;
     isk._nVBItems = nVBItems;

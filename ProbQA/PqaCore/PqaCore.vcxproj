@@ -173,7 +173,7 @@
     <ClInclude Include="CpuEngine.fwd.h" />
     <ClInclude Include="CpuEngine.h" />
     <ClInclude Include="CudaArray.h" />
-    <ClInclude Include="CudaEngineFloat.h" />
+    <ClInclude Include="CudaEngine.h" />
     <ClInclude Include="CudaEngineGpu.cuh" />
     <ClInclude Include="CudaException.h" />
     <ClInclude Include="CudaMacros.h" />
@@ -219,7 +219,7 @@
     <ClCompile Include="CETrainOperation.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp" />
-    <ClCompile Include="CudaEngineFloat.cpp" />
+    <ClCompile Include="CudaEngine.cpp" />
     <ClCompile Include="CudaException.cpp" />
     <ClCompile Include="CudaMain.cpp" />
     <ClCompile Include="CudaStreamPool.cpp" />

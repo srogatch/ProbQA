@@ -9,21 +9,18 @@
 
 namespace ProbQA {
 
-class CudaEngineFloat : public BaseCudaEngine {
-public: // types
-  typedef float TNumber;
-
+template<typename taNumber> class CudaEngine : public BaseCudaEngine {
 private: // variables
   //// N questions, K answers, M targets
   // space A: [iQuestion][iAnswer][iTarget] . Guarded by _rws
-  CudaArray<TNumber, true> _sA;
+  CudaArray<taNumber, true> _sA;
   // matrix D: [iQuestion][iTarget] . Guarded by _rws
-  CudaArray<TNumber, true> _mD;
+  CudaArray<taNumber, true> _mD;
   // vector B: [iTarget] . Guarded by _rws
-  CudaArray<TNumber, true> _vB;
+  CudaArray<taNumber, true> _vB;
 
 public: // methods
-  explicit CudaEngineFloat(const EngineDefinition& engDef, KBFileInfo *pKbFi);
+  explicit CudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
 };
 
 } // namespace ProbQA

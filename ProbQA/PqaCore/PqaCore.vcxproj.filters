@@ -261,9 +261,6 @@
     <ClInclude Include="Interface\PqaCInterop.h">
       <Filter>Header Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="CudaEngineFloat.h">
-      <Filter>Header Files\CUDA Engine</Filter>
-    </ClInclude>
     <ClInclude Include="BaseCudaEngine.h">
       <Filter>Header Files\CUDA Engine</Filter>
     </ClInclude>
@@ -289,6 +286,9 @@
       <Filter>Header Files\CUDA Engine</Filter>
     </ClInclude>
     <ClInclude Include="CudaEngineGpu.cuh">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaEngine.h">
       <Filter>Header Files\CUDA Engine</Filter>
     </ClInclude>
   </ItemGroup>
@@ -377,9 +377,6 @@
     <ClCompile Include="BaseQuiz.cpp">
       <Filter>Source Files\Base Engine</Filter>
     </ClCompile>
-    <ClCompile Include="CudaEngineFloat.cpp">
-      <Filter>Source Files\CUDA Engine</Filter>
-    </ClCompile>
     <ClCompile Include="CudaException.cpp">
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
@@ -387,6 +384,9 @@
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
     <ClCompile Include="CudaStreamPool.cpp">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CudaEngine.cpp">
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
   </ItemGroup>
