@@ -279,11 +279,11 @@
     <ClInclude Include="CudaException.h">
       <Filter>Header Files\CUDA Engine</Filter>
     </ClInclude>
-    <ClInclude Include="CudaMain.h">
-      <Filter>Header Files\CUDA Engine</Filter>
-    </ClInclude>
     <ClInclude Include="CudaMacros.h">
       <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\CudaMain.h">
+      <Filter>Header Files\Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -372,9 +372,6 @@
       <Filter>Source Files\Base Engine</Filter>
     </ClCompile>
     <ClCompile Include="CudaEngineFloat.cpp">
-      <Filter>Source Files\CUDA Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="CudaArray.cpp">
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
     <ClCompile Include="CudaException.cpp">

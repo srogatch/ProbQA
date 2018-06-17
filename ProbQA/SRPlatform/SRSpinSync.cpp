@@ -19,6 +19,7 @@ uint64_t SRSpinStatistics::TotalContention() {
   return gSpinSyncContention.load(std::memory_order_relaxed);
 }
 
-template class SRPLATFORM_API SRSpinSync<32>;
+template class SRPLATFORM_API SRSpinSync<1<<5>;
+template class SRPLATFORM_API SRSpinSync<1<<8>;
 
 } // namespace SRPlat

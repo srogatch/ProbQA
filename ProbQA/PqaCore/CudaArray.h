@@ -5,17 +5,28 @@
 #pragma once
 
 #include "../PqaCore/CudaException.h"
+#include "../PqaCore/CudaMacros.h"
+#include "../PqaCore/Interface/CudaMain.h"
 
 namespace ProbQA {
 
-class  CudaArray {
-  void *_d_p;
+template<typename T, bool taUnified> class  CudaArray {
+  T *_d_p;
 
 private: // methods
-  static void Destroy(void* d_p);
+  static void Destroy(void* d_p) {
+    CUDA_MUST(cudaFree(d_p));
+  }
 
 public: // methods
-  explicit CudaArray(const int64_t nBytes);
+  explicit CudaArray(const int64_t nItems) {
+    if (taUnified) {
+      CUDA_MUST(cudaMallocManaged(&_d_p, sizeof(T)*nItems));
+    }
+    else {
+      CUDA_MUST(cudaMalloc(&_d_p, sizeof(T)*nItems));
+    }
+  }
   
   CudaArray(const CudaArray&) = delete;
   CudaArray& operator=(const CudaArray&) = delete;
@@ -41,6 +52,24 @@ public: // methods
       SRPlat::SRDefaultLogger::Get()->Log(SRPlat::ISRLogger::Severity::Error, ex.GetMsg());
     }
   }
+
+  T* Get() const { return _d_p; }
+
+  // Pass dstDevice=cudaCpuDeviceId for copying the data to CPU memory.
+  void PrefetchToDevice(const cudaStream_t stream, const int64_t iFirst, const int64_t nItems) {
+    if constexpr(!taUnified) {
+      SRPlat::SRException(SRPlat::SRString::MakeUnowned(SR_FILE_LINE "Requested prefetch on non-unified memory."))
+        .ThrowMoving();
+    }
+    CUDA_MUST(cudaMemPrefetchAsync(_d_p + iFirst, sizeof(T)*nItems, CudaMain::GetDevice(), stream));
+  }
+  void PrefetchToCpu(const cudaStream_t stream, const int64_t iFirst, const int64_t nItems) {
+    if constexpr(!taUnified) {
+      SRPlat::SRException(SRPlat::SRString::MakeUnowned(SR_FILE_LINE "Requested prefetch on non-unified memory."))
+        .ThrowMoving();
+    }
+    CUDA_MUST(cudaMemPrefetchAsync(_d_p + iFirst, sizeof(T)*nItems, cudaCpuDeviceId, stream));
+  }
 };
 
-} // namespace PqaCuda
+} // namespace ProbQA

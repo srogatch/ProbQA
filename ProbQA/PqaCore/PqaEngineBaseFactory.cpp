@@ -7,13 +7,11 @@
 #include "../PqaCore/Interface/PqaErrorParams.h"
 #include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/ErrorHelper.h"
-#include "../PqaCore/CudaMain.h"
+#include "../PqaCore/Interface/CudaMain.h"
 
 using namespace SRPlat;
 
 namespace ProbQA {
-
-std::atomic<bool> PqaEngineBaseFactory::_cudaInitialized = false;
 
 IPqaEngine* PqaEngineBaseFactory::MakeCpuEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi) {
   try {
@@ -92,22 +90,7 @@ IPqaEngine* PqaEngineBaseFactory::CreateGridEngine(PqaError& err, const EngineDe
   return nullptr;
 }
 
-PqaError PqaEngineBaseFactory::SetCudaDevice(int iDevice, const bool bFirstInProcess) {
-  try {
-    CudaMain::SetDevice(iDevice, bFirstInProcess);
-    _cudaInitialized.store(true, std::memory_order_release);
-    return PqaError();
-  }
-  CATCH_TO_ERR_RETURN;
-}
-
-IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef)
-{
-  if (!_cudaInitialized.load(std::memory_order_acquire)) {
-    err = PqaError(PqaErrorCode::NotInitialized, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "CUDA has not been initialized before creating a CUDA engine."));
-    return nullptr;
-  }
+IPqaEngine* PqaEngineBaseFactory::CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) {
   err = CheckDimensions(engDef);
   if (!err.IsOk()) {
     return nullptr;

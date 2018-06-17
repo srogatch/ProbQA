@@ -173,9 +173,9 @@
     <ClInclude Include="CudaArray.h" />
     <ClInclude Include="CudaEngineFloat.h" />
     <ClInclude Include="CudaException.h" />
-    <ClInclude Include="CudaMain.h" />
     <ClInclude Include="CudaMacros.h" />
     <ClInclude Include="GapTracker.h" />
+    <ClInclude Include="Interface\CudaMain.h" />
     <ClInclude Include="Interface\IPqaEngine.h" />
     <ClInclude Include="Interface\IPqaEngineFactory.h" />
     <ClInclude Include="Interface\PqaCInterop.h" />
@@ -215,7 +215,6 @@
     <ClCompile Include="CETrainOperation.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp" />
-    <ClCompile Include="CudaArray.cpp" />
     <ClCompile Include="CudaEngineFloat.cpp" />
     <ClCompile Include="CudaException.cpp" />
     <ClCompile Include="CudaMain.cpp" />

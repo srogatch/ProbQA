@@ -16,9 +16,6 @@ public: // constants
   static const TPqaId _cMinQuestions = 1;
   static const TPqaId _cMinTargets = 2;
 
-private: // variables
-  static std::atomic<bool> _cudaInitialized;
-
 private: // methods
   IPqaEngine* MakeCpuEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi);
   IPqaEngine* MakeCudaEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi);
@@ -30,7 +27,6 @@ public: // methods
   IPqaEngine* LoadCpuEngine(PqaError& err, const char* const filePath,
     size_t memPoolMaxBytes = EngineDefinition::_cDefaultMemPoolMaxBytes) override final;
 
-  PqaError SetCudaDevice(int iDevice, const bool bFirstInProcess) override final;
   IPqaEngine* CreateCudaEngine(PqaError& err, const EngineDefinition& engDef) override final;
   IPqaEngine* LoadCudaEngine(PqaError& err, const char* const filePath,
     size_t memPoolMaxBytes = EngineDefinition::_cDefaultMemPoolMaxBytes) override final;
