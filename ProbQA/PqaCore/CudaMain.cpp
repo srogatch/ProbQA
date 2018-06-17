@@ -3,10 +3,10 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
-#include "../PqaCuda/Interface/CudaMain.h"
-#include "../PqaCuda/Utils.h"
+#include "../PqaCore/CudaMain.h"
+#include "../PqaCore/CudaMacros.h"
 
-namespace PqaCuda {
+namespace ProbQA {
 
 void CudaMain::SetDevice(const int iDevice, const bool bFirstInProcess) {
   CUDA_MUST(cudaSetDevice(iDevice));
@@ -21,4 +21,4 @@ void CudaMain::SetDevice(const int iDevice, const bool bFirstInProcess) {
   }
 }
 
-} // namespace PqaCuda
+} // namespace ProbQA

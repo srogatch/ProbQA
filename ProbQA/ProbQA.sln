@@ -11,7 +11,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PqaClient", "PqaClient\PqaC
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PqaCore", "PqaCore\PqaCore.vcxproj", "{C0BB8B8D-4F5F-49E2-9A73-6766818BE2F1}"
 	ProjectSection(ProjectDependencies) = postProject
-		{75060D21-A023-4147-9CE6-03D8C82465D2} = {75060D21-A023-4147-9CE6-03D8C82465D2}
 		{66EBBC7D-97C5-4A7E-84D8-623DA032F3D3} = {66EBBC7D-97C5-4A7E-84D8-623DA032F3D3}
 	EndProjectSection
 EndProject
@@ -24,11 +23,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProbQANetCore", "ProbQANetCore\ProbQANetCore.csproj", "{63D61C13-3A18-4FDB-B97C-646ED70D90FE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C0BB8B8D-4F5F-49E2-9A73-6766818BE2F1} = {C0BB8B8D-4F5F-49E2-9A73-6766818BE2F1}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PqaCuda", "PqaCuda\PqaCuda.vcxproj", "{75060D21-A023-4147-9CE6-03D8C82465D2}"
-	ProjectSection(ProjectDependencies) = postProject
-		{66EBBC7D-97C5-4A7E-84D8-623DA032F3D3} = {66EBBC7D-97C5-4A7E-84D8-623DA032F3D3}
 	EndProjectSection
 EndProject
 Global
@@ -61,10 +55,6 @@ Global
 		{63D61C13-3A18-4FDB-B97C-646ED70D90FE}.Debug|x64.Build.0 = Debug|x64
 		{63D61C13-3A18-4FDB-B97C-646ED70D90FE}.Release|x64.ActiveCfg = Release|x64
 		{63D61C13-3A18-4FDB-B97C-646ED70D90FE}.Release|x64.Build.0 = Release|x64
-		{75060D21-A023-4147-9CE6-03D8C82465D2}.Debug|x64.ActiveCfg = Debug|x64
-		{75060D21-A023-4147-9CE6-03D8C82465D2}.Debug|x64.Build.0 = Debug|x64
-		{75060D21-A023-4147-9CE6-03D8C82465D2}.Release|x64.ActiveCfg = Release|x64
-		{75060D21-A023-4147-9CE6-03D8C82465D2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

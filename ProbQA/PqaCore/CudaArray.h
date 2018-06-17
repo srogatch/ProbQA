@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include "../PqaCuda/Interface/PqaCuda.h"
-#include "../PqaCuda/CudaException.h"
+#include "../PqaCore/CudaException.h"
 
-namespace PqaCuda {
+namespace ProbQA {
 
 class  CudaArray {
   void *_d_p;

@@ -273,6 +273,18 @@
     <ClInclude Include="BaseQuiz.h">
       <Filter>Header Files\Base Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CudaArray.h">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaException.h">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaMain.h">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaMacros.h">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -360,6 +372,15 @@
       <Filter>Source Files\Base Engine</Filter>
     </ClCompile>
     <ClCompile Include="CudaEngineFloat.cpp">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CudaArray.cpp">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CudaException.cpp">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CudaMain.cpp">
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
   </ItemGroup>

@@ -7,9 +7,9 @@
 #include "../PqaCore/Interface/PqaErrorParams.h"
 #include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/ErrorHelper.h"
+#include "../PqaCore/CudaMain.h"
 
 using namespace SRPlat;
-using namespace PqaCuda;
 
 namespace ProbQA {
 

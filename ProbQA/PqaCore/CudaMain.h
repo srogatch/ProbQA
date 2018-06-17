@@ -4,8 +4,11 @@
 
 #pragma once
 
-#ifdef PQACUDA_EXPORTS
-#define PQACUDA_API __declspec(dllexport)
-#else
-#define PQACUDA_API __declspec(dllimport)
-#endif
+namespace ProbQA {
+
+class CudaMain {
+public:
+  static void SetDevice(const int iDevice, const bool bFirstInProcess);
+};
+
+} // namespace ProbQA

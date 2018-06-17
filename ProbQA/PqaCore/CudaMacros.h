@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include "../PqaCuda/CudaException.h"
+#include "../PqaCore/CudaException.h"
 
 #define CUDA_MUST(statement) do { \
   const cudaError_t status1 = statement; \
   if(status1 == cudaSuccess) break; \
-  PqaCuda::CudaException(status1, SRPlat::SRMessageBuilder(SR_FILE_LINE)("CUDA error #")(status1)(": ") \
+  ProbQA::CudaException(status1, SRPlat::SRMessageBuilder(SR_FILE_LINE)("CUDA error #")(status1)(": ") \
     (cudaGetErrorString(status1)).GetUnownedSRString()).ThrowMoving(); \
 } WHILE_FALSE
