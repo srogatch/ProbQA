@@ -54,7 +54,7 @@ protected: // methods
 
   TPqaId FindNearestQuestion(const TPqaId iMiddle, const __m256i *pQAsked);
 
-  void LoadKBTail(KBFileInfo *pKbFi);
+  void AfterStatisticsInit(KBFileInfo *pKbFi);
   bool ReadGaps(GapTracker<TPqaId> &gt, KBFileInfo &kbfi);
   bool WriteGaps(const GapTracker<TPqaId> &gt, KBFileInfo &kbfi);
 

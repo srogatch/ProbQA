@@ -89,12 +89,7 @@ template<typename taNumber> CpuEngine<taNumber>::CpuEngine(const EngineDefinitio
     }
   }
 
-  _questionGaps.GrowTo(nQuestions);
-  _targetGaps.GrowTo(nTargets);
-
-  if (pKbFi != nullptr) {
-    LoadKBTail(pKbFi);
-  }
+  AfterStatisticsInit(pKbFi);
 }
 
 template<typename taNumber> CpuEngine<taNumber>::~CpuEngine() {

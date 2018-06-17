@@ -26,23 +26,28 @@ BaseEngine::BaseEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi) : _dim
   }
 }
 
-void BaseEngine::LoadKBTail(KBFileInfo *pKbFi) {
-  if (!ReadGaps(_questionGaps, *pKbFi)) {
-    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't read the question gaps.")).ThrowMoving();
-  }
-  if (!ReadGaps(_targetGaps, *pKbFi)) {
-    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't read the target gaps.")).ThrowMoving();
-  }
+void BaseEngine::AfterStatisticsInit(KBFileInfo *pKbFi) {
+  _questionGaps.GrowTo(_dims._nQuestions);
+  _targetGaps.GrowTo(_dims._nTargets);
 
-  if (!_pimQuestions.Load(pKbFi->_sf.Get())) {
-    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't read the question permanent-compact ID mapping.")).ThrowMoving();
-  }
-  if (!_pimTargets.Load(pKbFi->_sf.Get())) {
-    PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
-      "Can't read the target permanent-compact ID mapping.")).ThrowMoving();
+  if (pKbFi != nullptr) {
+    if (!ReadGaps(_questionGaps, *pKbFi)) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the question gaps.")).ThrowMoving();
+    }
+    if (!ReadGaps(_targetGaps, *pKbFi)) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the target gaps.")).ThrowMoving();
+    }
+
+    if (!_pimQuestions.Load(pKbFi->_sf.Get())) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the question permanent-compact ID mapping.")).ThrowMoving();
+    }
+    if (!_pimTargets.Load(pKbFi->_sf.Get())) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the target permanent-compact ID mapping.")).ThrowMoving();
+    }
   }
 }
 
