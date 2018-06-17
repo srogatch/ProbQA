@@ -78,6 +78,7 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <MaxRegCount>32</MaxRegCount>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -114,6 +115,7 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <MaxRegCount>32</MaxRegCount>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -172,6 +174,7 @@
     <ClInclude Include="CpuEngine.h" />
     <ClInclude Include="CudaArray.h" />
     <ClInclude Include="CudaEngineFloat.h" />
+    <ClInclude Include="CudaEngineGpu.cuh" />
     <ClInclude Include="CudaException.h" />
     <ClInclude Include="CudaMacros.h" />
     <ClInclude Include="CudaStreamPool.h" />
@@ -252,6 +255,7 @@
     <Text Include="Docs\CpuEngineGuidelines.txt" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="CudaEngineGpu.cu" />
     <CudaCompile Include="kernel.cu">
       <FileType>Document</FileType>
     </CudaCompile>

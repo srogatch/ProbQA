@@ -288,6 +288,9 @@
     <ClInclude Include="CudaStreamPool.h">
       <Filter>Header Files\CUDA Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CudaEngineGpu.cuh">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -394,6 +397,9 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="kernel.cu">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </CudaCompile>
+    <CudaCompile Include="CudaEngineGpu.cu">
       <Filter>Source Files\CUDA Engine</Filter>
     </CudaCompile>
   </ItemGroup>

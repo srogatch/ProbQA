@@ -5,14 +5,24 @@
 #pragma once
 
 #include "../PqaCore/BaseEngine.h"
+#include "../PqaCore/CudaStreamPool.h"
+#include "../PqaCore/CudaEngineGpu.cuh"
 
 namespace ProbQA {
 
 class BaseCudaEngine : public BaseEngine {
-  int _iDevice; // for now, use only one device
+private: // variables
+  KernelLaunchContext _klc;
+
+protected:
+  const int _iDevice; // for now, use only one device
+  CudaStreamPool _cspNb; // non-blocking CUDA stream pool
 
 protected:
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
+
+public:
+  const KernelLaunchContext& GetKlc() const { return _klc; }
 };
 
 } // namespace ProbQA

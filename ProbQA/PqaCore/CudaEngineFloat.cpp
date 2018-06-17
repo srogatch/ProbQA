@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "../PqaCore/CudaEngineFloat.h"
 #include "../PqaCore/PqaException.h"
+#include "../PqaCore/CudaStreamPool.h"
 
 using namespace SRPlat;
 
@@ -19,22 +20,44 @@ CudaEngineFloat::CudaEngineFloat(const EngineDefinition& engDef, KBFileInfo *pKb
   const TPqaId nAnswers = _dims._nAnswers;
   const TPqaId nTargets = _dims._nTargets;
 
-  const TNumber init1 = TNumber(engDef._initAmount);
-  const TNumber initSqr = TNumber(init1 * init1);
-  const TNumber initMD = TNumber(initSqr * nAnswers);
+  const size_t nSAItems = int64_t(nQuestions) * nAnswers * nTargets;
+  const size_t nMDItems = int64_t(nQuestions) * nTargets;
+  const size_t nVBItems = nTargets;
 
+  CudaStream cuStr = _cspNb.Acquire();
   if (pKbFi == nullptr) { // init
-
+    CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
+    InitStatisticsKernel<TNumber> isk;
+    isk._init1 = TNumber(engDef._initAmount);
+    isk._initSqr = TNumber(isk._init1 * isk._init1);
+    isk._initMD = TNumber(isk._initSqr * nAnswers);
+    isk._nSAItems = nSAItems;
+    isk._nMDItems = nMDItems;
+    isk._nVBItems = nVBItems;
+    isk._psA = _sA.Get();
+    isk._pmD = _mD.Get();
+    isk._pvB = _vB.Get();
+    isk.Run(GetKlc(), cuStr.Get());
   } else { // load
-    const size_t nSAItems = int64_t(engDef._dims._nQuestions) * engDef._dims._nAnswers * engDef._dims._nTargets;
     if (std::fread(_sA.Get(), sizeof(TNumber), nSAItems, pKbFi->_sf.Get()) != nSAItems) {
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
         SR_FILE_LINE " Can't read cube A from file.")).ThrowMoving();
     }
-    const size_t nMDItems = int64_t(engDef._dims._nQuestions) * engDef._dims._nTargets;
+    _sA.Prefetch(cuStr.Get(), 0, nSAItems, _iDevice);
+    if (std::fread(_mD.Get(), sizeof(TNumber), nMDItems, pKbFi->_sf.Get()) != nMDItems) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
+        SR_FILE_LINE " Can't read matrix D from file.")).ThrowMoving();
+    }
+    _mD.Prefetch(cuStr.Get(), 0, nMDItems, _iDevice);
+    if (std::fread(_vB.Get(), sizeof(TNumber), nVBItems, pKbFi->_sf.Get()) != nVBItems) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
+        SR_FILE_LINE " Can't read vector B from file.")).ThrowMoving();
+    }
+    _vB.Prefetch(cuStr.Get(), 0, nVBItems, _iDevice);
   }
 
   AfterStatisticsInit(pKbFi);
+  CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
 }
 
 } // namespace ProbQA
