@@ -76,8 +76,8 @@ protected: // Specific methods for this engine
   virtual size_t NumberSize() = 0;
   virtual PqaError SaveStatistics(KBFileInfo &kbfi) = 0;
   virtual PqaError DestroyQuiz(BaseQuiz *pQuiz) = 0;
-  virtual PqaError ShutdownWorkers() = 0;
   virtual PqaError DestroyStatistics() = 0;
+  virtual PqaError ShutdownWorkers() = 0;
   virtual void UpdateWorkerStacks() = 0;
 
 public: // Internal interface methods

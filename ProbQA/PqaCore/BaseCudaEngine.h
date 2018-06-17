@@ -14,14 +14,16 @@ class BaseCudaEngine : public BaseEngine {
 private: // variables
   KernelLaunchContext _klc;
 
-protected:
+protected: // variables
   const int _iDevice; // for now, use only one device
   CudaStreamPool _cspNb; // non-blocking CUDA stream pool
 
-protected:
+protected: // methods
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
+  PqaError ShutdownWorkers() override final { return PqaError(); };
+  void UpdateWorkerStacks() override final { };
 
-public:
+public: // methods
   const KernelLaunchContext& GetKlc() const { return _klc; }
 };
 

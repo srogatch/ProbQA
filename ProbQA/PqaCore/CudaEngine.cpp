@@ -27,7 +27,6 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
 
   CudaStream cuStr = _cspNb.Acquire();
   if (pKbFi == nullptr) { // init
-    CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
     InitStatisticsKernel<taNumber> isk;
     isk._init1 = taNumber(engDef._initAmount);
     isk._initSqr = taNumber(isk._init1 * isk._init1);
@@ -38,19 +37,20 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
     isk._psA = _sA.Get();
     isk._pmD = _mD.Get();
     isk._pvB = _vB.Get();
+    CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
     isk.Run(GetKlc(), cuStr.Get());
   } else { // load
-    if (std::fread(_sA.Get(), sizeof(TNumber), nSAItems, pKbFi->_sf.Get()) != nSAItems) {
+    if (std::fread(_sA.Get(), sizeof(taNumber), nSAItems, pKbFi->_sf.Get()) != nSAItems) {
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
         SR_FILE_LINE " Can't read cube A from file.")).ThrowMoving();
     }
     _sA.Prefetch(cuStr.Get(), 0, nSAItems, _iDevice);
-    if (std::fread(_mD.Get(), sizeof(TNumber), nMDItems, pKbFi->_sf.Get()) != nMDItems) {
+    if (std::fread(_mD.Get(), sizeof(taNumber), nMDItems, pKbFi->_sf.Get()) != nMDItems) {
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
         SR_FILE_LINE " Can't read matrix D from file.")).ThrowMoving();
     }
     _mD.Prefetch(cuStr.Get(), 0, nMDItems, _iDevice);
-    if (std::fread(_vB.Get(), sizeof(TNumber), nVBItems, pKbFi->_sf.Get()) != nVBItems) {
+    if (std::fread(_vB.Get(), sizeof(taNumber), nVBItems, pKbFi->_sf.Get()) != nVBItems) {
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
         SR_FILE_LINE " Can't read vector B from file.")).ThrowMoving();
     }
@@ -60,5 +60,56 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
   AfterStatisticsInit(pKbFi);
   CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
 }
+
+template<typename taNumber> PqaError CudaEngine<taNumber>::TrainSpec(const TPqaId nQuestions,
+  const AnsweredQuestion* const pAQs, const TPqaId iTarget, const TPqaAmount amount)
+{
+
+}
+
+template<typename taNumber> TPqaId CudaEngine<taNumber>::ResumeQuizSpec(PqaError& err, const TPqaId nAnswered,
+  const AnsweredQuestion* const pAQs)
+{
+
+}
+
+template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaError& err, BaseQuiz *pBaseQuiz) {
+}
+
+template<typename taNumber> TPqaId CudaEngine<taNumber>::ListTopTargetsSpec(PqaError& err, BaseQuiz *pBaseQuiz,
+  const TPqaId maxCount, RatedTarget *pDest)
+{
+
+}
+
+template<typename taNumber> PqaError CudaEngine<taNumber>::RecordQuizTargetSpec(BaseQuiz *pBaseQuiz,
+  const TPqaId iTarget, const TPqaAmount amount)
+{
+}
+
+template<typename taNumber> PqaError CudaEngine<taNumber>::AddQsTsSpec(const TPqaId nQuestions,
+  AddQuestionParam *pAqps, const TPqaId nTargets, AddTargetParam *pAtps)
+{
+}
+
+template<typename taNumber> PqaError CudaEngine<taNumber>::CompactSpec(CompactionResult &cr) {
+
+}
+
+template<typename taNumber> PqaError CudaEngine<taNumber>::SaveStatistics(KBFileInfo &kbfi) {
+
+}
+
+template<typename taNumber> PqaError CudaEngine<taNumber>::DestroyQuiz(BaseQuiz *pQuiz) {
+}
+
+template<typename taNumber> PqaError CudaEngine<taNumber>::DestroyStatistics() {
+}
+
+template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err) {
+}
+
+//// Instantiations
+template class CudaEngine<float>;
 
 } // namespace ProbQA

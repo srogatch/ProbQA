@@ -7,7 +7,7 @@
 #include "../PqaCore/Interface/PqaErrorParams.h"
 #include "../PqaCore/CpuEngine.h"
 #include "../PqaCore/ErrorHelper.h"
-#include "../PqaCore/Interface/CudaMain.h"
+#include "../PqaCore/CudaEngine.h"
 
 using namespace SRPlat;
 
@@ -122,12 +122,22 @@ PqaError PqaEngineBaseFactory::CheckDimensions(const EngineDefinition& engDef) {
 }
 
 IPqaEngine* PqaEngineBaseFactory::MakeCudaEngine(PqaError& err, const EngineDefinition& engDef, KBFileInfo *pKbFi) {
-  //TODO: remove when implemented
-  (void)pKbFi;
-  (void)engDef;
-  //TODO: implement
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
-    "ProbQA Engine on CUDA.")));
+  try {
+    std::unique_ptr<IPqaEngine> pEngine;
+    switch (engDef._prec._type) {
+    case TPqaPrecisionType::Float:
+      pEngine.reset(new CudaEngine<float>(engDef, pKbFi));
+      break;
+    default:
+      //TODO: implement
+      err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+        "ProbQA Engine on CUDA for precision except float.")));
+      return nullptr;
+    }
+    err.Release();
+    return pEngine.release();
+  }
+  CATCH_TO_ERR_SET(err);
   return nullptr;
 }
 
