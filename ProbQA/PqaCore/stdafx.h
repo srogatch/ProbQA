@@ -76,4 +76,4 @@
 #include "../SRPlatform/Interface/SRVectMath.h"
 
 // PqaCuda library includes
-#include "../PqaCuda/CudaMain.h"
+#include "../PqaCuda/Interface/CudaMain.h"

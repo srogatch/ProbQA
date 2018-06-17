@@ -359,6 +359,9 @@
     <ClCompile Include="BaseQuiz.cpp">
       <Filter>Source Files\Base Engine</Filter>
     </ClCompile>
+    <ClCompile Include="CudaEngineFloat.cpp">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Docs\CpuEngineGuidelines.txt">

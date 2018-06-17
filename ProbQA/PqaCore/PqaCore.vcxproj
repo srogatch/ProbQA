@@ -288,6 +288,7 @@
     <ClCompile Include="CETrainOperation.cpp" />
     <ClCompile Include="CETrainSubtaskAdd.cpp" />
     <ClCompile Include="CEUpdatePriorsSubtaskMul.cpp" />
+    <ClCompile Include="CudaEngineFloat.cpp" />
     <ClCompile Include="PqaCInterop.cpp" />
     <ClCompile Include="CpuEngine.cpp" />
     <ClCompile Include="dllmain.cpp">

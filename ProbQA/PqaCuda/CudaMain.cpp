@@ -3,7 +3,7 @@
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
 #include "stdafx.h"
-#include "../PqaCuda/CudaMain.h"
+#include "../PqaCuda/Interface/CudaMain.h"
 #include "../PqaCuda/Utils.h"
 
 namespace PqaCuda {

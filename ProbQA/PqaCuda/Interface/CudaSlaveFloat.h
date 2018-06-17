@@ -4,13 +4,15 @@
 
 #pragma once
 
-#include "../PqaCuda/PqaCuda.h"
+#include "../PqaCuda/Interface/PqaCuda.h"
 
 namespace PqaCuda {
 
-class PQACUDA_API CudaMain {
+class CudaSlaveFloatImpl;
+
+class PQACUDA_API CudaSlaveFloat {
+  CudaSlaveFloatImpl *_pImpl;
 public:
-  static void SetDevice(const int iDevice, const bool bFirstInProcess);
 };
 
 } // namespace PqaCuda

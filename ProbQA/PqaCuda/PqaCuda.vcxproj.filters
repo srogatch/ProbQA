@@ -10,6 +10,9 @@
     <Filter Include="Header Files">
       <UniqueIdentifier>{b7db41ec-0693-4968-ba41-3d3d108f554b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Interface">
+      <UniqueIdentifier>{1fb69fb8-eb8a-4d9f-a287-07018334e224}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -21,12 +24,12 @@
     <ClCompile Include="CudaMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CudaArray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PqaCuda.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CudaException.h">
@@ -35,7 +38,19 @@
     <ClInclude Include="Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CudaMain.h">
+    <ClInclude Include="CudaArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\CudaMain.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\CudaSlaveFloat.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\PqaCuda.h">
+      <Filter>Header Files\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaSlaveFloatImpl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

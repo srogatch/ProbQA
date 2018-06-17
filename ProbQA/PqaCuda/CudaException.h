@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "../PqaCuda/PqaCuda.h"
+#include "../PqaCuda/Interface/PqaCuda.h"
 
 namespace PqaCuda {
   class PQACUDA_API CudaException : public SRPlat::SRException {

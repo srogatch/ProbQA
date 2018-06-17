@@ -36,6 +36,8 @@
 
 // CUDA
 #include <cuda_runtime.h>
+#include <thrust/fill.h>
+#include <thrust/device_vector.h>
 
 // SRPlatform library includes
 #include "../SRPlatform/Interface/ISRLogger.h"

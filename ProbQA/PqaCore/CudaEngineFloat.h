@@ -4,3 +4,18 @@
 
 #pragma once
 
+#include "../PqaCore/BaseCudaEngine.h"
+
+namespace ProbQA {
+
+class CudaEngineFloat : public BaseCudaEngine {
+public: // types
+  typedef float TNumber;
+
+private: // variables
+
+public: // methods
+  explicit CudaEngineFloat(const EngineDefinition& engDef, KBFileInfo *pKbFi);
+};
+
+} // namespace ProbQA
