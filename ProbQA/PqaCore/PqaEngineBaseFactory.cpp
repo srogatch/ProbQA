@@ -96,6 +96,7 @@ PqaError PqaEngineBaseFactory::SetCudaDevice(int iDevice, const bool bFirstInPro
   try {
     CudaMain::SetDevice(iDevice, bFirstInProcess);
     _cudaInitialized.store(true, std::memory_order_release);
+    return PqaError();
   }
   CATCH_TO_ERR_RETURN;
 }

@@ -368,4 +368,9 @@
       <Filter>Docs</Filter>
     </Text>
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="kernel.cu">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </CudaCompile>
+  </ItemGroup>
 </Project>
