@@ -18,6 +18,8 @@ public: // types
 private:
   // Exponents for the target likelyhoods: x[i] = _pTlhs[i] * pow(2, _pExps[i])
   TExponent *_pTlhExps;
+  // For each question, the corresponding bit indicates whether it has already been asked in this quiz
+  __m256i *_isQAsked;
 
 protected: // methods
   inline explicit CEBaseQuiz(BaseCpuEngine *pEngine);
@@ -25,6 +27,7 @@ protected: // methods
 
 public: // methods
   TExponent* GetTlhExps() const { return _pTlhExps; }
+  __m256i* GetQAsked() const { return _isQAsked; }
 };
 
 template<typename taNumber> class CEQuiz : public CEBaseQuiz {
@@ -37,6 +40,7 @@ public: // methods
   ~CEQuiz() override final;
   taNumber* GetPriorMants() const { return _pPriorMants; }
   CpuEngine<taNumber>* GetEngine() const;
+
   PqaError RecordAnswer(const TPqaId iAnswer) override final;
 };
 

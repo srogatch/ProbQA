@@ -21,7 +21,6 @@ protected: // variables
 protected: // methods
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
   PqaError ShutdownWorkers() override final { return PqaError(); };
-  void UpdateWorkerStacks() override final { };
 
 public: // methods
   const KernelLaunchContext& GetKlc() const { return _klc; }

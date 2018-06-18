@@ -131,6 +131,10 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err
   return cInvalidPqaId;
 }
 
+template<typename taNumber> void CudaEngine<taNumber>::UpdateWithDimensions() {
+
+}
+
 //// Instantiations
 template class CudaEngine<float>;
 

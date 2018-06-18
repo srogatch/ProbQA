@@ -600,7 +600,7 @@ PqaError BaseEngine::FinishMaintenance() {
     _maintSwitch.SwitchMode<cTargMode>([&]() {
       try {
         // Adjust workers' stack size if more is needed for the new dimensions
-        UpdateWorkerStacks();
+        UpdateWithDimensions();
       }
       CATCH_TO_ERR_SET(err);
     });

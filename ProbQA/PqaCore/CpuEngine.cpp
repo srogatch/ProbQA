@@ -710,7 +710,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::DestroyStatistics() {
   return PqaError();
 }
 
-template<typename taNumber> void CpuEngine<taNumber>::UpdateWorkerStacks() {
+template<typename taNumber> void CpuEngine<taNumber>::UpdateWithDimensions() {
   const size_t newStackSize = CalcWorkerStackSize(_dims);
   if (newStackSize > _tpWorkers.GetStackSize()) {
     _tpWorkers.ChangeStackSize(newStackSize);

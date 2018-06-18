@@ -35,6 +35,7 @@ protected: // methods
   PqaError SaveStatistics(KBFileInfo &kbfi) override final;
   PqaError DestroyQuiz(BaseQuiz *pQuiz) override final;
   PqaError DestroyStatistics() override final;
+  void UpdateWithDimensions() override final;
 
 public: // methods
   explicit CudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);

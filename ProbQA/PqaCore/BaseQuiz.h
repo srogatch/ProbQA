@@ -19,17 +19,12 @@ protected: // variables
   TPqaId _activeQuestion = cInvalidPqaId;
   BaseEngine *_pEngine;
 
-private: // variables
-  // For each question, the corresponding bit indicates whether it has already been asked in this quiz
-  __m256i *_isQAsked;
-
 protected: // methods
   BaseEngine * GetBaseEngine() const { return _pEngine; }
   virtual ~BaseQuiz();
   explicit BaseQuiz(BaseEngine *pEngine);
 
 public: // methods
-  __m256i* GetQAsked() const { return _isQAsked; }
   virtual PqaError RecordAnswer(const TPqaId iAnswer) = 0;
   std::vector<AnsweredQuestion>& ModAnswers() { return _answers; }
   const std::vector<AnsweredQuestion>& GetAnswers() const { return _answers; }

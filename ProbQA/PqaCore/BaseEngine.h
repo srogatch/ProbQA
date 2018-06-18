@@ -78,7 +78,7 @@ protected: // Specific methods for this engine
   virtual PqaError DestroyQuiz(BaseQuiz *pQuiz) = 0;
   virtual PqaError DestroyStatistics() = 0;
   virtual PqaError ShutdownWorkers() = 0;
-  virtual void UpdateWorkerStacks() = 0;
+  virtual void UpdateWithDimensions() = 0;
 
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() const { return _pLogger.load(std::memory_order_relaxed); }

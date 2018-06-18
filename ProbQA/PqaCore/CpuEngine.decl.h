@@ -60,7 +60,7 @@ protected: // Specific methods for this kind of engine
   PqaError SaveStatistics(KBFileInfo &kbfi) override final;
   PqaError DestroyQuiz(BaseQuiz *pQuiz) override final;
   PqaError DestroyStatistics() override final;
-  void UpdateWorkerStacks() override final;
+  void UpdateWithDimensions() override final;
 
 public: // Internal interface methods
 
