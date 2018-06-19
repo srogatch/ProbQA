@@ -7,14 +7,34 @@
 namespace ProbQA {
 
 struct KernelLaunchContext {
+  static const uint8_t _cLogBlockSize = 8;
+  static const uint8_t _cLogWarpSize = 5;
+  static const uint32_t _cWarpSize = (1 << _cLogWarpSize);
+  static const uint64_t _cWarpMask = _cWarpSize - 1;
+
   uint32_t _maxBlocks;
-  uint8_t _logBlockSize;
   cudaDeviceProp _cdp;
 
   uint32_t GetBlockCount(const int64_t nInstances) const {
-    return uint32_t(std::min(((nInstances - 1) >> _logBlockSize) + 1, int64_t(_maxBlocks)));
+    return uint32_t(std::min(((nInstances - 1) >> _cLogBlockSize) + 1, int64_t(_maxBlocks)));
   }
-  uint32_t GetBlockSize() const { return 1ui32 << _logBlockSize; }
+
+  uint32_t DefaultBlockSize() const { return 1ui32 << _cLogBlockSize; }
+
+  uint32_t FixBlockSize(const int64_t rawSize) const {
+    const uint32_t bound = uint32_t(std::min(rawSize, int64_t(_cdp.maxThreadsPerBlock)));
+    unsigned long msb;
+    if (_BitScanReverse(&msb, bound)) {
+      const uint32_t t = (1 << msb);
+      if (bound == t) {
+        return t;
+      }
+      else {
+        return t << 1;
+      }
+    }
+    return 0;
+  }
 };
 
 template<typename taNumber> struct InitStatisticsKernel {
@@ -36,6 +56,7 @@ template<typename taNumber> struct StartQuizKernel {
   taNumber *_pPriorMants;
   int64_t _nTargets;
   taNumber *_pvB;
+
   void Run(const KernelLaunchContext& klc, cudaStream_t stream);
 };
 

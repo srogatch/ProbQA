@@ -26,6 +26,10 @@ public: // methods
   CudaQuiz(CudaEngine<taNumber> *pEngine);
   ~CudaQuiz();
 
+  __m256i* GetQAsked() const { return _pQAsked; }
+  TExponent* GetTlhExps() const { return _pExponents; }
+  taNumber* GetPriorMants() const { return _pPriorMants; }
+
   virtual PqaError RecordAnswer(const TPqaId iAnswer) override final;
 };
 

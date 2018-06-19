@@ -7,6 +7,8 @@
 #include "../PqaCore/Interface/CudaMain.h"
 #include "../PqaCore/CudaMacros.h"
 
+using namespace SRPlat;
+
 namespace ProbQA {
 
 BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi) : BaseEngine(engDef, pKbFi),
@@ -14,9 +16,12 @@ BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi
 {
   CudaMain::Initialize(_iDevice);
   CUDA_MUST(cudaGetDeviceProperties(&_klc._cdp, _iDevice));
-  _klc._logBlockSize = 8;
   _klc._maxBlocks = int32_t((int64_t(_klc._cdp.multiProcessorCount) * _klc._cdp.maxThreadsPerMultiProcessor)
-    >> _klc._logBlockSize);
+    >> _klc._cLogBlockSize);
+  if (_klc._cdp.warpSize != KernelLaunchContext::_cWarpSize) {
+    SRException(SRMessageBuilder(SR_FILE_LINE "Unexpected CUDA warp size: ")(_klc._cdp.warpSize).GetOwnedSRString())
+      .ThrowMoving();
+  }
 }
 
 } // namespace ProbQA

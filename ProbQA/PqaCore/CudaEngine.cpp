@@ -79,12 +79,6 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::ResumeQuizSpec(PqaError
   return cInvalidPqaId;
 }
 
-template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaError& err, BaseQuiz *pBaseQuiz) {
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
-    "CUDA engine is being implemented.")));
-  return cInvalidPqaId;
-}
-
 template<typename taNumber> TPqaId CudaEngine<taNumber>::ListTopTargetsSpec(PqaError& err, BaseQuiz *pBaseQuiz,
   const TPqaId maxCount, RatedTarget *pDest)
 {
@@ -127,6 +121,10 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::DestroyStatistics() {
     "CUDA engine is being implemented.")));
 }
 
+template<typename taNumber> void CudaEngine<taNumber>::UpdateWithDimensions() {
+  //TODO: implement - adjust CUDA memory pools, if any
+}
+
 template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err) {
   try {
     constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
@@ -141,9 +139,20 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err
     SRObjectMPP<CudaQuiz<taNumber>> spQuiz(_memPool, this);
     const TPqaId quizId = AssignQuiz(spQuiz.Get());
     try {
-      SRRWLock<false> rwl(_rws);
+      CudaStream cuStr = _cspNb.Acquire();
+      StartQuizKernel<taNumber> sqk;
+      sqk._nTargets = _dims._nTargets;
+      sqk._pPriorMants = spQuiz.Get()->GetPriorMants();
+      sqk._pQAsked = reinterpret_cast<uint32_t*>(spQuiz.Get()->GetQAsked());
+      sqk._pvB = _vB.Get();
 
-      //TODO: implement
+      CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
+      {
+        SRRWLock<false> rwl(_rws);
+        sqk.Run(GetKlc(), cuStr.Get());
+        CUDA_MUST(cudaGetLastError());
+        CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
+      }
     }
     CATCH_TO_ERR_SET(err);
     if (!err.IsOk()) {
@@ -157,8 +166,10 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err
   return cInvalidPqaId;
 }
 
-template<typename taNumber> void CudaEngine<taNumber>::UpdateWithDimensions() {
-
+template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaError& err, BaseQuiz *pBaseQuiz) {
+  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+  return cInvalidPqaId;
 }
 
 //// Instantiations
