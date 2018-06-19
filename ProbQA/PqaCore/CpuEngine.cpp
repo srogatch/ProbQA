@@ -204,70 +204,62 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
     //   _maintSwitch guards engine dimensions in Regular mode (but not in Maintenance mode).
     SRObjectMPP<CEQuiz<taNumber>> spQuiz(_memPool, this);
     tNoSrw._pQuiz = spQuiz.Get();
-    TPqaId quizId;
-    {
-      SRLock<SRCriticalSection> csl(_csQuizReg);
-      quizId = _quizGaps.Acquire();
-      if (quizId >= TPqaId(_quizzes.size())) {
-        assert(quizId == TPqaId(_quizzes.size()));
-        _quizzes.emplace_back(nullptr);
-      }
-      _quizzes[SRCast::ToSizeT(quizId)] = spQuiz.Get();
-    }
-
-    {
-      auto&& lstSetQAsked = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
-        auto& task = static_cast<NoSrwTask&>(*subtask.GetTask());
-        auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
-        __m256i *pQAsked = task._pQuiz->GetQAsked();
-        SRUtils::FillZeroVects<true>(pQAsked, SRSimd::VectsFromBits(engine._dims._nQuestions));
-        if (op.IsResume()) {
-          // Validate the indexes and set "is question asked" bits
-          auto& resumeOp = static_cast<CECreateQuizResume<taNumber>&>(op);
-          const EngineDimensions& dims = engine.GetDims();
-          for (size_t i = 0; i<SRCast::ToSizeT(resumeOp._nAnswered); i++) {
-            const TPqaId iQuestion = resumeOp._pAQs[i]._iQuestion;
-            if (iQuestion < 0 || iQuestion >= dims._nQuestions) {
-              task.AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0,
-                dims._nQuestions - 1), SRString::MakeUnowned(SR_FILE_LINE "Question index is not in KB range.")));
-              return;
+    const TPqaId quizId = AssignQuiz(spQuiz.Get());
+    try {
+      {
+        auto&& lstSetQAsked = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
+          auto& task = static_cast<NoSrwTask&>(*subtask.GetTask());
+          auto& engine = static_cast<const CpuEngine<taNumber>&>(task.GetBaseEngine());
+          __m256i *pQAsked = task._pQuiz->GetQAsked();
+          SRUtils::FillZeroVects<true>(pQAsked, SRSimd::VectsFromBits(engine._dims._nQuestions));
+          if (op.IsResume()) {
+            // Validate the indexes and set "is question asked" bits
+            auto& resumeOp = static_cast<CECreateQuizResume<taNumber>&>(op);
+            const EngineDimensions& dims = engine.GetDims();
+            for (size_t i = 0; i < SRCast::ToSizeT(resumeOp._nAnswered); i++) {
+              const TPqaId iQuestion = resumeOp._pAQs[i]._iQuestion;
+              if (iQuestion < 0 || iQuestion >= dims._nQuestions) {
+                task.AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0,
+                  dims._nQuestions - 1), SRString::MakeUnowned(SR_FILE_LINE "Question index is not in KB range.")));
+                return;
+              }
+              const TPqaId iAnswer = resumeOp._pAQs[i]._iAnswer;
+              if (iAnswer < 0 || iAnswer >= dims._nAnswers) {
+                task.AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0,
+                  dims._nAnswers - 1), SRString::MakeUnowned(SR_FILE_LINE "Answer index is not in KB range.")));
+                return;
+              }
+              *(SRCast::Ptr<uint8_t>(pQAsked) + (iQuestion >> 3)) |= (1ui8 << (iQuestion & 7));
             }
-            const TPqaId iAnswer = resumeOp._pAQs[i]._iAnswer;
-            if (iAnswer < 0 || iAnswer >= dims._nAnswers) {
-              task.AddError(PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0,
-                dims._nAnswers - 1), SRString::MakeUnowned(SR_FILE_LINE "Answer index is not in KB range.")));
-              return;
-            }
-            *(SRCast::Ptr<uint8_t>(pQAsked) + (iQuestion >> 3)) |= (1ui8 << (iQuestion & 7));
           }
-        }
-      });
-      auto&& lstAddAnswers = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
-        auto& resumeOp = static_cast<const CECreateQuizResume<taNumber>&>(op);
-        auto& task = static_cast<const NoSrwTask&>(*subtask.GetTask());
-        std::vector<AnsweredQuestion>& answers = task._pQuiz->ModAnswers();
-        answers.insert(answers.end(), resumeOp._pAQs, resumeOp._pAQs + resumeOp._nAnswered);
-      });
+        });
+        auto&& lstAddAnswers = SRMakeLambdaSubtask(&tNoSrw, [&op](const SRBaseSubtask &subtask) {
+          auto& resumeOp = static_cast<const CECreateQuizResume<taNumber>&>(op);
+          auto& task = static_cast<const NoSrwTask&>(*subtask.GetTask());
+          std::vector<AnsweredQuestion>& answers = task._pQuiz->ModAnswers();
+          answers.insert(answers.end(), resumeOp._pAQs, resumeOp._pAQs + resumeOp._nAnswered);
+        });
 
-      if (op.IsResume()) {
-        SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
-        _tpWorkers.Enqueue({&lstSetQAsked, &lstAddAnswers}, tNoSrw);
-      } else {
-        // Run in the current thread
-        lstSetQAsked.Run();
+        if (op.IsResume()) {
+          SRTaskWaiter noSrwTaskWaiter(&tNoSrw);
+          _tpWorkers.Enqueue({ &lstSetQAsked, &lstAddAnswers }, tNoSrw);
+        }
+        else {
+          // Run in the current thread
+          lstSetQAsked.Run();
+        }
+      }
+      op._err = tNoSrw.TakeAggregateError();
+      if (op._err.IsOk()) {
+        // If it's "resume quiz" operation, update the prior likelihoods with the questions answered, and normalize the
+        //   priors. If it's "start quiz" operation, just divide the priors by their sum.
+        op.UpdateLikelihoods(*this, *spQuiz.Get());
       }
     }
-    op._err = tNoSrw.TakeAggregateError();
-    if(op._err.IsOk()) {
-      // If it's "resume quiz" operation, update the prior likelihoods with the questions answered, and normalize the
-      //   priors. If it's "start quiz" operation, just divide the priors by their sum.
-      op.UpdateLikelihoods(*this, *spQuiz.Get());
-    }
+    CATCH_TO_ERR_SET(op._err);
     if (!op._err.IsOk()) {
       spQuiz.EarlyRelease();
-      SRLock<SRCriticalSection> csl(_csQuizReg);
-      _quizzes[SRCast::ToSizeT(quizId)] = nullptr;
-      _quizGaps.Release(quizId);
+      UnassignQuiz(quizId);
       return cInvalidPqaId;
     }
     spQuiz.Detach();

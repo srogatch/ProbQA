@@ -601,6 +601,9 @@ PqaError BaseEngine::FinishMaintenance() {
       try {
         // Adjust workers' stack size if more is needed for the new dimensions
         UpdateWithDimensions();
+        // New dimensions will require new chunk sizes.
+        //TODO: do this conditionally only if dimensions have changed.
+        _memPool.FreeAllChunks();
       }
       CATCH_TO_ERR_SET(err);
     });
@@ -684,6 +687,23 @@ PqaError BaseEngine::Compact(CompactionResult &cr) {
   // Exclusive lock is needed because we are going to change the number of targets and questions in the KB.
   SRRWLock<true> rwl(_rws);
   return CompactSpec(cr);
+}
+
+TPqaId BaseEngine::AssignQuiz(BaseQuiz *pQuiz) {
+  SRLock<SRCriticalSection> csl(_csQuizReg);
+  TPqaId quizId = _quizGaps.Acquire();
+  if (quizId >= TPqaId(_quizzes.size())) {
+    assert(quizId == TPqaId(_quizzes.size()));
+    _quizzes.emplace_back(nullptr);
+  }
+  _quizzes[SRCast::ToSizeT(quizId)] = pQuiz;
+  return quizId;
+}
+
+void BaseEngine::UnassignQuiz(const TPqaId iQuiz) {
+  SRLock<SRCriticalSection> csl(_csQuizReg);
+  _quizzes[SRCast::ToSizeT(iQuiz)] = nullptr;
+  _quizGaps.Release(iQuiz);
 }
 
 } // namespace ProbQA

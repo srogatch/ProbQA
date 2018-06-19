@@ -61,6 +61,9 @@ protected: // methods
   PqaError LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer);
   BaseQuiz* UseQuiz(PqaError& err, const TPqaId iQuiz);
 
+  TPqaId AssignQuiz(BaseQuiz *pQuiz);
+  void UnassignQuiz(const TPqaId iQuiz);
+
 protected: // Specific methods for this engine
   virtual PqaError TrainSpec(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount) = 0;

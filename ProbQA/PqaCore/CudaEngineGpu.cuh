@@ -9,6 +9,7 @@ namespace ProbQA {
 struct KernelLaunchContext {
   uint32_t _maxBlocks;
   uint8_t _logBlockSize;
+  cudaDeviceProp _cdp;
 
   uint32_t GetBlockCount(const int64_t nInstances) const {
     return uint32_t(std::min(((nInstances - 1) >> _logBlockSize) + 1, int64_t(_maxBlocks)));
@@ -27,6 +28,14 @@ template<typename taNumber> struct InitStatisticsKernel {
   taNumber _initSqr;
   taNumber _initMD;
 
+  void Run(const KernelLaunchContext& klc, cudaStream_t stream);
+};
+
+template<typename taNumber> struct StartQuizKernel {
+  uint32_t *_pQAsked;
+  taNumber *_pPriorMants;
+  int64_t _nTargets;
+  taNumber *_pvB;
   void Run(const KernelLaunchContext& klc, cudaStream_t stream);
 };
 

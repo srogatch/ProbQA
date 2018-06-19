@@ -81,7 +81,7 @@ public:
   constexpr static size_t GetPaddedBytes(const size_t nUnpaddedBytes) {
     return (nUnpaddedBytes + _cByteMask) & (~_cByteMask);
   }
-  constexpr static void* AlignPtr(void *p, const size_t maxPadding) {
+  constexpr static void* AlignPtr(void *p, const size_t maxPadding = _cNBytes) {
     const uintptr_t upOrig = reinterpret_cast<uintptr_t>(p);
     const uintptr_t upAligned = (upOrig + _cByteMask) & (~_cByteMask);
     if (upAligned - upOrig > maxPadding) {

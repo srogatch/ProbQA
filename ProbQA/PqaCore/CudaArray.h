@@ -19,6 +19,10 @@ private: // methods
   }
 
 public: // methods
+  explicit CudaArray() {
+    _d_p = nullptr;
+  }
+
   explicit CudaArray(const int64_t nItems) {
     if (taUnified) {
       CUDA_MUST(cudaMallocManaged(&_d_p, sizeof(T)*nItems));

@@ -6,6 +6,8 @@
 #include "../PqaCore/CudaEngine.h"
 #include "../PqaCore/PqaException.h"
 #include "../PqaCore/CudaStreamPool.h"
+#include "../PqaCore/CudaQuiz.h"
+#include "../PqaCore/ErrorHelper.h"
 
 using namespace SRPlat;
 
@@ -126,8 +128,32 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::DestroyStatistics() {
 }
 
 template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err) {
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
-    "CUDA engine is being implemented.")));
+  try {
+    constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+    if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+      err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform"
+        " regular-only mode operation (Start quiz) because current mode is not regular"
+        " (but maintenance/shutdown?)."));
+      return cInvalidPqaId;
+    }
+    MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+    SRObjectMPP<CudaQuiz<taNumber>> spQuiz(_memPool, this);
+    const TPqaId quizId = AssignQuiz(spQuiz.Get());
+    try {
+      SRRWLock<false> rwl(_rws);
+
+      //TODO: implement
+    }
+    CATCH_TO_ERR_SET(err);
+    if (!err.IsOk()) {
+      UnassignQuiz(quizId);
+      return cInvalidPqaId;
+    }
+    spQuiz.Detach();
+    return quizId;
+  }
+  CATCH_TO_ERR_SET(err);
   return cInvalidPqaId;
 }
 

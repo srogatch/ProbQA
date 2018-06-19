@@ -13,10 +13,10 @@ BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi
   _iDevice(0), _cspNb(false)
 {
   CudaMain::Initialize(_iDevice);
-  cudaDeviceProp cdp;
-  CUDA_MUST(cudaGetDeviceProperties(&cdp, _iDevice));
+  CUDA_MUST(cudaGetDeviceProperties(&_klc._cdp, _iDevice));
   _klc._logBlockSize = 8;
-  _klc._maxBlocks = int32_t((int64_t(cdp.multiProcessorCount) * cdp.maxThreadsPerMultiProcessor) >> _klc._logBlockSize);
+  _klc._maxBlocks = int32_t((int64_t(_klc._cdp.multiProcessorCount) * _klc._cdp.maxThreadsPerMultiProcessor)
+    >> _klc._logBlockSize);
 }
 
 } // namespace ProbQA
