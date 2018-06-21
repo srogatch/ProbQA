@@ -76,18 +76,18 @@ template<typename taNumber> struct NextQuestionKernel {
   taNumber *_pmD;
   uint32_t *_pQAsked;
   taNumber *_pPriorMants;
-  uint32_t *_pTargetGaps;
   uint32_t *_pQuestionGaps;
+  uint32_t *_pTargetGaps;
   uint32_t _nThreadsPerBlock;
   uint32_t _nBlocks;
+
+  //// Outputs
+  taNumber *_pTotals;
   
   //// Work arrays
   taNumber *_pPosteriors; // nBlocks * nTargets
   taNumber *_pInvD; // nBlocks * nTargets
   CudaAnswerMetrics<taNumber> *_pAnsMets; // nBlocks * nAnswers
-
-  //// Outputs
-  taNumber *_pTotals;
 
   void Run(cudaStream_t stream);
 };
