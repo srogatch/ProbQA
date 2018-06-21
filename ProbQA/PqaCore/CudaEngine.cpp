@@ -27,6 +27,8 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
   const size_t nMDItems = int64_t(nQuestions) * nTargets;
   const size_t nVBItems = nTargets;
 
+  //TODO: this locks CUDA device for the duration of file operations
+  CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
   CudaStream cuStr = _cspNb.Acquire();
   if (pKbFi == nullptr) { // init
     InitStatisticsKernel<taNumber> isk;
@@ -39,7 +41,6 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
     isk._psA = _sA.Get();
     isk._pmD = _mD.Get();
     isk._pvB = _vB.Get();
-    CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
     isk.Run(GetKlc(), cuStr.Get());
     CUDA_MUST(cudaGetLastError());
   } else { // load
@@ -59,8 +60,8 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
     }
     _vB.Prefetch(cuStr.Get(), 0, nVBItems, _iDevice);
   }
-
   AfterStatisticsInit(pKbFi);
+  CopyGapsToDevice(cuStr.Get());
   CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
 }
 
@@ -122,7 +123,11 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::DestroyStatistics() {
 }
 
 template<typename taNumber> void CudaEngine<taNumber>::UpdateWithDimensions() {
+  CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
+  CudaStream cuStr = _cspNb.Acquire();
+  CopyGapsToDevice(cuStr.Get());
   //TODO: implement - adjust CUDA memory pools, if any
+  CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
 }
 
 template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err) {
@@ -167,8 +172,25 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err
 }
 
 template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaError& err, BaseQuiz *pBaseQuiz) {
-  err = PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
-    "CUDA engine is being implemented.")));
+  CudaQuiz<taNumber> *pQuiz = static_cast<CudaQuiz<taNumber>*>(pBaseQuiz);
+  try {
+    const TPqaId nQuestions = _dims._nQuestions;
+    const TPqaId nTargets = _dims._nTargets;
+    const TPqaId nAnswers = _dims._nAnswers;
+
+    NextQuestionKernel<taNumber> nqk;
+    nqk._nThreadsPerBlock = GetKlc().FixBlockSize(nTargets);
+    nqk._nBlocks = uint32_t(std::min(uint64_t(GetKlc()._cdp.multiProcessorCount)
+      * GetKlc()._cdp.maxThreadsPerMultiProcessor / nqk._nThreadsPerBlock,
+      uint64_t(nQuestions)));
+    CudaArray<uint8_t, true> storage(SRSimd::_cNBytes // padding
+      + SRSimd::GetPaddedBytes(sizeof(taNumber) * nQuestions) // totals
+      + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // posteriors
+      + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // _pInvD
+      + SRSimd::GetPaddedBytes(sizeof(CudaAnswerMetrics<taNumber>) * nqk._nBlocks * nAnswers)
+    );
+
+  } CATCH_TO_ERR_SET(err);
   return cInvalidPqaId;
 }
 

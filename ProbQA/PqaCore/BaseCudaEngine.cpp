@@ -12,7 +12,7 @@ using namespace SRPlat;
 namespace ProbQA {
 
 BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi) : BaseEngine(engDef, pKbFi),
-  _iDevice(0), _cspNb(false)
+  _iDevice(0), _cspNb(false), _gaps(((engDef._dims._nQuestions + 31) >> 5) + ((engDef._dims._nTargets + 31) >> 5))
 {
   CudaMain::Initialize(_iDevice);
   CUDA_MUST(cudaGetDeviceProperties(&_klc._cdp, _iDevice));
@@ -22,6 +22,21 @@ BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi
     SRException(SRMessageBuilder(SR_FILE_LINE "Unexpected CUDA warp size: ")(_klc._cdp.warpSize).GetOwnedSRString())
       .ThrowMoving();
   }
+}
+
+uint32_t* BaseCudaEngine::DevQuestionGaps() {
+  return _gaps.Get();
+}
+
+uint32_t* BaseCudaEngine::DevTargetGaps() {
+  return _gaps.Get() + ((_dims._nQuestions + 31) >> 5);
+}
+
+void BaseCudaEngine::CopyGapsToDevice(cudaStream_t stream) {
+  memcpy(DevQuestionGaps(), _questionGaps.GetBits(), (_dims._nQuestions + 7) >> 3);
+  memcpy(DevTargetGaps(), _targetGaps.GetBits(), (_dims._nTargets + 7) >> 3);
+  _gaps.Prefetch(stream, 0, ((_dims._nQuestions + 31) >> 5) + ((_dims._nTargets + 31) >> 5),
+    _iDevice);
 }
 
 } // namespace ProbQA

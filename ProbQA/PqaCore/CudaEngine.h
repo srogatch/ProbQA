@@ -5,7 +5,6 @@
 #pragma once
 
 #include "../PqaCore/BaseCudaEngine.h"
-#include "../PqaCore/CudaArray.h"
 
 namespace ProbQA {
 

@@ -60,4 +60,36 @@ template<typename taNumber> struct StartQuizKernel {
   void Run(const KernelLaunchContext& klc, cudaStream_t stream);
 };
 
+template<typename taNumber> struct CudaAnswerMetrics {
+  taNumber _weight;
+  taNumber _entropy;
+  taNumber _lack;
+  taNumber _velocity;
+};
+
+template<typename taNumber> struct NextQuestionKernel {
+  //// Inputs
+  int64_t _nQuestions;
+  int64_t _nAnswers;
+  int64_t _nTargets;
+  taNumber *_psA;
+  taNumber *_pmD;
+  uint32_t *_pQAsked;
+  taNumber *_pPriorMants;
+  uint32_t *_pTargetGaps;
+  uint32_t *_pQuestionGaps;
+  uint32_t _nThreadsPerBlock;
+  uint32_t _nBlocks;
+  
+  //// Work arrays
+  taNumber *_pPosteriors; // nBlocks * nTargets
+  taNumber *_pInvD; // nBlocks * nTargets
+  CudaAnswerMetrics<taNumber> *_pAnsMets; // nBlocks * nAnswers
+
+  //// Outputs
+  taNumber *_pTotals;
+
+  void Run(cudaStream_t stream);
+};
+
 } // namespace ProbQA

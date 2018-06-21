@@ -255,6 +255,10 @@ public:
   uint64_t Size() const {
     return _nBits;
   }
+
+  void* Data() const {
+    return _pBits;
+  }
 };
 
 } // namespace SRPlat

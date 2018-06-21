@@ -56,6 +56,7 @@ public:
 
   taId GetNGaps() const { return _gaps.size(); }
   const taId* ListGaps() const { return _gaps.data(); }
+  const void* GetBits() const { return _isGap.Data(); }
 
   void Compact(const taId newLength) {
     assert(newLength <= taId(_isGap.Size()));
