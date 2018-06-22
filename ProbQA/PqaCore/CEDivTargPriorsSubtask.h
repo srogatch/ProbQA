@@ -15,6 +15,7 @@ template<> inline void __vectorcall CEBaseDivTargPriorsSubtask<SRPlat::SRDoubleN
   auto *PTR_RESTRICT pMants = SRPlat::SRCast::Ptr<__m256d>(quiz.GetPriorMants());
   for (TPqaId i = _iFirst; i < _iLimit; i++) {
     const __m256d original = SRPlat::SRSimd::Load<false>(pMants + i);
+    //TODO: divide once, then replace division with multiplication
     const __m256d normalized = _mm256_div_pd(original, sumPriors._comps);
     SRPlat::SRSimd::Store<false>(pMants + i, normalized);
   }

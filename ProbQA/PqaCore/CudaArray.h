@@ -61,11 +61,21 @@ public: // methods
 
   // Pass dstDevice=cudaCpuDeviceId for copying the data to CPU memory.
   void Prefetch(const cudaStream_t stream, const int64_t iFirst, const int64_t nItems, int destDevice) {
-    if constexpr(!taUnified) {
-      SRPlat::SRException(SRPlat::SRString::MakeUnowned(SR_FILE_LINE "Requested prefetch on non-unified memory."))
-        .ThrowMoving();
-    }
-    CUDA_MUST(cudaMemPrefetchAsync(_d_p + iFirst, sizeof(T)*nItems, destDevice, stream));
+    (void)stream;
+    (void)iFirst;
+    (void)nItems;
+    (void)destDevice;
+    // Not supported on Windows
+    //if constexpr(!taUnified) {
+    //  SRPlat::SRException(SRPlat::SRString::MakeUnowned(SR_FILE_LINE "Requested prefetch on non-unified memory."))
+    //    .ThrowMoving();
+    //}
+    //CUDA_MUST(cudaMemPrefetchAsync(_d_p + iFirst, sizeof(T)*nItems, destDevice, stream));
+  }
+
+  void EarlyRelease() {
+    Destroy(_d_p);
+    _d_p = nullptr;
   }
 };
 

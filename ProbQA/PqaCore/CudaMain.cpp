@@ -21,7 +21,7 @@ struct CudaDeviceLockInfo {
     {
       SRLock<TSync> sl(_sync);
       _nRefs += delta;
-      assert(nRefs >= 0);
+      assert(_nRefs >= 0);
       noRefsLeft = (_nRefs == 0);
     }
     if (noRefsLeft) {
@@ -98,12 +98,15 @@ bool CudaMain::Initialize(const int iDevice) {
     //  .ThrowMoving();
   }
   CudaDeviceLock cdl = SetDevice(iDevice);
+
   CUDA_MUST(cudaSetDeviceFlags(
-    cudaDeviceScheduleYield // cudaDeviceScheduleBlockingSync //DEBUG
-    | cudaDeviceMapHost
+    cudaDeviceScheduleBlockingSync
+    //cudaDeviceScheduleYield // cudaDeviceScheduleBlockingSync //DEBUG
+    | 
+    cudaDeviceMapHost
     //TODO: benchmark, not sure about this.
     // https://devtalk.nvidia.com/default/topic/621170/random-execution-times-and-freezes-with-concurent-kernels/
-    | cudaDeviceLmemResizeToMax
+    //| cudaDeviceLmemResizeToMax
   ));
   gDevsInitialized.insert(iDevice);
   return true;

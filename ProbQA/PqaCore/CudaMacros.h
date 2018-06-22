@@ -10,5 +10,5 @@
   const cudaError_t status1 = statement; \
   if(status1 == cudaSuccess) break; \
   ProbQA::CudaException(status1, SRPlat::SRMessageBuilder(SR_FILE_LINE)("CUDA error #")(status1)(": ") \
-    (cudaGetErrorString(status1)).GetUnownedSRString()).ThrowMoving(); \
+    (cudaGetErrorString(status1)).GetOwnedSRString()).ThrowMoving(); \
 } WHILE_FALSE

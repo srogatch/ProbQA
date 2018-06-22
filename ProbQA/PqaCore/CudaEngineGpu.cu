@@ -83,13 +83,15 @@ template<typename taNumber> void InitStatisticsKernel<taNumber>::Run(const Kerne
 template<typename taNumber> __global__ void StartQuiz(const StartQuizKernel<taNumber> sqk) {
   extern __shared__ DevAccumulator<taNumber> sum[];
   int64_t iInstance = threadIdx.x;
-  sum[iInstance].Init(iInstance < sqk._nTargets ? sqk._pvB[iInstance] : 0);
+  sum[iInstance].Init((iInstance < sqk._nTargets && !TestBit(sqk._pTargetGaps, iInstance)) ? sqk._pvB[iInstance] : 0);
   for (;;) {
     iInstance += blockDim.x;
     if (iInstance >= sqk._nTargets) {
       break;
     }
-    sum[threadIdx.x].Add(sqk._pvB[iInstance]);
+    if (!TestBit(sqk._pTargetGaps, iInstance)) {
+      sum[threadIdx.x].Add(sqk._pvB[iInstance]);
+    }
   }
   __syncthreads();
   uint32_t remains = blockDim.x >> 1;
@@ -108,7 +110,7 @@ template<typename taNumber> __global__ void StartQuiz(const StartQuizKernel<taNu
   const taNumber divisor = sum[0].Get();
   iInstance = threadIdx.x;
   while (iInstance < sqk._nTargets) {
-    sqk._pPriorMants[iInstance] = sqk._pvB[iInstance] / divisor;
+    sqk._pPriorMants[iInstance] = (TestBit(sqk._pTargetGaps, iInstance) ? 0 : sqk._pvB[iInstance] / divisor);
     iInstance += blockDim.x;
   }
 
@@ -200,7 +202,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       if (iTarget < nqk._nTargets && !TestBit(nqk._pTargetGaps, iTarget)) {
         const taNumber posterior = nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] * invWk;
         const taNumber prior = nqk._pPriorMants[iTarget];
-        const taNumber l2post = log2f(posterior);
+        const taNumber l2post = log2(posterior);
         
         const taNumber Hikj = l2post * posterior;
         shared[threadIdx.x]._accLhEnt.Add(Hikj);
@@ -279,9 +281,10 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     const taNumber avgH = shared[0]._accLhEnt.Get() * normalizer;
     const taNumber avgL = shared[0]._accLack.Get() * normalizer;
     const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
-    const taNumber nExpectedTargets = exp2f(avgH);
-    nqk._pTotals[iQuestion] = powf(avgL, 1) * pow(avgV, 9) * pow(nExpectedTargets, -2);
+    const taNumber nExpectedTargets = exp2(avgH);
+    nqk._pTotals[iQuestion] = pow(avgL, 1) * pow(avgV, 9) * pow(nExpectedTargets, -2);
   }
+  __syncthreads(); // Let thread 0 finish with processing the value
 }
 
 template<typename taNumber> __global__ void NextQuestion(const NextQuestionKernel<taNumber> nqk) {
@@ -305,9 +308,102 @@ template<typename taNumber> void NextQuestionKernel<taNumber>::Run(cudaStream_t 
     stream>>>(*this);
 }
 
+template<typename taNumber> __device__ taNumber GetUpdatedPrior(const RecordAnswerKernel<taNumber>& rak,
+  const int64_t iTarget)
+{
+  return rak._pPriorMants[iTarget] * GetSA(rak._iQuestion, rak._iAnswer, iTarget, rak._psA, rak._nAnswers,
+    rak._nTargets) / GetMD(rak._iQuestion, iTarget, rak._pmD, rak._nTargets);
+}
+
+template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNumber> rak) {
+  extern __shared__ DevAccumulator<taNumber> sum[];
+  int64_t iTarget = threadIdx.x;
+  if (iTarget < rak._nTargets) {
+    taNumber updPrior = GetUpdatedPrior(rak, iTarget);
+    sum[iTarget].Init(updPrior);
+    rak._pPriorMants[iTarget] = updPrior;
+    for (;;) {
+      iTarget += blockDim.x;
+      if (iTarget >= rak._nTargets) {
+        break;
+      }
+      updPrior = GetUpdatedPrior(rak, iTarget);
+      sum[iTarget].Add(updPrior);
+      rak._pPriorMants[iTarget] = updPrior;
+    }
+  }
+  else {
+    sum[iTarget].Init(0);
+  }
+  __syncthreads();
+  uint32_t remains = blockDim.x >> 1;
+  for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+    if (threadIdx.x < remains) {
+      sum[threadIdx.x].Add(sum[threadIdx.x + remains]);
+    }
+    __syncthreads();
+  }
+  for (; remains >= 1; remains >>= 1) {
+    if (threadIdx.x < remains) {
+      sum[threadIdx.x].Add(sum[threadIdx.x + remains]);
+    }
+  }
+  __syncthreads();
+  const taNumber normalizer = 1 / sum[0].Get();
+  iTarget = threadIdx.x;
+  while (iTarget < rak._nTargets) {
+    rak._pPriorMants[iTarget] *= normalizer;
+    iTarget += blockDim.x;
+  }
+}
+
+template<typename taNumber> void RecordAnswerKernel<taNumber>::Run(const KernelLaunchContext& klc, cudaStream_t stream)
+{
+  const uint32_t nThreads = klc.FixBlockSize(_nTargets);
+  RecordAnswer<taNumber><<<1, nThreads, sizeof(DevAccumulator<taNumber>)*nThreads, stream>>>(*this);
+}
+
+
+template<typename taNumber> __global__ void RecordQuizTarget(const RecordQuizTargetKernel<taNumber> rqtk) {
+  const uint32_t nThreads = blockDim.x * gridDim.x;
+  int64_t iAQ = threadIdx.x + blockIdx.x*blockDim.x;
+  if (iAQ == 0) {
+    rqtk._pvB[rqtk._iTarget] += rqtk._amount;
+  }
+  const taNumber twoB = 2 * rqtk._amount;
+  const taNumber bSquare = rqtk._amount * rqtk._amount;
+  while (iAQ < rqtk._nAQs) {
+    const int64_t iQuestion = rqtk._pAQs[iAQ]._iQuestion;
+    if (iAQ == 0 || iQuestion != rqtk._pAQs[iAQ - 1]._iQuestion) {
+      int64_t iSame = iAQ;
+      do {
+        const int64_t iAnswer = rqtk._pAQs[iSame]._iAnswer;
+        taNumber& Aikj = GetSA(iQuestion, iAnswer, rqtk._iTarget, rqtk._psA, rqtk._nAnswers, rqtk._nTargets);;
+        const taNumber aSquare = Aikj;
+        const taNumber a = sqrt(aSquare);
+        const taNumber addend = a * twoB + bSquare;
+        Aikj += addend;
+        GetMD(iQuestion, rqtk._iTarget, rqtk._pmD, rqtk._nTargets) += addend;
+        iSame++;
+      } while (iSame < rqtk._nAQs && rqtk._pAQs[iSame]._iQuestion == iQuestion);
+    }
+    iAQ += nThreads;
+  }
+}
+
+template<typename taNumber> void RecordQuizTargetKernel<taNumber>::Run(const KernelLaunchContext& klc,
+  cudaStream_t stream)
+{
+  const uint32_t nThreads = klc.FixBlockSize(_nTargets);
+  const uint32_t nBlocks = klc.GetBlockCount(_nAQs, nThreads);
+  RecordQuizTarget<taNumber><<<nBlocks, nThreads, /* no shared memory */ 0, stream>>>(*this);
+}
+
 //// Instantinations
-template class InitStatisticsKernel<float>;
-template class StartQuizKernel<float>;
-template class NextQuestionKernel<float>;
+template struct InitStatisticsKernel<float>;
+template struct StartQuizKernel<float>;
+template struct NextQuestionKernel<float>;
+template struct RecordAnswerKernel<float>;
+template struct RecordQuizTargetKernel<float>;
 
 } // namespace ProbQA

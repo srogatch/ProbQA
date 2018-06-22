@@ -27,6 +27,10 @@ protected: // methods
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
   PqaError ShutdownWorkers() override final { return PqaError(); };
 
+public: // Internal interface methods
+  int GetDevice() const { return _iDevice; }
+  CudaStreamPool& GetCspNb() { return _cspNb; }
+
 public: // methods
   const KernelLaunchContext& GetKlc() const { return _klc; }
 };

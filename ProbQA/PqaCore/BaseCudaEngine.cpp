@@ -12,9 +12,10 @@ using namespace SRPlat;
 namespace ProbQA {
 
 BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi) : BaseEngine(engDef, pKbFi),
-  _iDevice(0), _cspNb(false), _gaps(((engDef._dims._nQuestions + 31) >> 5) + ((engDef._dims._nTargets + 31) >> 5))
+  _iDevice(0), _cspNb(false)
 {
   CudaMain::Initialize(_iDevice);
+  _gaps = CudaArray<uint32_t, true>(((_dims._nQuestions + 31) >> 5) + ((_dims._nTargets + 31) >> 5));
   CUDA_MUST(cudaGetDeviceProperties(&_klc._cdp, _iDevice));
   _klc._maxBlocks = int32_t((int64_t(_klc._cdp.multiProcessorCount) * _klc._cdp.maxThreadsPerMultiProcessor)
     >> _klc._cLogBlockSize);

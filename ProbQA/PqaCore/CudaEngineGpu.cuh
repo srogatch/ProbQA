@@ -19,21 +19,27 @@ struct KernelLaunchContext {
     return uint32_t(std::min(((nInstances - 1) >> _cLogBlockSize) + 1, int64_t(_maxBlocks)));
   }
 
+  uint32_t GetBlockCount(const int64_t nInstances, const uint32_t blockSize) const {
+    const int64_t t = nInstances + blockSize - 1;
+    return uint32_t(std::min(t - t%blockSize, int64_t(_maxBlocks)));
+  }
+
   uint32_t DefaultBlockSize() const { return 1ui32 << _cLogBlockSize; }
 
   uint32_t FixBlockSize(const int64_t rawSize) const {
+    if (rawSize <= _cWarpSize) {
+      return _cWarpSize;
+    }
     const uint32_t bound = uint32_t(std::min(rawSize, int64_t(_cdp.maxThreadsPerBlock)));
     unsigned long msb;
-    if (_BitScanReverse(&msb, bound)) {
-      const uint32_t t = (1 << msb);
-      if (bound == t) {
-        return t;
-      }
-      else {
-        return t << 1;
-      }
+    _BitScanReverse(&msb, bound);
+    const uint32_t t = (1 << msb);
+    if (bound == t) {
+      return t;
     }
-    return 0;
+    else {
+      return t << 1;
+    }
   }
 };
 
@@ -56,6 +62,7 @@ template<typename taNumber> struct StartQuizKernel {
   taNumber *_pPriorMants;
   int64_t _nTargets;
   taNumber *_pvB;
+  uint32_t *_pTargetGaps;
 
   void Run(const KernelLaunchContext& klc, cudaStream_t stream);
 };
@@ -90,6 +97,48 @@ template<typename taNumber> struct NextQuestionKernel {
   CudaAnswerMetrics<taNumber> *_pAnsMets; // nBlocks * nAnswers
 
   void Run(cudaStream_t stream);
+};
+
+// This assumes that gaps have probability 0.
+template<typename taNumber> struct RecordAnswerKernel {
+  int64_t _nQuestions;
+  int64_t _nAnswers;
+  int64_t _nTargets;
+  taNumber *_psA;
+  taNumber *_pmD;
+  taNumber *_pPriorMants;
+  int64_t _iQuestion;
+  int64_t _iAnswer;
+
+  void Run(const KernelLaunchContext& klc, cudaStream_t stream);
+};
+
+struct CudaAnsweredQuestion {
+  int64_t _iQuestion;
+  int64_t _iAnswer;
+  bool operator<(const CudaAnsweredQuestion& fellow) const {
+    if (_iQuestion == fellow._iQuestion) {
+      return _iAnswer < fellow._iAnswer;
+    }
+    return _iQuestion < fellow._iQuestion;
+  }
+};
+
+template<typename taNumber> struct RecordQuizTargetKernel {
+  int64_t _nQuestions;
+  int64_t _nAnswers;
+  int64_t _nTargets;
+  CudaAnsweredQuestion *_pAQs;
+  int64_t _nAQs;
+  int64_t _iTarget;
+  taNumber _amount;
+  taNumber *_psA;
+  taNumber *_pmD;
+  taNumber *_pvB;
+  taNumber _twoB;
+  taNumber _bSquare;
+
+  void Run(const KernelLaunchContext& klc, cudaStream_t stream);
 };
 
 } // namespace ProbQA

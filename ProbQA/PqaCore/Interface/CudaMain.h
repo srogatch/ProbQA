@@ -11,6 +11,7 @@ namespace ProbQA {
 struct CudaDeviceLockInfo;
 class CudaMain;
 
+// Watch the order of this lock w.r.t. your other synchronization locks.
 class PQACORE_API CudaDeviceLock {
   friend class CudaMain;
 

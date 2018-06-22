@@ -63,15 +63,18 @@ int LearnBinarySearch(const char* const initKbFp) {
     ed._dims._nQuestions = 1000;
     ed._dims._nTargets = 1000;
     ed._initAmount = 0.1;
-    ed._prec._type = TPqaPrecisionType::Double;
-    pEngine = PqaGetEngineFactory().CreateCpuEngine(err, ed);
+    //ed._prec._type = TPqaPrecisionType::Double;
+    //pEngine = PqaGetEngineFactory().CreateCpuEngine(err, ed);
+    ed._prec._type = TPqaPrecisionType::Float;
+    pEngine = PqaGetEngineFactory().CreateCudaEngine(err, ed);
     if (!err.IsOk() || pEngine == nullptr) {
       fprintf(stderr, "Failed to instantiate a ProbQA engine: %s\n", err.ToString(true).ToStd().c_str());
       return int(SRExitCode::UnspecifiedError);
     }
   }
   else {
-    pEngine = PqaGetEngineFactory().LoadCpuEngine(err, initKbFp);
+    //pEngine = PqaGetEngineFactory().LoadCpuEngine(err, initKbFp);
+    pEngine = PqaGetEngineFactory().LoadCudaEngine(err, initKbFp);
     if (!err.IsOk() || pEngine == nullptr) {
       fprintf(stderr, "Failed to load a ProbQA engine: %s\n", err.ToString(true).ToStd().c_str());
       return int(SRExitCode::UnspecifiedError);

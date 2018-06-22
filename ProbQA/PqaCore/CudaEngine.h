@@ -36,6 +36,10 @@ protected: // methods
   PqaError DestroyStatistics() override final;
   void UpdateWithDimensions() override final;
 
+public: // Internal interface methods
+  taNumber* GetMD() { return _mD.Get(); }
+  taNumber* GetSA() { return _sA.Get(); }
+
 public: // methods
   explicit CudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
 

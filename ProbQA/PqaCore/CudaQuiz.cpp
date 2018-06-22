@@ -2,6 +2,7 @@
 #include "../PqaCore/CudaQuiz.h"
 #include "../PqaCore/CudaEngine.h"
 #include "../PqaCore/Interface/PqaErrorParams.h"
+#include "../PqaCore/CudaEngineGpu.cuh"
 
 using namespace SRPlat;
 
@@ -24,8 +25,29 @@ template<typename taNumber> CudaQuiz<taNumber>::~CudaQuiz() {
 }
 
 template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqaId iAnswer) {
-  return PqaError(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
-    "CUDA quiz is being implemented.")));
+  _answers.emplace_back(_activeQuestion, iAnswer);
+  SRBitHelper::Set(GetQAsked(), _activeQuestion);
+  _activeQuestion = cInvalidPqaId;
+
+  CudaEngine<taNumber> *pEngine = static_cast<CudaEngine<taNumber>*>(GetBaseEngine());
+  RecordAnswerKernel<taNumber> rak;
+  rak._iAnswer = iAnswer;
+  rak._iQuestion = _answers.back()._iQuestion;
+  rak._nAnswers = pEngine->GetDims()._nAnswers;
+  rak._nQuestions = pEngine->GetDims()._nQuestions;
+  rak._nTargets = pEngine->GetDims()._nTargets;
+  rak._pPriorMants = _pPriorMants;
+  rak._pmD = pEngine->GetMD();
+  rak._psA = pEngine->GetSA();
+  {
+    CudaDeviceLock cdl = CudaMain::SetDevice(pEngine->GetDevice());
+    CudaStream cuStr = pEngine->GetCspNb().Acquire();
+    SRRWLock<false> rwl(pEngine->GetRws());
+    rak.Run(pEngine->GetKlc(), cuStr.Get());
+    CUDA_MUST(cudaGetLastError());
+    CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
+  }
+  return PqaError();
 }
 
 //// Instantiations
