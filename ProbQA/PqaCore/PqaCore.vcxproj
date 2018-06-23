@@ -80,7 +80,7 @@
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
       <MaxRegCount>32</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
-      <FastMath>true</FastMath>
+      <FastMath>false</FastMath>
       <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
       <GenerateLineInfo>true</GenerateLineInfo>
       <AdditionalOptions>-ftz=true %(AdditionalOptions)</AdditionalOptions>
@@ -122,7 +122,7 @@
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
       <MaxRegCount>32</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
-      <FastMath>true</FastMath>
+      <FastMath>false</FastMath>
       <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
       <GenerateLineInfo>true</GenerateLineInfo>
       <AdditionalOptions>-ftz=true %(AdditionalOptions)</AdditionalOptions>

@@ -42,7 +42,7 @@ template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqa
     uint8_t cpuByte;
     uint8_t *pDevByte = reinterpret_cast<uint8_t*>(_pQAsked) + (_activeQuestion >> 3);
     CUDA_MUST(cudaMemcpy(&cpuByte, pDevByte, 1, cudaMemcpyDeviceToHost));
-    cpuByte |= (1 << (_activeQuestion & 3));
+    cpuByte |= (1 << (_activeQuestion & 7));
     CUDA_MUST(cudaMemcpyAsync(pDevByte, &cpuByte, 1, cudaMemcpyHostToDevice, cuStr.Get()));
 
     SRRWLock<false> rwl(pEngine->GetRws());

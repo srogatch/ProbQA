@@ -334,7 +334,7 @@ template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNu
   int64_t iTarget = threadIdx.x;
   if (iTarget < rak._nTargets) {
     taNumber updPrior = GetUpdatedPrior(rak, iTarget);
-    sum[iTarget].Init(updPrior);
+    sum[threadIdx.x].Init(updPrior);
     rak._pPriorMants[iTarget] = updPrior;
     for (;;) {
       iTarget += blockDim.x;
@@ -342,12 +342,12 @@ template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNu
         break;
       }
       updPrior = GetUpdatedPrior(rak, iTarget);
-      sum[iTarget].Add(updPrior);
+      sum[threadIdx.x].Add(updPrior);
       rak._pPriorMants[iTarget] = updPrior;
     }
   }
   else {
-    sum[iTarget].Init(0);
+    sum[threadIdx.x].Init(0);
   }
   __syncthreads();
   uint32_t remains = blockDim.x >> 1;
