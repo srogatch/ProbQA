@@ -215,8 +215,11 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
         }
         else {
           Hikj = l2post * posterior;
-          const taNumber invDij = nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget];
-          lack = invDij * invDij / l2post;
+          //const taNumber invDij = nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget];
+          //lack = invDij * invDij / l2post;
+          const taNumber invSikj = 1 / GetSA(iQuestion, iAnswer, iTarget, nqk._psA, nqk._nAnswers,
+            nqk._nTargets);
+          lack = invSikj * invSikj / l2post;
         }
         shared[threadIdx.x]._accLhEnt.Add(Hikj);
         shared[threadIdx.x]._accLack.Add(lack);
