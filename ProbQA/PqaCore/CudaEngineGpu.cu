@@ -293,7 +293,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
       const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
       const taNumber nExpectedTargets = exp2(avgH);
-      nqk._pTotals[iQuestion] = pow(avgL, 2) * pow(avgV + 1e-4, 9) * pow(nExpectedTargets, -2);
+      nqk._pTotals[iQuestion] = pow(avgL, 2) * (pow(avgV, 9) + 1e-20) * pow(nExpectedTargets, -2);
     }
   }
 }
