@@ -134,23 +134,30 @@ template<typename taNumber> struct EvaluateQuestionShared {
 };
 
 template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQuestion,
-  const NextQuestionKernel<taNumber>& nqk)
+  const NextQuestionKernel<taNumber>& nqk, EvaluateQuestionShared<taNumber> *shared)
 {
   // i - questions
   // k - answers
   // j - targets
   __shared__ DevAccumulator<taNumber> accTotW;
+//  __shared__ int64_t prevTime;
   if (threadIdx.x == 0) {
     accTotW.Init(0);
   }
-  extern __shared__ EvaluateQuestionShared<taNumber> shared[];
   uint32_t remains;
   for (int64_t iAnswer = 0; iAnswer < nqk._nAnswers; iAnswer++) {
     const bool isAns0 = (iAnswer == 0);
     shared[threadIdx.x]._accLhEnt.Init(0);
     shared[threadIdx.x]._accLack.Init(0);
     shared[threadIdx.x]._accVelocity.Init(0);
+    //if (threadIdx.x == 0 && blockIdx.x == 0) {
+    //  prevTime = clock64();
+    //}
     for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
+      //if (threadIdx.x == 0 && blockIdx.x == 0) {
+      //  printf("[x: %lld]", clock64() - prevTime);
+      //  prevTime = clock64();
+      //}
       const int64_t iTarget = threadIdx.x + blockFirst;
       if (iTarget < nqk._nTargets) {
         taNumber postLikelihood;
@@ -159,6 +166,10 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
         }
         else {
           taNumber invCountTotal;
+          //if (threadIdx.x == 0 && blockIdx.x == 0) {
+          //  printf("[a: %lld]", clock64()-prevTime);
+          //  prevTime = clock64();
+          //}
           if (isAns0) {
             invCountTotal = 1 / GetMD(iQuestion, iTarget, nqk._pmD, nqk._nTargets);
             nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget] = invCountTotal;
@@ -166,14 +177,30 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
           else {
             invCountTotal = nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget];
           }
+          //if (threadIdx.x == 0 && blockIdx.x == 0) {
+          //  printf("[b: %lld]", clock64() - prevTime);
+          //  prevTime = clock64();
+          //}
           const taNumber Pr_Qi_eq_k_given_Tj = GetSA(iQuestion, iAnswer, iTarget, nqk._psA, nqk._nAnswers,
             nqk._nTargets) * invCountTotal;
           postLikelihood = Pr_Qi_eq_k_given_Tj * nqk._pPriorMants[iTarget];
+          //if (threadIdx.x == 0 && blockIdx.x == 0) {
+          //  printf("[c: %lld]", clock64() - prevTime);
+          //  prevTime = clock64();
+          //}
           shared[threadIdx.x]._accLhEnt.Add(postLikelihood);
         }
         nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] = postLikelihood;
+        //if (threadIdx.x == 0 && blockIdx.x == 0) {
+        //  printf("[d: %lld]", clock64() - prevTime);
+        //  prevTime = clock64();
+        //}
       }
     }
+    //if (threadIdx.x == 0 && blockIdx.x == 0) {
+    //  printf("[1: %lld]", clock64()-prevTime);
+    //  prevTime = clock64();
+    //}
     __syncthreads(); // get the shared data in all threads
     remains = blockDim.x >> 1;
     for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
@@ -182,12 +209,18 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       }
       __syncthreads();
     }
-    for (; remains >= 1; remains >>= 1) {
-      if (threadIdx.x < remains) {
-        shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
+    if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
+      for (; remains >= 1; remains >>= 1) {
+        if (threadIdx.x < remains) {
+          shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
+        }
       }
     }
     __syncthreads(); // Ensure that all threads get updated shared[0]
+    //if (threadIdx.x == 0 && blockIdx.x == 0) {
+    //  printf("[2: %lld]", clock64() - prevTime);
+    //  prevTime = clock64();
+    //}
     const taNumber Wk = shared[0]._accLhEnt.Get();
     if (threadIdx.x == 0) {
       accTotW.Add(Wk);
@@ -217,6 +250,10 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
         shared[threadIdx.x]._accVelocity.Add(square);
       }
     }
+    //if (threadIdx.x == 0 && blockIdx.x == 0) {
+    //  printf("[3: %lld]", clock64() - prevTime);
+    //  prevTime = clock64();
+    //}
     __syncthreads(); // get the shared data in all threads
     remains = blockDim.x >> 1;
     for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
@@ -227,25 +264,34 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       }
       __syncthreads();
     }
-    for (; remains >= 1; remains >>= 1) {
-      if (threadIdx.x < remains) {
-        shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-        shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-        shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
+    if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
+      for (; remains >= 1; remains >>= 1) {
+        if (threadIdx.x < remains) {
+          shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
+          shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
+          shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
+        }
+      }
+      if (threadIdx.x == 0) {
+        const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
+        nqk._pAnsMets[iAnsMet]._entropy = shared[0]._accLhEnt.Get();
+        nqk._pAnsMets[iAnsMet]._lack = shared[0]._accLack.Get();
+        nqk._pAnsMets[iAnsMet]._velocity = shared[0]._accVelocity.Get();
       }
     }
-    if (threadIdx.x == 0) {
-      const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
-      nqk._pAnsMets[iAnsMet]._entropy = shared[0]._accLhEnt.Get();
-      nqk._pAnsMets[iAnsMet]._lack = shared[0]._accLack.Get();
-      nqk._pAnsMets[iAnsMet]._velocity = shared[0]._accVelocity.Get();
-    }
+    //if (threadIdx.x == 0 && blockIdx.x == 0) {
+    //  printf("[4: %lld]", clock64() - prevTime);
+    //  prevTime = clock64();
+    //}
   }
+  //if (threadIdx.x == 0 && blockIdx.x == 0) {
+  //  printf("[5: %lld]", clock64() - prevTime);
+  //  prevTime = clock64();
+  //}
 
   shared[threadIdx.x]._accLhEnt.Init(0);
   shared[threadIdx.x]._accLack.Init(0);
   shared[threadIdx.x]._accVelocity.Init(0);
-  __syncthreads();
   int64_t iAnswer = threadIdx.x;
   while (iAnswer < nqk._nAnswers) {
     const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
@@ -265,36 +311,60 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     }
     __syncthreads();
   }
-  for (; remains >= 1; remains >>= 1) {
-    if (threadIdx.x < remains) {
-      shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-      shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-      shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
+  if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
+    for (; remains >= 1; remains >>= 1) {
+      if (threadIdx.x < remains) {
+        shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
+        shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
+        shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
+      }
     }
-  }
-  // No need - only thread 0 will continue.
-  // __syncthreads();
-  if (threadIdx.x == 0) {
-    const taNumber totW = accTotW.Get(); // actually this must be equal to 1 (+-)
-    const taNumber normalizer = 1 / totW;
-    const taNumber avgH = -shared[0]._accLhEnt.Get() * normalizer;
-    const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
-    const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
-    const taNumber nExpectedTargets = exp2(avgH);
-    nqk._pTotals[iQuestion] = pow(avgL, 1) * pow(avgV, 9) * pow(nExpectedTargets, -2);
+    if (threadIdx.x == 0) {
+      const taNumber totW = accTotW.Get(); // actually this must be equal to 1 (+-)
+      const taNumber normalizer = 1 / totW;
+      const taNumber avgH = -shared[0]._accLhEnt.Get() * normalizer;
+      const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
+      const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
+      const taNumber nExpectedTargets = exp2(avgH);
+      nqk._pTotals[iQuestion] = pow(avgL, 1) * pow(avgV, 9) * pow(nExpectedTargets, -2);
+    }
+    //if (threadIdx.x == 0 && blockIdx.x == 0) {
+    //  printf("[6: %lld]", clock64() - prevTime);
+    //  prevTime = clock64();
+    //}
   }
 }
 
+template<typename taNumber> __device__ void EvaluateQuestionTest(const int64_t iQuestion,
+  const NextQuestionKernel<taNumber>& nqk, EvaluateQuestionShared<taNumber> *shared)
+{
+  //for (int64_t iAnswer = 0; iAnswer < nqk._nAnswers; iAnswer++) {
+  //  for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
+  //    volatile int x = 1;
+  //  }
+  //  for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
+  //    volatile int x = 1;
+  //  }
+  //}
+  //int64_t iAnswer = threadIdx.x;
+  //while (iAnswer < nqk._nAnswers) {
+  //  volatile int x = 1;
+  //  iAnswer += blockDim.x;
+  //}
+}
+
 template<typename taNumber> __global__ void NextQuestion(const NextQuestionKernel<taNumber> nqk) {
+  extern __shared__ EvaluateQuestionShared<taNumber> shared[];
+//  __shared__ int64_t prevTime;
   int64_t iQuestion = blockIdx.x;
   while (iQuestion < nqk._nQuestions) {
-    if (TestBit(nqk._pQAsked, iQuestion) || TestBit(nqk._pQuestionGaps, iQuestion)) {
+    if ( TestBit(nqk._pQAsked, iQuestion) || TestBit(nqk._pQuestionGaps, iQuestion) ) {
       if (threadIdx.x == 0) {
         nqk._pTotals[iQuestion] = 0;
       }
     }
     else {
-      EvaluateQuestion(iQuestion, nqk);
+      EvaluateQuestion(iQuestion, nqk, shared);
     }
     iQuestion += gridDim.x;
   }

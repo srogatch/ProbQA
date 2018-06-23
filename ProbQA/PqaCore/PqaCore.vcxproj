@@ -81,6 +81,9 @@
       <MaxRegCount>32</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <FastMath>true</FastMath>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
+      <GenerateLineInfo>true</GenerateLineInfo>
+      <AdditionalOptions>-ftz=true %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -120,7 +123,21 @@
       <MaxRegCount>32</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <FastMath>true</FastMath>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
+      <GenerateLineInfo>true</GenerateLineInfo>
+      <AdditionalOptions>-ftz=true %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>O3</Optimization>
+      <Runtime>MD</Runtime>
+      <RuntimeChecks>Default</RuntimeChecks>
+      <TypeInfo>true</TypeInfo>
+      <Warning>W4</Warning>
     </CudaCompile>
+    <CudaLink>
+      <GPUDebugInfo>false</GPUDebugInfo>
+    </CudaLink>
+    <CudaLink>
+      <Optimization>O3</Optimization>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BaseCpuEngine.fwd.h" />
@@ -266,6 +283,10 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateLineInfo>
+      <InterleaveSourceInPTX Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</InterleaveSourceInPTX>
+      <InterleaveSourceInPTX Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</InterleaveSourceInPTX>
     </CudaCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

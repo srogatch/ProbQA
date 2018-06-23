@@ -17,7 +17,7 @@ public:
   typedef int64_t TExponent;
 
 private: // variables
-  CudaArray<uint8_t, true> _storage;
+  CudaArray<uint8_t, false> _storage;
   __m256i *_pQAsked;
   TExponent *_pExponents;
   taNumber *_pPriorMants;

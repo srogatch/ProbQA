@@ -12,7 +12,7 @@ template<typename taNumber> CudaQuiz<taNumber>::CudaQuiz(CudaEngine<taNumber> *p
   const TPqaId nTargets = pEngine->GetDims()._nTargets;
   const TPqaId nQuestions = pEngine->GetDims()._nQuestions;
   const size_t nBitVects = SRSimd::VectsFromBits(nQuestions);
-  _storage = CudaArray<uint8_t, true>(SRSimd::_cNBytes * (nBitVects + /* alignment */ 1)
+  _storage = CudaArray<uint8_t, false>(SRSimd::_cNBytes * (nBitVects + /* alignment */ 1)
     + SRSimd::GetPaddedBytes(nTargets * sizeof(taNumber))
     + SRSimd::GetPaddedBytes(nTargets * sizeof(TExponent))
   );
@@ -25,14 +25,10 @@ template<typename taNumber> CudaQuiz<taNumber>::~CudaQuiz() {
 }
 
 template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqaId iAnswer) {
-  _answers.emplace_back(_activeQuestion, iAnswer);
-  SRBitHelper::Set(GetQAsked(), _activeQuestion);
-  _activeQuestion = cInvalidPqaId;
-
   CudaEngine<taNumber> *pEngine = static_cast<CudaEngine<taNumber>*>(GetBaseEngine());
   RecordAnswerKernel<taNumber> rak;
   rak._iAnswer = iAnswer;
-  rak._iQuestion = _answers.back()._iQuestion;
+  rak._iQuestion = _activeQuestion;
   rak._nAnswers = pEngine->GetDims()._nAnswers;
   rak._nQuestions = pEngine->GetDims()._nQuestions;
   rak._nTargets = pEngine->GetDims()._nTargets;
@@ -42,11 +38,20 @@ template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqa
   {
     CudaDeviceLock cdl = CudaMain::SetDevice(pEngine->GetDevice());
     CudaStream cuStr = pEngine->GetCspNb().Acquire();
+
+    uint8_t cpuByte;
+    uint8_t *pDevByte = reinterpret_cast<uint8_t*>(_pQAsked) + (_activeQuestion >> 3);
+    CUDA_MUST(cudaMemcpy(&cpuByte, pDevByte, 1, cudaMemcpyDeviceToHost));
+    cpuByte |= (1 << (_activeQuestion & 3));
+    CUDA_MUST(cudaMemcpyAsync(pDevByte, &cpuByte, 1, cudaMemcpyHostToDevice, cuStr.Get()));
+
     SRRWLock<false> rwl(pEngine->GetRws());
     rak.Run(pEngine->GetKlc(), cuStr.Get());
     CUDA_MUST(cudaGetLastError());
     CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
   }
+  _answers.emplace_back(_activeQuestion, iAnswer);
+  _activeQuestion = cInvalidPqaId;
   return PqaError();
 }
 

@@ -165,7 +165,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
     nqk._nBlocks = uint32_t(std::min(uint64_t(GetKlc()._cdp.multiProcessorCount)
       * GetKlc()._cdp.maxThreadsPerMultiProcessor / nqk._nThreadsPerBlock,
       uint64_t(nQuestions)));
-    CudaArray<uint8_t, true> storage(SRSimd::_cNBytes // padding
+    CudaArray<uint8_t, false> storage(SRSimd::_cNBytes // padding
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nQuestions) // totals
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // posteriors
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // _pInvD
@@ -186,15 +186,20 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
     nqk._pAnsMets = reinterpret_cast<CudaAnswerMetrics<taNumber>*>(SRSimd::AlignPtr(
       nqk._pInvD + nTargets * nqk._nBlocks));
 
+    SRSmartMPP<taNumber> totals(_memPool, nQuestions);
     {
       CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
       CudaStream cuStr = _cspNb.Acquire();
-      SRRWLock<false> rwl(_rws);
-      nqk.Run(cuStr.Get());
-      CUDA_MUST(cudaGetLastError());
+      {
+        SRRWLock<false> rwl(_rws);
+        nqk.Run(cuStr.Get());
+        CUDA_MUST(cudaGetLastError());
+        CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
+      }
+      CUDA_MUST(cudaMemcpyAsync(totals.Get(), nqk._pTotals, sizeof(taNumber)*nQuestions, cudaMemcpyDeviceToHost,
+        cuStr.Get()));
       CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
     }
-
     //// Analyze the totals so to select the next question
     struct QuestionInfo {
       TPqaId _iQuestion;
@@ -207,11 +212,11 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
     taNumber grandTotal = 0;
     TPqaId nInHeap = 0;
     for (TPqaId i = 0; i < nQuestions; i++) {
-      if (_questionGaps.IsGap(i) || SRBitHelper::Test(pQuiz->GetQAsked(), i)) {
+      if (_questionGaps.IsGap(i) /*|| SRBitHelper::Test(pQuiz->GetQAsked(), i)*/) {
         continue;
       }
       heap.Get()[nInHeap]._iQuestion = i;
-      taNumber priority = nqk._pTotals[i];
+      taNumber priority = totals.Get()[i];
       heap.Get()[nInHeap]._priority = priority;
       grandTotal += priority;
       nInHeap++;
@@ -245,13 +250,21 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::ListTopTargetsSpec(PqaE
     CudaQuiz<taNumber> *pQuiz = static_cast<CudaQuiz<taNumber>*>(pBaseQuiz);
     const TPqaId nTargets = _dims._nTargets;
     SRSmartMPP<RatedTarget> all(_memPool, nTargets);
+    SRSmartMPP<taNumber> priors(_memPool, nTargets);
+    {
+      CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
+      CudaStream cuStr = _cspNb.Acquire();
+      CUDA_MUST(cudaMemcpyAsync(priors.Get(), pQuiz->GetPriorMants(), sizeof(taNumber)*nTargets,
+        cudaMemcpyDeviceToHost, cuStr.Get()));
+      CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
+    }
     TPqaId nInHeap = 0;
     for (TPqaId i = 0; i < nTargets; i++) {
       if (_targetGaps.IsGap(i)) {
         continue;
       }
       all.Get()[nInHeap]._iTarget = i;
-      all.Get()[nInHeap]._prob = pQuiz->GetPriorMants()[i];
+      all.Get()[nInHeap]._prob = priors.Get()[i];
       nInHeap++;
     }
     std::make_heap(all.Get(), all.Get() + nInHeap);
