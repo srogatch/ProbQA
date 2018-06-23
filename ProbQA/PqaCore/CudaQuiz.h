@@ -17,8 +17,8 @@ public:
   typedef int64_t TExponent;
 
 private: // variables
-  CudaArray<uint8_t, false> _storage;
-  __m256i *_pQAsked;
+  CudaArray<uint8_t> _storage;
+  uint8_t *_pQAsked;
   TExponent *_pExponents;
   taNumber *_pPriorMants;
 
@@ -26,7 +26,7 @@ public: // methods
   CudaQuiz(CudaEngine<taNumber> *pEngine);
   ~CudaQuiz();
 
-  __m256i* GetQAsked() const { return _pQAsked; }
+  uint8_t* GetQAsked() const { return _pQAsked; }
   TExponent* GetTlhExps() const { return _pExponents; }
   taNumber* GetPriorMants() const { return _pPriorMants; }
 

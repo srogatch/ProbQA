@@ -58,11 +58,11 @@ template<typename taNumber> struct InitStatisticsKernel {
 };
 
 template<typename taNumber> struct StartQuizKernel {
-  uint32_t *_pQAsked;
+  uint8_t *_pQAsked;
   taNumber *_pPriorMants;
   int64_t _nTargets;
   taNumber *_pvB;
-  uint32_t *_pTargetGaps;
+  uint8_t *_pTargetGaps;
 
   void Run(const KernelLaunchContext& klc, cudaStream_t stream);
 };
@@ -81,10 +81,10 @@ template<typename taNumber> struct NextQuestionKernel {
   int64_t _nTargets;
   taNumber *_psA;
   taNumber *_pmD;
-  uint32_t *_pQAsked;
+  uint8_t *_pQAsked;
   taNumber *_pPriorMants;
-  uint32_t *_pQuestionGaps;
-  uint32_t *_pTargetGaps;
+  uint8_t *_pQuestionGaps;
+  uint8_t *_pTargetGaps;
   uint32_t _nThreadsPerBlock;
   uint32_t _nBlocks;
 

@@ -12,11 +12,11 @@ template<typename taNumber> class CudaEngine : public BaseCudaEngine {
 private: // variables
   //// N questions, K answers, M targets
   // space A: [iQuestion][iAnswer][iTarget] . Guarded by _rws
-  CudaArray<taNumber, false> _sA;
+  CudaArray<taNumber> _sA;
   // matrix D: [iQuestion][iTarget] . Guarded by _rws
-  CudaArray<taNumber, false> _mD;
+  CudaArray<taNumber> _mD;
   // vector B: [iTarget] . Guarded by _rws
-  CudaArray<taNumber, false> _vB;
+  CudaArray<taNumber> _vB;
 
 protected: // methods
   PqaError TrainSpec(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,

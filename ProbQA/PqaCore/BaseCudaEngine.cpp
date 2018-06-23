@@ -15,7 +15,7 @@ BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi
   _iDevice(0), _cspNb(false)
 {
   CudaMain::Initialize(_iDevice);
-  _gaps = CudaArray<uint32_t, true>(((_dims._nQuestions + 31) >> 5) + ((_dims._nTargets + 31) >> 5));
+  _gaps = CudaArray<uint8_t>(((_dims._nQuestions + 7) >> 3) + ((_dims._nTargets + 7) >> 3));
   CUDA_MUST(cudaGetDeviceProperties(&_klc._cdp, _iDevice));
   _klc._maxBlocks = int32_t((int64_t(_klc._cdp.multiProcessorCount) * _klc._cdp.maxThreadsPerMultiProcessor)
     >> _klc._cLogBlockSize);
@@ -25,19 +25,19 @@ BaseCudaEngine::BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi
   }
 }
 
-uint32_t* BaseCudaEngine::DevQuestionGaps() {
+uint8_t* BaseCudaEngine::DevQuestionGaps() {
   return _gaps.Get();
 }
 
-uint32_t* BaseCudaEngine::DevTargetGaps() {
-  return _gaps.Get() + ((_dims._nQuestions + 31) >> 5);
+uint8_t* BaseCudaEngine::DevTargetGaps() {
+  return _gaps.Get() + ((_dims._nQuestions + 7) >> 3);
 }
 
 void BaseCudaEngine::CopyGapsToDevice(cudaStream_t stream) {
-  memcpy(DevQuestionGaps(), _questionGaps.GetBits(), (_dims._nQuestions + 7) >> 3);
-  memcpy(DevTargetGaps(), _targetGaps.GetBits(), (_dims._nTargets + 7) >> 3);
-  _gaps.Prefetch(stream, 0, ((_dims._nQuestions + 31) >> 5) + ((_dims._nTargets + 31) >> 5),
-    _iDevice);
+  CUDA_MUST(cudaMemcpyAsync(DevQuestionGaps(), _questionGaps.GetBits(), (_dims._nQuestions +7)>>3,
+    cudaMemcpyHostToDevice, stream));
+  CUDA_MUST(cudaMemcpyAsync(DevTargetGaps(), _targetGaps.GetBits(), (_dims._nTargets + 7) >> 3,
+    cudaMemcpyHostToDevice, stream));
 }
 
 } // namespace ProbQA

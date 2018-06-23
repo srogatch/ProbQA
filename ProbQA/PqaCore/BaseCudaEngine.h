@@ -14,15 +14,15 @@ namespace ProbQA {
 class BaseCudaEngine : public BaseEngine {
 private: // variables
   KernelLaunchContext _klc;
-  CudaArray<uint32_t, true> _gaps; // question, then target gaps
+  CudaArray<uint8_t> _gaps; // question, then target gaps
 
 protected: // variables
   const int _iDevice; // for now, use only one device
   CudaStreamPool _cspNb; // non-blocking CUDA stream pool
 
 protected: // methods
-  uint32_t * DevQuestionGaps();
-  uint32_t* DevTargetGaps();
+  uint8_t* DevQuestionGaps();
+  uint8_t* DevTargetGaps();
   void CopyGapsToDevice(cudaStream_t stream);
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
   PqaError ShutdownWorkers() override final { return PqaError(); };

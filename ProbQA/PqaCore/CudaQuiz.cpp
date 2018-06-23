@@ -12,12 +12,12 @@ template<typename taNumber> CudaQuiz<taNumber>::CudaQuiz(CudaEngine<taNumber> *p
   const TPqaId nTargets = pEngine->GetDims()._nTargets;
   const TPqaId nQuestions = pEngine->GetDims()._nQuestions;
   const size_t nBitVects = SRSimd::VectsFromBits(nQuestions);
-  _storage = CudaArray<uint8_t, false>(SRSimd::_cNBytes * (nBitVects + /* alignment */ 1)
+  _storage = CudaArray<uint8_t>(SRSimd::_cNBytes * (nBitVects + /* alignment */ 1)
     + SRSimd::GetPaddedBytes(nTargets * sizeof(taNumber))
     + SRSimd::GetPaddedBytes(nTargets * sizeof(TExponent))
   );
-  _pQAsked = static_cast<__m256i*>(SRSimd::AlignPtr(_storage.Get(), SRSimd::_cNBytes));
-  _pPriorMants = reinterpret_cast<taNumber*>(_pQAsked + nBitVects);
+  _pQAsked = static_cast<uint8_t*>(SRSimd::AlignPtr(_storage.Get(), SRSimd::_cNBytes));
+  _pPriorMants = reinterpret_cast<taNumber*>(reinterpret_cast<__m256i*>(_pQAsked) + nBitVects);
   _pExponents = static_cast<TExponent*>(SRSimd::AlignPtr(_pPriorMants + nTargets));
 }
 

@@ -10,7 +10,7 @@
 
 namespace ProbQA {
 
-template<typename T, bool taUnified> class  CudaArray {
+template<typename T> class  CudaArray {
   T *_d_p;
 
 private: // methods
@@ -24,12 +24,7 @@ public: // methods
   }
 
   explicit CudaArray(const int64_t nItems) {
-    if (taUnified) {
-      CUDA_MUST(cudaMallocManaged(&_d_p, sizeof(T)*nItems));
-    }
-    else {
-      CUDA_MUST(cudaMalloc(&_d_p, sizeof(T)*nItems));
-    }
+    CUDA_MUST(cudaMalloc(&_d_p, sizeof(T)*nItems));
   }
   
   CudaArray(const CudaArray&) = delete;
@@ -58,20 +53,6 @@ public: // methods
   }
 
   T* Get() const { return _d_p; }
-
-  // Pass dstDevice=cudaCpuDeviceId for copying the data to CPU memory.
-  void Prefetch(const cudaStream_t stream, const int64_t iFirst, const int64_t nItems, int destDevice) {
-    (void)stream;
-    (void)iFirst;
-    (void)nItems;
-    (void)destDevice;
-    // Not supported on Windows
-    //if constexpr(!taUnified) {
-    //  SRPlat::SRException(SRPlat::SRString::MakeUnowned(SR_FILE_LINE "Requested prefetch on non-unified memory."))
-    //    .ThrowMoving();
-    //}
-    //CUDA_MUST(cudaMemPrefetchAsync(_d_p + iFirst, sizeof(T)*nItems, destDevice, stream));
-  }
 
   void EarlyRelease() {
     Destroy(_d_p);
