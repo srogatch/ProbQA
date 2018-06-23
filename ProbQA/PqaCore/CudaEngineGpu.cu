@@ -150,28 +150,29 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     shared[threadIdx.x]._accLhEnt.Init(0);
     shared[threadIdx.x]._accLack.Init(0);
     shared[threadIdx.x]._accVelocity.Init(0);
-    __syncthreads();
     for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
       const int64_t iTarget = threadIdx.x + blockFirst;
-      taNumber postLikelihood;
-      if (iTarget < nqk._nTargets && !TestBit(nqk._pTargetGaps, iTarget)) {
-        taNumber invCountTotal;
-        if (isAns0) {
-          invCountTotal = 1 / GetMD(iQuestion, iTarget, nqk._pmD, nqk._nTargets);
-          nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget] = invCountTotal;
+      if (iTarget < nqk._nTargets) {
+        taNumber postLikelihood;
+        if (TestBit(nqk._pTargetGaps, iTarget)) {
+          postLikelihood = 0;
         }
         else {
-          invCountTotal = nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget];
+          taNumber invCountTotal;
+          if (isAns0) {
+            invCountTotal = 1 / GetMD(iQuestion, iTarget, nqk._pmD, nqk._nTargets);
+            nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget] = invCountTotal;
+          }
+          else {
+            invCountTotal = nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget];
+          }
+          const taNumber Pr_Qi_eq_k_given_Tj = GetSA(iQuestion, iAnswer, iTarget, nqk._psA, nqk._nAnswers,
+            nqk._nTargets) * invCountTotal;
+          postLikelihood = Pr_Qi_eq_k_given_Tj * nqk._pPriorMants[iTarget];
+          shared[threadIdx.x]._accLhEnt.Add(postLikelihood);
         }
-        const taNumber Pr_Qi_eq_k_given_Tj = GetSA(iQuestion, iAnswer, iTarget, nqk._psA, nqk._nAnswers,
-          nqk._nTargets) * invCountTotal;
-        postLikelihood = Pr_Qi_eq_k_given_Tj * nqk._pPriorMants[iTarget];
+        nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] = postLikelihood;
       }
-      else {
-        postLikelihood = 0;
-      }
-      nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] = postLikelihood;
-      shared[threadIdx.x]._accLhEnt.Add(postLikelihood);
     }
     __syncthreads(); // get the shared data in all threads
     remains = blockDim.x >> 1;
@@ -202,13 +203,13 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       if (iTarget < nqk._nTargets && !TestBit(nqk._pTargetGaps, iTarget)) {
         const taNumber posterior = nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] * invWk;
         const taNumber prior = nqk._pPriorMants[iTarget];
-        const taNumber l2post = log2(posterior);
+        const taNumber l2post = ((posterior == 0) ? 0 : log2(posterior));
         
         const taNumber Hikj = l2post * posterior;
         shared[threadIdx.x]._accLhEnt.Add(Hikj);
 
         const taNumber invDij = nqk._pInvD[blockIdx.x*nqk._nTargets + iTarget];
-        const taNumber lack = invDij * invDij / l2post;
+        const taNumber lack = ((l2post == 0) ? 0 : invDij * invDij / l2post);
         shared[threadIdx.x]._accLack.Add(lack);
 
         const taNumber diff = posterior - prior;
@@ -233,14 +234,12 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
         shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
       }
     }
-    __syncthreads(); // Ensure that all threads get updated shared[0]
     if (threadIdx.x == 0) {
       const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
       nqk._pAnsMets[iAnsMet]._entropy = shared[0]._accLhEnt.Get();
       nqk._pAnsMets[iAnsMet]._lack = shared[0]._accLack.Get();
       nqk._pAnsMets[iAnsMet]._velocity = shared[0]._accVelocity.Get();
     }
-    __syncthreads(); // Ensure that all threads no more need shared[0]
   }
 
   shared[threadIdx.x]._accLhEnt.Init(0);
@@ -278,13 +277,12 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
   if (threadIdx.x == 0) {
     const taNumber totW = accTotW.Get(); // actually this must be equal to 1 (+-)
     const taNumber normalizer = 1 / totW;
-    const taNumber avgH = shared[0]._accLhEnt.Get() * normalizer;
-    const taNumber avgL = shared[0]._accLack.Get() * normalizer;
+    const taNumber avgH = -shared[0]._accLhEnt.Get() * normalizer;
+    const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
     const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
     const taNumber nExpectedTargets = exp2(avgH);
     nqk._pTotals[iQuestion] = pow(avgL, 1) * pow(avgV, 9) * pow(nExpectedTargets, -2);
   }
-  __syncthreads(); // Let thread 0 finish with processing the value
 }
 
 template<typename taNumber> __global__ void NextQuestion(const NextQuestionKernel<taNumber> nqk) {

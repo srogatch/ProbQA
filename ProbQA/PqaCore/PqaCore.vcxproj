@@ -80,6 +80,7 @@
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
       <MaxRegCount>32</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <FastMath>true</FastMath>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -118,6 +119,7 @@
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
       <MaxRegCount>32</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <FastMath>true</FastMath>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -259,7 +261,12 @@
     <Text Include="Docs\CpuEngineGuidelines.txt" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="CudaEngineGpu.cu" />
+    <CudaCompile Include="CudaEngineGpu.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </CudaCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
