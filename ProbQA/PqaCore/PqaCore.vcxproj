@@ -83,7 +83,6 @@
       <FastMath>false</FastMath>
       <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
       <GenerateLineInfo>true</GenerateLineInfo>
-      <AdditionalOptions>-ftz=true %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,7 +124,6 @@
       <FastMath>false</FastMath>
       <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
       <GenerateLineInfo>true</GenerateLineInfo>
-      <AdditionalOptions>-ftz=true %(AdditionalOptions)</AdditionalOptions>
       <Optimization>O3</Optimization>
       <Runtime>MD</Runtime>
       <RuntimeChecks>Default</RuntimeChecks>

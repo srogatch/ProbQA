@@ -170,7 +170,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nQuestions) // totals
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // posteriors
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // _pInvD
-      + SRSimd::GetPaddedBytes(sizeof(CudaAnswerMetrics<taNumber>) * nqk._nBlocks * nAnswers) // _pAnsMets
+      + SRSimd::GetPaddedBytes(sizeof(CudaAnswerMetrics<taNumber>) * nAnswers * nqk._nBlocks) // _pAnsMets
     );
     nqk._nQuestions = nQuestions;
     nqk._nAnswers = nAnswers;
@@ -228,7 +228,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
       return cInvalidPqaId;
     }
     std::make_heap(heap.Get(), heap.Get() + nInHeap);
-    taNumber selected = grandTotal * SRFastRandom::ThreadLocal().Generate<uint64_t>()
+    const taNumber selected = (grandTotal * SRFastRandom::ThreadLocal().Generate<uint64_t>())
       / std::numeric_limits<uint64_t>::max();
     taNumber poppedSum = 0;
     while (poppedSum < selected && nInHeap > 1) {

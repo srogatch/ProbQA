@@ -16,7 +16,7 @@ template<typename taNumber> CudaQuiz<taNumber>::CudaQuiz(CudaEngine<taNumber> *p
     + SRSimd::GetPaddedBytes(nTargets * sizeof(taNumber))
     + SRSimd::GetPaddedBytes(nTargets * sizeof(TExponent))
   );
-  _pQAsked = static_cast<uint8_t*>(SRSimd::AlignPtr(_storage.Get(), SRSimd::_cNBytes));
+  _pQAsked = static_cast<uint8_t*>(SRSimd::AlignPtr(_storage.Get()));
   _pPriorMants = reinterpret_cast<taNumber*>(reinterpret_cast<__m256i*>(_pQAsked) + nBitVects);
   _pExponents = static_cast<TExponent*>(SRSimd::AlignPtr(_pPriorMants + nTargets));
 }
@@ -40,8 +40,9 @@ template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqa
     CudaStream cuStr = pEngine->GetCspNb().Acquire();
 
     uint8_t cpuByte;
-    uint8_t *pDevByte = reinterpret_cast<uint8_t*>(_pQAsked) + (_activeQuestion >> 3);
-    CUDA_MUST(cudaMemcpy(&cpuByte, pDevByte, 1, cudaMemcpyDeviceToHost));
+    uint8_t *pDevByte = _pQAsked + (_activeQuestion >> 3);
+    CUDA_MUST(cudaMemcpyAsync(&cpuByte, pDevByte, 1, cudaMemcpyDeviceToHost, cuStr.Get()));
+    CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
     cpuByte |= (1 << (_activeQuestion & 7));
     CUDA_MUST(cudaMemcpyAsync(pDevByte, &cpuByte, 1, cudaMemcpyHostToDevice, cuStr.Get()));
 

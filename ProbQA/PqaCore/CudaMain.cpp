@@ -102,8 +102,7 @@ bool CudaMain::Initialize(const int iDevice) {
   CUDA_MUST(cudaSetDeviceFlags(
     cudaDeviceScheduleBlockingSync
     //cudaDeviceScheduleYield // cudaDeviceScheduleBlockingSync //DEBUG
-    | 
-    cudaDeviceMapHost
+    | cudaDeviceMapHost
     //TODO: benchmark, not sure about this.
     // https://devtalk.nvidia.com/default/topic/621170/random-execution-times-and-freezes-with-concurent-kernels/
     //| cudaDeviceLmemResizeToMax
@@ -136,7 +135,7 @@ template<bool taTryOnly> CudaDeviceLock CudaMain::SetDeviceInternal(const int iD
     }
     _cvCanSwitchDevice.Wait(_csDeviceSwitch);
   }
-  return CudaDeviceLock(&gCdli);
+  return CudaDeviceLock(true);
 }
 
 CudaDeviceLock CudaMain::SetDevice(const int iDevice) {

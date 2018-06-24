@@ -137,6 +137,19 @@ template<typename taNumber> struct EvaluateQuestionShared {
   DevAccumulator<taNumber> _accVelocity;
 };
 
+template<typename taNumber> __device__ taNumber CalcVelocityComponent(const taNumber V, const int64_t nTargets) {
+  const taNumber cLnMaxV = 0.34657359027997265470861606072909;
+  // Min exponent : -126
+  // Exponent due to subnormals: -23
+  // ln(2**149) = 149 * ln(2) = 149 * 0.6931471805599453 = 103.2789299034318497
+  const taNumber cLn0Stab = 104;
+  const taNumber lnV = ((V == 0) ? cLn0Stab : log(V));
+  const taNumber powT = taNumber(nTargets) * nTargets;
+  // The order of operations is important for numerical stability.
+  const taNumber vComp = 1 / ((cLnMaxV - lnV) + cLnMaxV / powT);
+  return vComp;
+}
+
 template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQuestion,
   const NextQuestionKernel<taNumber>& nqk, EvaluateQuestionShared<taNumber> *shared)
 {
@@ -293,7 +306,10 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
       const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
       const taNumber nExpectedTargets = exp2(avgH);
-      nqk._pTotals[iQuestion] = pow(avgL, 2) * (pow(avgV, 9) + 1e-20) * pow(nExpectedTargets, -2);
+      const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
+      nqk._pTotals[iQuestion] = pow(avgL, 1)
+        * pow(vComp, 9)
+        * pow(nExpectedTargets, -2);
     }
   }
 }
@@ -392,7 +408,7 @@ template<typename taNumber> __global__ void RecordQuizTarget(const RecordQuizTar
       int64_t iSame = iAQ;
       do {
         const int64_t iAnswer = rqtk._pAQs[iSame]._iAnswer;
-        taNumber& Aikj = GetSA(iQuestion, iAnswer, rqtk._iTarget, rqtk._psA, rqtk._nAnswers, rqtk._nTargets);;
+        taNumber& Aikj = GetSA(iQuestion, iAnswer, rqtk._iTarget, rqtk._psA, rqtk._nAnswers, rqtk._nTargets);
         const taNumber aSquare = Aikj;
         const taNumber a = sqrt(aSquare);
         const taNumber addend = a * rqtk._twoB + rqtk._bSquare;
@@ -408,7 +424,7 @@ template<typename taNumber> __global__ void RecordQuizTarget(const RecordQuizTar
 template<typename taNumber> void RecordQuizTargetKernel<taNumber>::Run(const KernelLaunchContext& klc,
   cudaStream_t stream)
 {
-  const uint32_t nThreads = klc.FixBlockSize(_nTargets);
+  const uint32_t nThreads = klc.FixBlockSize(_nAQs);
   const uint32_t nBlocks = klc.GetBlockCount(_nAQs, nThreads);
   RecordQuizTarget<taNumber><<<nBlocks, nThreads, /* no shared memory */ 0, stream>>>(*this);
 }
