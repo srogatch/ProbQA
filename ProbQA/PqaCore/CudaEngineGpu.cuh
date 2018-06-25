@@ -99,7 +99,6 @@ template<typename taNumber> struct NextQuestionKernel {
   void Run(cudaStream_t stream);
 };
 
-// This assumes that gaps have probability 0.
 template<typename taNumber> struct RecordAnswerKernel {
   int64_t _nQuestions;
   int64_t _nAnswers;
@@ -109,6 +108,7 @@ template<typename taNumber> struct RecordAnswerKernel {
   taNumber *_pPriorMants;
   int64_t _iQuestion;
   int64_t _iAnswer;
+  uint8_t *_pTargetGaps;
 
   void Run(const KernelLaunchContext& klc, cudaStream_t stream);
 };

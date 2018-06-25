@@ -21,8 +21,6 @@ protected: // variables
   CudaStreamPool _cspNb; // non-blocking CUDA stream pool
 
 protected: // methods
-  uint8_t* DevQuestionGaps();
-  uint8_t* DevTargetGaps();
   void CopyGapsToDevice(cudaStream_t stream);
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
   PqaError ShutdownWorkers() override final { return PqaError(); };
@@ -30,6 +28,8 @@ protected: // methods
 public: // Internal interface methods
   int GetDevice() const { return _iDevice; }
   CudaStreamPool& GetCspNb() { return _cspNb; }
+  uint8_t* DevQuestionGaps();
+  uint8_t* DevTargetGaps();
 
 public: // methods
   const KernelLaunchContext& GetKlc() const { return _klc; }

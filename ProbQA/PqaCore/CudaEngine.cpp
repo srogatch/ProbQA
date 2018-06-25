@@ -162,7 +162,10 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
     const TPqaId nTargets = _dims._nTargets;
 
     NextQuestionKernel<taNumber> nqk;
-    nqk._nThreadsPerBlock = GetKlc().FixBlockSize(nTargets);
+    nqk._nThreadsPerBlock = GetKlc().DefaultBlockSize();
+    //nqk._nThreadsPerBlock = GetKlc().FixBlockSize(
+    ///  uint64_t(GetKlc()._cdp.multiProcessorCount) * GetKlc()._cdp.maxThreadsPerMultiProcessor / nQuestions);
+    //nqk._nThreadsPerBlock = GetKlc().FixBlockSize(nTargets);
     nqk._nBlocks = uint32_t(std::min(uint64_t(GetKlc()._cdp.multiProcessorCount)
       * GetKlc()._cdp.maxThreadsPerMultiProcessor / nqk._nThreadsPerBlock,
       uint64_t(nQuestions)));

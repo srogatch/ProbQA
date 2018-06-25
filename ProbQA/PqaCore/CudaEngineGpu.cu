@@ -137,16 +137,18 @@ template<typename taNumber> struct EvaluateQuestionShared {
   DevAccumulator<taNumber> _accVelocity;
 };
 
-template<typename taNumber> __device__ taNumber CalcVelocityComponent(const taNumber V, const int64_t nTargets) {
-  const taNumber cLnMaxV = 0.34657359027997265470861606072909;
+template<typename taNumber> __device__ taNumber CalcVelocityComponent(const taNumber V, const int64_t nTargets);
+
+template<> __device__ float CalcVelocityComponent<float>(const float V, const int64_t nTargets) {
+  const float cLnMaxV = 0.34657359027997265470861606072909;
   // Min exponent : -126
   // Exponent due to subnormals: -23
   // ln(2**149) = 149 * ln(2) = 149 * 0.6931471805599453 = 103.2789299034318497
-  const taNumber cLn0Stab = 104;
-  const taNumber lnV = ((V == 0) ? cLn0Stab : log(V));
-  const taNumber powT = taNumber(nTargets) * nTargets;
+  const float cLn0Stab = 104.0;
+  const float lnV = ((V == 0) ? cLn0Stab : log(V));
+  const float powT = float(nTargets) * nTargets;
   // The order of operations is important for numerical stability.
-  const taNumber vComp = 1 / ((cLnMaxV - lnV) + cLnMaxV / powT);
+  const float vComp = 1 / ((cLnMaxV - lnV) + cLnMaxV / powT);
   return vComp;
 }
 
@@ -341,8 +343,11 @@ template<typename taNumber> void NextQuestionKernel<taNumber>::Run(cudaStream_t 
 template<typename taNumber> __device__ taNumber GetUpdatedPrior(const RecordAnswerKernel<taNumber>& rak,
   const int64_t iTarget)
 {
-  return rak._pPriorMants[iTarget] * GetSA(rak._iQuestion, rak._iAnswer, iTarget, rak._psA, rak._nAnswers,
-    rak._nTargets) / GetMD(rak._iQuestion, iTarget, rak._pmD, rak._nTargets);
+  if (TestBit(rak._pTargetGaps, iTarget)) {
+    return 0;
+  }
+  return max(1e-30f, rak._pPriorMants[iTarget] * GetSA(rak._iQuestion, rak._iAnswer, iTarget, rak._psA, rak._nAnswers,
+    rak._nTargets) / GetMD(rak._iQuestion, iTarget, rak._pmD, rak._nTargets));
 }
 
 template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNumber> rak) {

@@ -35,6 +35,7 @@ template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqa
   rak._pPriorMants = _pPriorMants;
   rak._pmD = pEngine->GetMD();
   rak._psA = pEngine->GetSA();
+  rak._pTargetGaps = pEngine->DevTargetGaps();
   {
     CudaDeviceLock cdl = CudaMain::SetDevice(pEngine->GetDevice());
     CudaStream cuStr = pEngine->GetCspNb().Acquire();
