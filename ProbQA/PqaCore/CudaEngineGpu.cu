@@ -310,7 +310,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       const taNumber nExpectedTargets = exp2(avgH);
       const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
       nqk._pTotals[iQuestion] = pow(avgL, 1)
-        * pow(vComp, 9)
+        * pow(vComp, 12)
         * pow(nExpectedTargets, -2);
     }
   }

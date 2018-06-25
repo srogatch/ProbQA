@@ -8,6 +8,7 @@
 #include "../PqaCore/CudaStreamPool.h"
 #include "../PqaCore/CudaEngineGpu.cuh"
 #include "../PqaCore/CudaArray.h"
+#include "../PqaCore/CudaMemPool.h"
 
 namespace ProbQA {
 
@@ -15,13 +16,14 @@ class BaseCudaEngine : public BaseEngine {
 private: // variables
   KernelLaunchContext _klc;
   CudaArray<uint8_t> _gaps; // question, then target gaps
+  CudaMemPool _cuMp;
 
 protected: // variables
   const int _iDevice; // for now, use only one device
   CudaStreamPool _cspNb; // non-blocking CUDA stream pool
 
 protected: // methods
-  void CopyGapsToDevice(cudaStream_t stream);
+  void BceUpdateWithDimensions(cudaStream_t stream);
   explicit BaseCudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi);
   PqaError ShutdownWorkers() override final { return PqaError(); };
 
@@ -33,6 +35,7 @@ public: // Internal interface methods
 
 public: // methods
   const KernelLaunchContext& GetKlc() const { return _klc; }
+  CudaMemPool& GetCuMp() { return _cuMp; }
 };
 
 } // namespace ProbQA

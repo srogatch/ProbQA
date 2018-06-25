@@ -110,6 +110,7 @@ public:
         _totalUnits.fetch_add(iSlot, std::memory_order_relaxed);
         return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
       }
+      //TODO: there is a bug somewhere nearby
       next = *SRCast::CPtr<void*>(expected); // note void* template argument here - that's to receive void**
     } while (!head.compare_exchange_weak(expected, next, std::memory_order_acq_rel, std::memory_order_acquire));
     return expected;

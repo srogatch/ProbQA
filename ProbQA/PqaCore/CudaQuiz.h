@@ -5,7 +5,7 @@
 #pragma once
 
 #include "../PqaCore/BaseQuiz.h"
-#include "../PqaCore/CudaArray.h"
+#include "../PqaCore/CudaMemPool.h"
 
 namespace ProbQA {
 
@@ -17,7 +17,7 @@ public:
   typedef int64_t TExponent;
 
 private: // variables
-  CudaArray<uint8_t> _storage;
+  CudaMPArray<uint8_t> _storage;
   uint8_t *_pQAsked;
   TExponent *_pExponents;
   taNumber *_pPriorMants;

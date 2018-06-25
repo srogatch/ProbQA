@@ -8,10 +8,13 @@
 #include "../PqaCore/CudaStreamPool.h"
 #include "../PqaCore/CudaQuiz.h"
 #include "../PqaCore/ErrorHelper.h"
+#include "../PqaCore/CudaMemPool.h"
 
 using namespace SRPlat;
 
 namespace ProbQA {
+
+#define CUELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
 
 template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi)
   : BaseCudaEngine(engDef, pKbFi),
@@ -63,7 +66,7 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
     //_vB.Prefetch(cuStr.Get(), 0, nVBItems, _iDevice);
   }
   AfterStatisticsInit(pKbFi);
-  CopyGapsToDevice(cuStr.Get());
+  BceUpdateWithDimensions(cuStr.Get());
   CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
 }
 
@@ -108,7 +111,7 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::CompactSpec(Compactio
 template<typename taNumber> void CudaEngine<taNumber>::UpdateWithDimensions() {
   CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
   CudaStream cuStr = _cspNb.Acquire();
-  CopyGapsToDevice(cuStr.Get());
+  BceUpdateWithDimensions(cuStr.Get());
   //TODO: implement - adjust CUDA memory pools, if any
   CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
 }
@@ -169,7 +172,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
     nqk._nBlocks = uint32_t(std::min(uint64_t(GetKlc()._cdp.multiProcessorCount)
       * GetKlc()._cdp.maxThreadsPerMultiProcessor / nqk._nThreadsPerBlock,
       uint64_t(nQuestions)));
-    CudaArray<uint8_t> storage(SRSimd::_cNBytes // padding
+    CudaMPArray<uint8_t> storage(GetCuMp(), SRSimd::_cNBytes // padding
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nQuestions) // totals
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // posteriors
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // _pInvD
@@ -219,8 +222,12 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
       if (_questionGaps.IsGap(i) /*|| SRBitHelper::Test(pQuiz->GetQAsked(), i)*/) {
         continue;
       }
-      heap.Get()[nInHeap]._iQuestion = i;
       taNumber priority = totals.Get()[i];
+      if (!std::isfinite(priority)) {
+        CUELOG(Error) << "Got priority " << priority;
+        continue;
+      }
+      heap.Get()[nInHeap]._iQuestion = i;
       heap.Get()[nInHeap]._priority = priority;
       grandTotal += priority;
       nInHeap++;
@@ -293,7 +300,7 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::RecordQuizTargetSpec(
     RecordQuizTargetKernel<taNumber> rqtk;
     rqtk._nAQs = pQuiz->GetAnswers().size();
     const AnsweredQuestion *pAQs = pQuiz->GetAnswers().data();
-    CudaArray<CudaAnsweredQuestion> devAQs(rqtk._nAQs);
+    CudaMPArray<CudaAnsweredQuestion> devAQs(GetCuMp(), rqtk._nAQs);
     SRSmartMPP<CudaAnsweredQuestion> hostAQs(_memPool, rqtk._nAQs);
     for (TPqaId i = 0; i < rqtk._nAQs; i++) {
       hostAQs.Get()[i]._iQuestion = pAQs[i]._iQuestion;

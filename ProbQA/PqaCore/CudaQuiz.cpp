@@ -8,11 +8,14 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
-template<typename taNumber> CudaQuiz<taNumber>::CudaQuiz(CudaEngine<taNumber> *pEngine) : BaseQuiz(pEngine) {
+template<typename taNumber> CudaQuiz<taNumber>::CudaQuiz(CudaEngine<taNumber> *pEngine) : BaseQuiz(pEngine),
+  _storage(pEngine->GetCuMp())
+{
   const TPqaId nTargets = pEngine->GetDims()._nTargets;
   const TPqaId nQuestions = pEngine->GetDims()._nQuestions;
   const size_t nBitVects = SRSimd::VectsFromBits(nQuestions);
-  _storage = CudaArray<uint8_t>(SRSimd::_cNBytes * (nBitVects + /* alignment */ 1)
+  _storage = CudaMPArray<uint8_t>(pEngine->GetCuMp(),
+    SRSimd::_cNBytes * (nBitVects + /* alignment */ 1)
     + SRSimd::GetPaddedBytes(nTargets * sizeof(taNumber))
     + SRSimd::GetPaddedBytes(nTargets * sizeof(TExponent))
   );

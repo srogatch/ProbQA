@@ -196,6 +196,7 @@
     <ClInclude Include="CudaEngineGpu.cuh" />
     <ClInclude Include="CudaException.h" />
     <ClInclude Include="CudaMacros.h" />
+    <ClInclude Include="CudaMemPool.h" />
     <ClInclude Include="CudaQuiz.h" />
     <ClInclude Include="CudaStreamPool.h" />
     <ClInclude Include="GapTracker.h" />
@@ -242,6 +243,7 @@
     <ClCompile Include="CudaEngine.cpp" />
     <ClCompile Include="CudaException.cpp" />
     <ClCompile Include="CudaMain.cpp" />
+    <ClCompile Include="CudaMemPool.cpp" />
     <ClCompile Include="CudaQuiz.cpp" />
     <ClCompile Include="CudaStreamPool.cpp" />
     <ClCompile Include="PqaCInterop.cpp" />
