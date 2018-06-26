@@ -112,6 +112,7 @@ public:
     {
       SRPlat::SRLock<TSync> sl(_sync);
       toDel = std::move(_pool);
+      _totBytes.store(0, std::memory_order_relaxed);
     }
     for (TPool::iterator it = toDel.begin(); it != toDel.end(); it++) {
       for (size_t i = 0; i < it->second.size(); it++) {

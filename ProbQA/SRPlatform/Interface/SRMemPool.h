@@ -9,6 +9,9 @@
 #include "../SRPlatform/Interface/SRException.h"
 #include "../SRPlatform/Interface/SRMessageBuilder.h"
 #include "../SRPlatform/Interface/SRSimd.h"
+#include "../SRPlatform/Interface/SRSpinSync.h"
+#include "../SRPlatform/Interface/SRLock.h"
+#include "../SRPlatform/Interface/SRUtils.h"
 
 namespace SRPlat {
 
@@ -35,14 +38,18 @@ public: // constants
 
   static_assert(SRSimd::_cNBytes >= sizeof(void*), "Need to store a next pointer for a linked list of chunks.");
 
+private: // types
+  typedef SRSpinSync< 1<<5 > TSync;
+
 private: // variables
-  std::atomic<void*> *_memChunks;
+  void **_memChunks;
   std::atomic<size_t> _totalUnits;
   std::atomic<size_t> _maxTotalUnits;
+  TSync _sync;
 
 private: // methods
   void FreeChunk(const size_t iSlot) {
-    void *PTR_RESTRICT p = _memChunks[iSlot].load(std::memory_order_relaxed);
+    void *PTR_RESTRICT p = _memChunks[iSlot];
     while (p != nullptr) {
       void *PTR_RESTRICT next = *SRCast::CPtr<void*>(p); // note void* template argument here - that's to receive void**
       _mm_free(p);
@@ -51,22 +58,19 @@ private: // methods
   }
 
 public:
-  static_assert((taNGranules * sizeof(std::atomic<void*>)) % SRSimd::_cNBytes == 0,
+  static_assert( (taNGranules * sizeof(void*)) % SRSimd::_cNBytes == 0,
     "For SIMD efficiency, choose taNGranules divisable by larger power of 2.");
 
   explicit SRMemPool(const size_t maxTotalUnits = (512 * 1024 * 1024) / _cNUnitBytes)
     : _totalUnits(0), _maxTotalUnits(maxTotalUnits)
   {
     const size_t nMemChunksBytes = taNGranules * sizeof(*_memChunks);
-    _memChunks = static_cast<decltype(_memChunks)>(_mm_malloc(nMemChunksBytes, SRSimd::_cNBytes));
+    _memChunks = SRCast::Ptr<void*>(_mm_malloc(nMemChunksBytes, SRSimd::_cNBytes));
     if (_memChunks == nullptr) {
       throw SRException(SRMessageBuilder(__FUNCTION__ " failed to allocate _memChunks of ")(nMemChunksBytes)(" bytes.")
         .GetOwnedSRString());
     }
-    //TODO: vectorize/parallelize
-    for (size_t i = 0; i < taNGranules; i++) {
-      new(_memChunks + i) std::atomic<void*>(nullptr);
-    }
+    SRUtils::FillZeroVects<true>(SRCast::Ptr<__m256i>(_memChunks), nMemChunksBytes >> SRSimd::_cLogNBytes);
   }
 
   virtual ~SRMemPool() override final {
@@ -74,7 +78,6 @@ public:
     //TODO: vectorize/parallelize
     for (size_t i = 0; i < taNGranules; i++) {
       FreeChunk(i);
-      _memChunks[i].~atomic<void*>();
     }
     _mm_free(_memChunks);
   }
@@ -84,7 +87,7 @@ public:
     std::atomic_thread_fence(std::memory_order_acquire);
     for (size_t i = 0; i < taNGranules; i++) {
       FreeChunk(i);
-      _memChunks[i].store(nullptr, std::memory_order_relaxed);
+      _memChunks[i] = nullptr;
     }
     _totalUnits.store(0, std::memory_order_release);
   }
@@ -102,18 +105,17 @@ public:
     if (iSlot <= 0) {
       return nullptr;
     }
-    std::atomic<void*>& head = _memChunks[iSlot];
-    void *PTR_RESTRICT next;
-    void *PTR_RESTRICT expected = head.load(std::memory_order_acquire);
-    do {
-      if (expected == nullptr) {
-        _totalUnits.fetch_add(iSlot, std::memory_order_relaxed);
-        return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
-      }
-      //TODO: there is a bug somewhere nearby
-      next = *SRCast::CPtr<void*>(expected); // note void* template argument here - that's to receive void**
-    } while (!head.compare_exchange_weak(expected, next, std::memory_order_acq_rel, std::memory_order_acquire));
-    return expected;
+
+    SRLock<TSync> sl(_sync);
+    void *head = _memChunks[iSlot];
+    if (head == nullptr) {
+      sl.EarlyRelease();
+      _totalUnits.fetch_add(iSlot, std::memory_order_relaxed);
+      return _mm_malloc(iSlot * _cNUnitBytes, _cNUnitBytes);
+    }
+    void *next = *SRCast::CPtr<void*>(head); // note void* template argument here - that's to receive void**
+    _memChunks[iSlot] = next;
+    return head;
   }
 
   void ReleaseMem(void *PTR_RESTRICT p, const size_t nBytes) override final {
@@ -130,11 +132,10 @@ public:
       _mm_free(p);
       return;
     }
-    std::atomic<void*>& PTR_RESTRICT head = _memChunks[iSlot];
-    void *PTR_RESTRICT expected = head.load(std::memory_order_acquire);
-    do {
-      *SRCast::Ptr<void*>(p) = expected;
-    } while (!head.compare_exchange_weak(expected, p, std::memory_order_release, std::memory_order_relaxed));
+
+    SRLock<TSync> sl(_sync);
+    *SRCast::Ptr<void*>(p) = _memChunks[iSlot];
+    _memChunks[iSlot] = p;
   }
 
   void SetMaxTotalUnits(const size_t nUnits) {

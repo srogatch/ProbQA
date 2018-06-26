@@ -127,7 +127,7 @@ template<typename taNumber> __global__ void StartQuiz(const StartQuizKernel<taNu
 }
 
 template<typename taNumber> void StartQuizKernel<taNumber>::Run(const KernelLaunchContext& klc, cudaStream_t stream) {
-  const uint32_t nThreads = klc.FixBlockSize(_nTargets);
+  const uint32_t nThreads = klc.FixBlockSize(_nTargets>>2);
   StartQuiz<taNumber> << <1, nThreads, sizeof(DevAccumulator<taNumber>) * nThreads, stream >> > (*this);
 }
 
@@ -396,7 +396,7 @@ template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNu
 
 template<typename taNumber> void RecordAnswerKernel<taNumber>::Run(const KernelLaunchContext& klc, cudaStream_t stream)
 {
-  const uint32_t nThreads = klc.FixBlockSize(_nTargets);
+  const uint32_t nThreads = klc.FixBlockSize(_nTargets>>2);
   RecordAnswer<taNumber><<<1, nThreads, sizeof(DevAccumulator<taNumber>)*nThreads, stream>>>(*this);
 }
 

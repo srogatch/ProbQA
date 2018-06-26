@@ -165,7 +165,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
     const TPqaId nTargets = _dims._nTargets;
 
     NextQuestionKernel<taNumber> nqk;
-    nqk._nThreadsPerBlock = GetKlc().DefaultBlockSize();
+    nqk._nThreadsPerBlock = GetKlc().FixBlockSize(nTargets>>2);
     //nqk._nThreadsPerBlock = GetKlc().FixBlockSize(
     ///  uint64_t(GetKlc()._cdp.multiProcessorCount) * GetKlc()._cdp.maxThreadsPerMultiProcessor / nQuestions);
     //nqk._nThreadsPerBlock = GetKlc().FixBlockSize(nTargets);
@@ -300,8 +300,8 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::RecordQuizTargetSpec(
     RecordQuizTargetKernel<taNumber> rqtk;
     rqtk._nAQs = pQuiz->GetAnswers().size();
     const AnsweredQuestion *pAQs = pQuiz->GetAnswers().data();
-    CudaMPArray<CudaAnsweredQuestion> devAQs(GetCuMp(), rqtk._nAQs);
-    SRSmartMPP<CudaAnsweredQuestion> hostAQs(_memPool, rqtk._nAQs);
+    CudaMPArray<CudaAnsweredQuestion> devAQs(GetCuMp(), std::max(rqtk._nAQs, _dims._nQuestions));
+    SRSmartMPP<CudaAnsweredQuestion> hostAQs(_memPool, std::max(rqtk._nAQs, _dims._nQuestions));
     for (TPqaId i = 0; i < rqtk._nAQs; i++) {
       hostAQs.Get()[i]._iQuestion = pAQs[i]._iQuestion;
       hostAQs.Get()[i]._iAnswer = pAQs[i]._iAnswer;
