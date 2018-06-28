@@ -216,14 +216,15 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
       }
     };
     SRSmartMPP<QuestionInfo> heap(_memPool, nQuestions);
-    taNumber grandTotal = 0;
+    //TODO: replace with Accumulator<taNumber>
+    double grandTotal = 0;
     TPqaId nInHeap = 0;
     for (TPqaId i = 0; i < nQuestions; i++) {
       if (_questionGaps.IsGap(i) /*|| SRBitHelper::Test(pQuiz->GetQAsked(), i)*/) {
         continue;
       }
       taNumber priority = totals.Get()[i];
-      if (!std::isfinite(priority)) {
+      if (priority < 0 || !std::isfinite(priority)) {
         CUELOG(Error) << "Got priority " << priority;
         continue;
       }
@@ -238,13 +239,13 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
       return cInvalidPqaId;
     }
     std::make_heap(heap.Get(), heap.Get() + nInHeap);
-    const taNumber selected = (grandTotal * SRFastRandom::ThreadLocal().Generate<uint64_t>())
+    const double selected = (grandTotal * SRFastRandom::ThreadLocal().Generate<uint64_t>())
       / std::numeric_limits<uint64_t>::max();
-    taNumber poppedSum = 0;
+    double poppedSum = heap.Get()[0]._priority;
     while (poppedSum < selected && nInHeap > 1) {
-      poppedSum += heap.Get()[0]._priority;
       std::pop_heap(heap.Get(), heap.Get() + nInHeap);
       nInHeap--;
+      poppedSum += heap.Get()[0]._priority;
     }
     const TPqaId iQuestion = heap.Get()[0]._iQuestion;
     pQuiz->SetActiveQuestion(iQuestion);

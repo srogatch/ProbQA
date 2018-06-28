@@ -144,12 +144,37 @@ template<> __device__ float CalcVelocityComponent<float>(const float V, const in
   // Min exponent : -126
   // Exponent due to subnormals: -23
   // ln(2**149) = 149 * ln(2) = 149 * 0.6931471805599453 = 103.2789299034318497
-  const float cLn0Stab = 104.0;
+  const float cLn0Stab = -104.0;
   const float lnV = ((V == 0) ? cLn0Stab : log(V));
+  //if (lnV > cLnMaxV) {
+  //  printf("{%f}", V);
+  //}
   const float powT = float(nTargets) * nTargets;
   // The order of operations is important for numerical stability.
   const float vComp = 1 / ((cLnMaxV - lnV) + cLnMaxV / powT);
   return vComp;
+}
+
+template<typename taNumber> __device__ taNumber intPow(taNumber x, int64_t n) {
+  if (n == 0) {
+    return 1;
+  }
+  if (n < 0) {
+    x = 1 / x;
+    n = -n;
+  }
+  taNumber y = 1;
+  while (n > 1) {
+    if ((n & 1) == 0) {
+      x = x * x;
+    }
+    else {
+      y = x * y;
+      x = x * x;
+    }
+    n >>= 1;
+  }
+  return x * y;
 }
 
 template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQuestion,
@@ -309,9 +334,9 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
       const taNumber nExpectedTargets = exp2(avgH);
       const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
-      nqk._pTotals[iQuestion] = pow(avgL, 1)
-        * pow(vComp, 12)
-        * pow(nExpectedTargets, -2);
+      nqk._pTotals[iQuestion] = intPow(avgL, 1)
+        * intPow(vComp, 9)
+        * intPow(nExpectedTargets, -2);
     }
   }
 }
@@ -346,8 +371,9 @@ template<typename taNumber> __device__ taNumber GetUpdatedPrior(const RecordAnsw
   if (TestBit(rak._pTargetGaps, iTarget)) {
     return 0;
   }
-  return max(1e-30f, rak._pPriorMants[iTarget] * GetSA(rak._iQuestion, rak._iAnswer, iTarget, rak._psA, rak._nAnswers,
-    rak._nTargets) / GetMD(rak._iQuestion, iTarget, rak._pmD, rak._nTargets));
+  return max(taNumber(1e-30f), rak._pPriorMants[iTarget]
+    * GetSA(rak._iQuestion, rak._iAnswer, iTarget, rak._psA, rak._nAnswers, rak._nTargets) 
+    / GetMD(rak._iQuestion, iTarget, rak._pmD, rak._nTargets));
 }
 
 template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNumber> rak) {
