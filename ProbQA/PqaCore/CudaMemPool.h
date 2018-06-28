@@ -115,7 +115,8 @@ public:
       _totBytes.store(0, std::memory_order_relaxed);
     }
     for (TPool::iterator it = toDel.begin(); it != toDel.end(); it++) {
-      for (size_t i = 0; i < it->second.size(); it++) {
+      //NOTE: there was a bug, commit the fix
+      for (size_t i = 0; i < it->second.size(); i++) {
         CUDA_MUST(cudaFree(it->second[i]));
       }
     }
