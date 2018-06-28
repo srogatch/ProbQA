@@ -174,7 +174,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
       uint64_t(nQuestions)));
     CudaMPArray<uint8_t> storage(GetCuMp(), SRSimd::_cNBytes // padding
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nQuestions) // totals
-      + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // posteriors
+      + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * (nAnswers+1) * nqk._nBlocks) // posteriors
       + SRSimd::GetPaddedBytes(sizeof(taNumber) * nTargets * nqk._nBlocks) // _pInvD
       + SRSimd::GetPaddedBytes(sizeof(CudaAnswerMetrics<taNumber>) * nAnswers * nqk._nBlocks) // _pAnsMets
     );
@@ -189,7 +189,8 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
     nqk._pTargetGaps = DevTargetGaps();
     nqk._pTotals = reinterpret_cast<taNumber*>(SRSimd::AlignPtr(storage.Get()));
     nqk._pPosteriors = reinterpret_cast<taNumber*>(SRSimd::AlignPtr(nqk._pTotals + nQuestions));
-    nqk._pInvD = reinterpret_cast<taNumber*>(SRSimd::AlignPtr(nqk._pPosteriors + nTargets * nqk._nBlocks));
+    nqk._pInvD = reinterpret_cast<taNumber*>(SRSimd::AlignPtr(nqk._pPosteriors
+      + nTargets * (nAnswers + 1) * nqk._nBlocks));
     nqk._pAnsMets = reinterpret_cast<CudaAnswerMetrics<taNumber>*>(SRSimd::AlignPtr(
       nqk._pInvD + nTargets * nqk._nBlocks));
 
@@ -223,7 +224,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
         continue;
       }
       taNumber priority = totals.Get()[i];
-      if (!std::isfinite(priority)) {
+      if (priority < 0 || !std::isfinite(priority)) {
         CUELOG(Error) << "Got priority " << priority;
         continue;
       }

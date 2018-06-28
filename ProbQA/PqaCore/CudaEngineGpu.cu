@@ -135,6 +135,7 @@ template<typename taNumber> struct EvaluateQuestionShared {
   DevAccumulator<taNumber> _accLhEnt;
   DevAccumulator<taNumber> _accLack;
   DevAccumulator<taNumber> _accVelocity;
+  DevAccumulator<taNumber> _accAnsEnt; // entropy over answers rather than targets
 };
 
 template<typename taNumber> __device__ taNumber CalcVelocityComponent(const taNumber V, const int64_t nTargets);
@@ -152,6 +153,12 @@ template<> __device__ float CalcVelocityComponent<float>(const float V, const in
   return vComp;
 }
 
+template<typename taNumber> __device__ taNumber& ModPosterior(const NextQuestionKernel<taNumber>& nqk,
+  int64_t iAnswer, int64_t iTarget)
+{
+  return nqk._pPosteriors[(blockIdx.x*(nqk._nAnswers+1) + iAnswer)*nqk._nTargets + iTarget];
+}
+
 template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQuestion,
   const NextQuestionKernel<taNumber>& nqk, EvaluateQuestionShared<taNumber> *shared)
 {
@@ -163,6 +170,12 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     accTotW.Init(0);
   }
   uint32_t remains;
+  for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
+    const int64_t iTarget = threadIdx.x + blockFirst;
+    if (iTarget < nqk._nTargets) {
+      ModPosterior(nqk, nqk._nAnswers, iTarget) = 0;
+    }
+  }
   for (int64_t iAnswer = 0; iAnswer < nqk._nAnswers; iAnswer++) {
     const bool isAns0 = (iAnswer == 0);
     shared[threadIdx.x]._accLhEnt.Init(0);
@@ -189,7 +202,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
           postLikelihood = Pr_Qi_eq_k_given_Tj * nqk._pPriorMants[iTarget];
           shared[threadIdx.x]._accLhEnt.Add(postLikelihood);
         }
-        nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] = postLikelihood;
+        ModPosterior(nqk, iAnswer, iTarget) = postLikelihood;
       }
     }
     __syncthreads(); // get the shared data in all threads
@@ -221,7 +234,8 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
       const int64_t iTarget = threadIdx.x + blockFirst;
       if (iTarget < nqk._nTargets && !TestBit(nqk._pTargetGaps, iTarget)) {
-        const taNumber posterior = nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] * invWk;
+        const taNumber posterior = (ModPosterior(nqk, iAnswer, iTarget) *= invWk);
+        ModPosterior(nqk, nqk._nAnswers, iTarget) += posterior;
         const taNumber prior = nqk._pPriorMants[iTarget];
         taNumber Hikj, lack, l2post;
         if (posterior == 0 || (l2post = log2(posterior)) == 0) {
@@ -271,6 +285,26 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     }
   }
 
+  shared[threadIdx.x]._accAnsEnt.Init(0);
+  for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
+    const int64_t iTarget = threadIdx.x + blockFirst;
+    if (iTarget < nqk._nTargets && !TestBit(nqk._pTargetGaps, iTarget)) {
+      const taNumber divisor = ModPosterior(nqk, nqk._nAnswers, iTarget);
+      if (divisor == 0) {
+        continue; // zero entropy for this target
+      }
+      const taNumber multiplier = 1 / divisor;
+      for (int64_t iAnswer = 0; iAnswer < nqk._nAnswers; iAnswer++) {
+        const taNumber prob = ModPosterior(nqk, iAnswer, iTarget) * multiplier;
+        if (prob > 1 + 1e-3) {
+          printf("{%f %f}", (float)prob, (float)divisor);
+        }
+        const taNumber entropy = ((prob == 0) ? 0 : prob * log2(prob));
+        shared[threadIdx.x]._accAnsEnt.Add(entropy);
+      }
+    }
+  }
+
   shared[threadIdx.x]._accLhEnt.Init(0);
   shared[threadIdx.x]._accLack.Init(0);
   shared[threadIdx.x]._accVelocity.Init(0);
@@ -290,6 +324,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
       shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
       shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
+      shared[threadIdx.x]._accAnsEnt.Add(shared[threadIdx.x + remains]._accAnsEnt);
     }
     __syncthreads();
   }
@@ -299,6 +334,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
         shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
         shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
         shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
+        shared[threadIdx.x]._accAnsEnt.Add(shared[threadIdx.x + remains]._accAnsEnt);
       }
     }
     if (threadIdx.x == 0) {
@@ -307,10 +343,18 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       const taNumber avgH = -shared[0]._accLhEnt.Get() * normalizer;
       const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
       const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
+      //TODO: instead, divide by the number of targets without gaps
+      const taNumber avgAnsH = -shared[0]._accAnsEnt.Get() / nqk._nTargets;
       const taNumber nExpectedTargets = exp2(avgH);
-      const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
-      nqk._pTotals[iQuestion] = pow(avgL, 1)
-        * pow(vComp, 12)
+      const taNumber nExpectedAnswers = exp2(avgAnsH);
+      //if (nExpectedAnswers > nqk._nAnswers + 1e-3 || nExpectedAnswers < 1 - 1e-3) {
+      //  printf("[%f]", (float)nExpectedAnswers);
+      //}
+      //const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
+      //nqk._pTotals[iQuestion] = pow(avgL, 1)
+      //  * pow(vComp, 9)
+      //  * pow(nExpectedTargets, -2);
+      nqk._pTotals[iQuestion] = pow(nExpectedAnswers, -8)
         * pow(nExpectedTargets, -2);
     }
   }
@@ -346,8 +390,9 @@ template<typename taNumber> __device__ taNumber GetUpdatedPrior(const RecordAnsw
   if (TestBit(rak._pTargetGaps, iTarget)) {
     return 0;
   }
-  return max(1e-30f, rak._pPriorMants[iTarget] * GetSA(rak._iQuestion, rak._iAnswer, iTarget, rak._psA, rak._nAnswers,
-    rak._nTargets) / GetMD(rak._iQuestion, iTarget, rak._pmD, rak._nTargets));
+  return max(taNumber(1e-30f), 
+    rak._pPriorMants[iTarget] * GetSA(rak._iQuestion, rak._iAnswer, iTarget, rak._psA, rak._nAnswers, rak._nTargets)
+    / GetMD(rak._iQuestion, iTarget, rak._pmD, rak._nTargets));
 }
 
 template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNumber> rak) {
