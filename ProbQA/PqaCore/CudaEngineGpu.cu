@@ -131,11 +131,46 @@ template<typename taNumber> void StartQuizKernel<taNumber>::Run(const KernelLaun
   StartQuiz<taNumber> << <1, nThreads, sizeof(DevAccumulator<taNumber>) * nThreads, stream >> > (*this);
 }
 
-template<typename taNumber> struct EvaluateQuestionShared {
-  DevAccumulator<taNumber> _accLhEnt;
-  DevAccumulator<taNumber> _accLack;
-  DevAccumulator<taNumber> _accVelocity;
+enum class EqsIndices : uint32_t {
+  LhEnt = 0,
+  Lack,
+  Velocity,
+  Total
 };
+
+template<typename taNumber> struct EvaluateQuestionShared {
+  DevAccumulator<taNumber> _accs[uint32_t(EqsIndices::Total)];
+};
+
+template<typename taNumber> __device__ void ReduceEcs(EvaluateQuestionShared<taNumber> *shared) {
+  uint32_t remains = blockDim.x >> 1;
+  uint32_t remEnd = max(blockDim.x / uint32_t(EqsIndices::Total), KernelLaunchContext::_cWarpSize);
+  for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+    if (threadIdx.x < remains) {
+      for (uint32_t m = 0; m < uint32_t(EqsIndices::Total); m++) {
+        shared[threadIdx.x]._accs[m].Add(shared[threadIdx.x + remains]._accs[m]);
+      }
+    }
+    __syncthreads();
+  }
+  for (; uint32_t(EqsIndices::Total)*remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+    if (threadIdx.x < uint32_t(EqsIndices::Total)*remains) {
+      const uint32_t iCell = threadIdx.x / uint32_t(EqsIndices::Total);
+      const uint32_t iAcc = threadIdx.x % uint32_t(EqsIndices::Total);
+      shared[iCell]._accs[iAcc].Add(shared[remains + iCell]._accs[iAcc]);
+    }
+    __syncthreads();
+  }
+  if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
+    for (; uint32_t(EqsIndices::Total) * remains >= 1; remains >>= 1) {
+      if (threadIdx.x < uint32_t(EqsIndices::Total) * remains) {
+        const uint32_t iCell = threadIdx.x / uint32_t(EqsIndices::Total);
+        const uint32_t iAcc = threadIdx.x % uint32_t(EqsIndices::Total);
+        shared[iCell]._accs[iAcc].Add(shared[remains + iCell]._accs[iAcc]);
+      }
+    }
+  }
+}
 
 template<typename taNumber> __device__ taNumber CalcVelocityComponent(const taNumber V, const int64_t nTargets);
 
@@ -190,9 +225,9 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
   uint32_t remains;
   for (int64_t iAnswer = 0; iAnswer < nqk._nAnswers; iAnswer++) {
     const bool isAns0 = (iAnswer == 0);
-    shared[threadIdx.x]._accLhEnt.Init(0);
-    shared[threadIdx.x]._accLack.Init(0);
-    shared[threadIdx.x]._accVelocity.Init(0);
+    for (uint32_t m = 0; m < uint32_t(EqsIndices::Total); m++) {
+      shared[threadIdx.x]._accs[m].Init(0);
+    }
     for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
       const int64_t iTarget = threadIdx.x + blockFirst;
       if (iTarget < nqk._nTargets) {
@@ -212,7 +247,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
           const taNumber Pr_Qi_eq_k_given_Tj = GetSA(iQuestion, iAnswer, iTarget, nqk._psA, nqk._nAnswers,
             nqk._nTargets) * invCountTotal;
           postLikelihood = Pr_Qi_eq_k_given_Tj * nqk._pPriorMants[iTarget];
-          shared[threadIdx.x]._accLhEnt.Add(postLikelihood);
+          shared[threadIdx.x]._accs[uint32_t(EqsIndices::LhEnt)].Add(postLikelihood);
         }
         nqk._pPosteriors[blockIdx.x*nqk._nTargets + iTarget] = postLikelihood;
       }
@@ -221,19 +256,21 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     remains = blockDim.x >> 1;
     for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
       if (threadIdx.x < remains) {
-        shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
+        shared[threadIdx.x]._accs[uint32_t(EqsIndices::LhEnt)].Add(
+          shared[threadIdx.x + remains]._accs[uint32_t(EqsIndices::LhEnt)]);
       }
       __syncthreads();
     }
     if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
       for (; remains >= 1; remains >>= 1) {
         if (threadIdx.x < remains) {
-          shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
+          shared[threadIdx.x]._accs[uint32_t(EqsIndices::LhEnt)]
+            .Add(shared[threadIdx.x + remains]._accs[uint32_t(EqsIndices::LhEnt)]);
         }
       }
     }
     __syncthreads(); // Ensure that all threads get updated shared[0]
-    const taNumber Wk = shared[0]._accLhEnt.Get();
+    const taNumber Wk = shared[0]._accs[uint32_t(EqsIndices::LhEnt)].Get();
     if (threadIdx.x == 0) {
       accTotW.Add(Wk);
       nqk._pAnsMets[blockIdx.x*nqk._nAnswers + iAnswer]._weight = Wk;
@@ -241,7 +278,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     __syncthreads(); // Ensure that all threads no more need shared[0]
 
     const taNumber invWk = 1 / Wk;
-    shared[threadIdx.x]._accLhEnt.Init(0); // reuse for entropy summation
+    shared[threadIdx.x]._accs[uint32_t(EqsIndices::LhEnt)].Init(0); // reuse for entropy summation
 
     for (int64_t blockFirst = 0; blockFirst < nqk._nTargets; blockFirst += blockDim.x) {
       const int64_t iTarget = threadIdx.x + blockFirst;
@@ -261,84 +298,50 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
             nqk._nTargets);
           lack = invSikj * invSikj / l2post;
         }
-        shared[threadIdx.x]._accLhEnt.Add(Hikj);
-        shared[threadIdx.x]._accLack.Add(lack);
+        shared[threadIdx.x]._accs[uint32_t(EqsIndices::LhEnt)].Add(Hikj);
+        shared[threadIdx.x]._accs[uint32_t(EqsIndices::Lack)].Add(lack);
 
         const taNumber diff = posterior - prior;
         const taNumber square = diff * diff;
-        shared[threadIdx.x]._accVelocity.Add(square);
+        shared[threadIdx.x]._accs[uint32_t(EqsIndices::Velocity)].Add(square);
       }
     }
     __syncthreads(); // get the shared data in all threads
-    remains = blockDim.x >> 1;
-    for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
-      if (threadIdx.x < remains) {
-        shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-        shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-        shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
-      }
-      __syncthreads();
-    }
-    if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
-      for (; remains >= 1; remains >>= 1) {
-        if (threadIdx.x < remains) {
-          shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-          shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-          shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
-        }
-      }
-      if (threadIdx.x == 0) {
-        const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
-        nqk._pAnsMets[iAnsMet]._entropy = shared[0]._accLhEnt.Get();
-        nqk._pAnsMets[iAnsMet]._lack = shared[0]._accLack.Get();
-        nqk._pAnsMets[iAnsMet]._velocity = sqrt(shared[0]._accVelocity.Get());
-      }
+    ReduceEcs(shared);
+    if (threadIdx.x == 0) {
+      const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
+      nqk._pAnsMets[iAnsMet]._entropy = shared[0]._accs[uint32_t(EqsIndices::LhEnt)].Get();
+      nqk._pAnsMets[iAnsMet]._lack = shared[0]._accs[uint32_t(EqsIndices::Lack)].Get();
+      nqk._pAnsMets[iAnsMet]._velocity = sqrt(shared[0]._accs[uint32_t(EqsIndices::Velocity)].Get());
     }
   }
   __syncthreads(); // let the above global memory writes be visible below
 
-  shared[threadIdx.x]._accLhEnt.Init(0);
-  shared[threadIdx.x]._accLack.Init(0);
-  shared[threadIdx.x]._accVelocity.Init(0);
+  shared[threadIdx.x]._accs[uint32_t(EqsIndices::LhEnt)].Init(0);
+  shared[threadIdx.x]._accs[uint32_t(EqsIndices::Lack)].Init(0);
+  shared[threadIdx.x]._accs[uint32_t(EqsIndices::Velocity)].Init(0);
   int64_t iAnswer = threadIdx.x;
   while (iAnswer < nqk._nAnswers) {
     const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
     const taNumber weight = nqk._pAnsMets[iAnsMet]._weight;
-    shared[threadIdx.x]._accLhEnt.Add(nqk._pAnsMets[iAnsMet]._entropy * weight);
-    shared[threadIdx.x]._accLack.Add(nqk._pAnsMets[iAnsMet]._lack * weight);
-    shared[threadIdx.x]._accVelocity.Add(nqk._pAnsMets[iAnsMet]._velocity * weight);
+    shared[threadIdx.x]._accs[uint32_t(EqsIndices::LhEnt)].Add(nqk._pAnsMets[iAnsMet]._entropy * weight);
+    shared[threadIdx.x]._accs[uint32_t(EqsIndices::Lack)].Add(nqk._pAnsMets[iAnsMet]._lack * weight);
+    shared[threadIdx.x]._accs[uint32_t(EqsIndices::Velocity)].Add(nqk._pAnsMets[iAnsMet]._velocity * weight);
     iAnswer += blockDim.x;
   }
   __syncthreads();
-  remains = blockDim.x >> 1;
-  for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
-    if (threadIdx.x < remains) {
-      shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-      shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-      shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
-    }
-    __syncthreads();
-  }
-  if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
-    for (; remains >= 1; remains >>= 1) {
-      if (threadIdx.x < remains) {
-        shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-        shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-        shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
-      }
-    }
-    if (threadIdx.x == 0) {
-      const taNumber totW = accTotW.Get(); // actually this must be equal to 1 (+-)
-      const taNumber normalizer = 1 / totW;
-      const taNumber avgH = -shared[0]._accLhEnt.Get() * normalizer;
-      const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
-      const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
-      const taNumber nExpectedTargets = exp2(avgH);
-      const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
-      nqk._pTotals[iQuestion] = intPow(avgL, 1)
-        * intPow(vComp, 9)
-        * intPow(nExpectedTargets, -2);
-    }
+  ReduceEcs(shared);
+  if (threadIdx.x == 0) {
+    const taNumber totW = accTotW.Get(); // actually this must be equal to 1 (+-)
+    const taNumber normalizer = 1 / totW;
+    const taNumber avgH = -shared[0]._accs[uint32_t(EqsIndices::LhEnt)].Get() * normalizer;
+    const taNumber avgL = -shared[0]._accs[uint32_t(EqsIndices::Lack)].Get() * normalizer;
+    const taNumber avgV = shared[0]._accs[uint32_t(EqsIndices::Velocity)].Get() * normalizer;
+    const taNumber nExpectedTargets = exp2(avgH);
+    const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
+    nqk._pTotals[iQuestion] = intPow(avgL, 1)
+      * intPow(vComp, 9)
+      * intPow(nExpectedTargets, -2);
   }
 }
 
