@@ -96,20 +96,12 @@ template<typename taNumber> __global__ void StartQuiz(const StartQuizKernel<taNu
   }
   __syncthreads();
   uint32_t remains = blockDim.x >> 1;
-  for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+  for (; remains >= 1; remains >>= 1) {
     if (threadIdx.x < remains) {
       sum[threadIdx.x].Add(sum[threadIdx.x + remains]);
     }
     __syncthreads();
   }
-  if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
-    for (; remains >= 1; remains >>= 1) {
-      if (threadIdx.x < remains) {
-        sum[threadIdx.x].Add(sum[threadIdx.x + remains]);
-      }
-    }
-  }
-  __syncthreads();
   const taNumber divisor = sum[0].Get();
   const taNumber multiplier = 1 / divisor;
   iInstance = threadIdx.x;
@@ -219,20 +211,12 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     }
     __syncthreads(); // get the shared data in all threads
     remains = blockDim.x >> 1;
-    for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+    for (; remains >= 1; remains >>= 1) {
       if (threadIdx.x < remains) {
         shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
       }
       __syncthreads();
     }
-    if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
-      for (; remains >= 1; remains >>= 1) {
-        if (threadIdx.x < remains) {
-          shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-        }
-      }
-    }
-    __syncthreads(); // Ensure that all threads get updated shared[0]
     const taNumber Wk = shared[0]._accLhEnt.Get();
     if (threadIdx.x == 0) {
       accTotW.Add(Wk);
@@ -271,7 +255,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     }
     __syncthreads(); // get the shared data in all threads
     remains = blockDim.x >> 1;
-    for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+    for (; remains >= 1; remains >>= 1) {
       if (threadIdx.x < remains) {
         shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
         shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
@@ -279,20 +263,11 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       }
       __syncthreads();
     }
-    if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
-      for (; remains >= 1; remains >>= 1) {
-        if (threadIdx.x < remains) {
-          shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-          shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-          shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
-        }
-      }
-      if (threadIdx.x == 0) {
-        const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
-        nqk._pAnsMets[iAnsMet]._entropy = shared[0]._accLhEnt.Get();
-        nqk._pAnsMets[iAnsMet]._lack = shared[0]._accLack.Get();
-        nqk._pAnsMets[iAnsMet]._velocity = sqrt(shared[0]._accVelocity.Get());
-      }
+    if (threadIdx.x == 0) {
+      const int64_t iAnsMet = blockIdx.x*nqk._nAnswers + iAnswer;
+      nqk._pAnsMets[iAnsMet]._entropy = shared[0]._accLhEnt.Get();
+      nqk._pAnsMets[iAnsMet]._lack = shared[0]._accLack.Get();
+      nqk._pAnsMets[iAnsMet]._velocity = sqrt(shared[0]._accVelocity.Get());
     }
   }
   __syncthreads(); // let the above global memory writes be visible below
@@ -311,7 +286,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
   }
   __syncthreads();
   remains = blockDim.x >> 1;
-  for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+  for (; remains >= 1; remains >>= 1) {
     if (threadIdx.x < remains) {
       shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
       shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
@@ -319,26 +294,17 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     }
     __syncthreads();
   }
-  if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
-    for (; remains >= 1; remains >>= 1) {
-      if (threadIdx.x < remains) {
-        shared[threadIdx.x]._accLhEnt.Add(shared[threadIdx.x + remains]._accLhEnt);
-        shared[threadIdx.x]._accLack.Add(shared[threadIdx.x + remains]._accLack);
-        shared[threadIdx.x]._accVelocity.Add(shared[threadIdx.x + remains]._accVelocity);
-      }
-    }
-    if (threadIdx.x == 0) {
-      const taNumber totW = accTotW.Get(); // actually this must be equal to 1 (+-)
-      const taNumber normalizer = 1 / totW;
-      const taNumber avgH = -shared[0]._accLhEnt.Get() * normalizer;
-      const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
-      const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
-      const taNumber nExpectedTargets = exp2(avgH);
-      const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
-      nqk._pTotals[iQuestion] = intPow(avgL, 1)
-        * intPow(vComp, 9)
-        * intPow(nExpectedTargets, -2);
-    }
+  if (threadIdx.x == 0) {
+    const taNumber totW = accTotW.Get(); // actually this must be equal to 1 (+-)
+    const taNumber normalizer = 1 / totW;
+    const taNumber avgH = -shared[0]._accLhEnt.Get() * normalizer;
+    const taNumber avgL = -shared[0]._accLack.Get() * normalizer;
+    const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
+    const taNumber nExpectedTargets = exp2(avgH);
+    const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
+    nqk._pTotals[iQuestion] = intPow(avgL, 1)
+      * intPow(vComp, 9)
+      * intPow(nExpectedTargets, -2);
   }
 }
 
@@ -399,20 +365,12 @@ template<typename taNumber> __global__ void RecordAnswer(RecordAnswerKernel<taNu
   }
   __syncthreads();
   uint32_t remains = blockDim.x >> 1;
-  for (; remains > KernelLaunchContext::_cWarpSize; remains >>= 1) {
+  for (; remains >= 1; remains >>= 1) {
     if (threadIdx.x < remains) {
       sum[threadIdx.x].Add(sum[threadIdx.x + remains]);
     }
     __syncthreads();
   }
-  if (threadIdx.x < KernelLaunchContext::_cWarpSize) {
-    for (; remains >= 1; remains >>= 1) {
-      if (threadIdx.x < remains) {
-        sum[threadIdx.x].Add(sum[threadIdx.x + remains]);
-      }
-    }
-  }
-  __syncthreads();
   const taNumber normalizer = 1 / sum[0].Get();
   iTarget = threadIdx.x;
   while (iTarget < rak._nTargets) {
