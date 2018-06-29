@@ -56,6 +56,7 @@ constexpr int64_t cnTopRated = 1;
 
 SRCriticalSection gcsReport;
 int64_t gnCorrect;
+int64_t gnWrong;
 int64_t gSumQuizLens;
 double gTotCertainty;
 uint64_t gpcStart;
@@ -82,7 +83,7 @@ void LearnerThread(IPqaEngine *pEngine) {
           fprintf(stderr, SR_FILE_LINE "Failed to query the total number of questions asked.\n");
           return;
         }
-        const double precision = gnCorrect * 100.0 / 1024;
+        const double precision = gnCorrect * 100.0 / (gnCorrect + gnWrong);
         const double elapsedSec = double(GetPerfCnt() - gpcStart) / gPerfCntFreq;
         printf("\n*%" PRIu64 ";%.2lf%%*", totQAsked, precision);
         fprintf(gFpProgress, "%" PRId64 "\t%" PRIu64 "\t%lf\t%lf\t%lf\t%lf\n", gNTrainings, totQAsked, precision,
@@ -98,6 +99,7 @@ void LearnerThread(IPqaEngine *pEngine) {
         }
 
         gnCorrect = 0;
+        gnWrong = 0;
         gSumQuizLens = 0;
         gTotCertainty = 0;
         gPrevQAsked = totQAsked;
@@ -165,18 +167,20 @@ void LearnerThread(IPqaEngine *pEngine) {
       }
       if (posInTop != cInvalidPqaId) {
         const double certainty = rts[posInTop]._prob * 100;
+        //printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop),
+        //  int64_t(j+1));
+        printf("[G=%" PRId64 ",A=%" PRId64 ",P=%.2lf%%]", int64_t(guess), int64_t(j + 1), certainty);
         SRLock<SRCriticalSection> csl(gcsReport);
         gnCorrect++;
         gSumQuizLens += j + 1;
         gTotCertainty += certainty;
-        //printf("[guess=%" PRId64 ",top=%" PRId64 ",after=%" PRId64 "]", int64_t(guess), int64_t(posInTop),
-        //  int64_t(j+1));
-        printf("[G=%" PRId64 ",A=%" PRId64 ",P=%.2lf%%]", int64_t(guess), int64_t(j + 1), certainty);
         break;
       }
     }
     if (j >= cMaxQuizLen) {
       printf("-");
+      SRLock<SRCriticalSection> csl(gcsReport);
+      gnWrong++;
     }
     err = pEngine->RecordQuizTarget(iQuiz, guess);
     if (!err.IsOk()) {
@@ -221,6 +225,7 @@ int LearnBinarySearch(const char* const initKbFp) {
   }
 
   gnCorrect = 0;
+  gnWrong = 0;
   gSumQuizLens = 0;
   gTotCertainty = 0;
   gpcStart = GetPerfCnt();
