@@ -142,6 +142,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::StartQuiz(PqaError& err
         SRRWLock<false> rwl(_rws);
         sqk.Run(GetKlc(), cuStr.Get());
         CUDA_MUST(cudaGetLastError());
+        CudaMain::FlushWddm(cuStr.Get());
         CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
       }
     }
@@ -201,10 +202,12 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
         SRRWLock<false> rwl(_rws);
         nqk.Run(cuStr.Get());
         CUDA_MUST(cudaGetLastError());
+        CudaMain::FlushWddm(cuStr.Get());
         CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
       }
       CUDA_MUST(cudaMemcpyAsync(totals.Get(), nqk._pTotals, sizeof(taNumber)*nQuestions, cudaMemcpyDeviceToHost,
         cuStr.Get()));
+      CudaMain::FlushWddm(cuStr.Get());
       CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
     }
     //// Analyze the totals so to select the next question
@@ -268,6 +271,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::ListTopTargetsSpec(PqaE
       CudaStream cuStr = _cspNb.Acquire();
       CUDA_MUST(cudaMemcpyAsync(priors.Get(), pQuiz->GetPriorMants(), sizeof(taNumber)*nTargets,
         cudaMemcpyDeviceToHost, cuStr.Get()));
+      CudaMain::FlushWddm(cuStr.Get());
       CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
     }
     TPqaId nInHeap = 0;
@@ -325,10 +329,12 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::RecordQuizTargetSpec(
       CudaStream cuStr = _cspNb.Acquire();
       CUDA_MUST(cudaMemcpyAsync(devAQs.Get(), hostAQs.Get(), sizeof(CudaAnsweredQuestion) * rqtk._nAQs,
         cudaMemcpyHostToDevice, cuStr.Get()));
+      CudaMain::FlushWddm(cuStr.Get());
       CUDA_MUST(cudaStreamSynchronize(cuStr.Get())); // minimize the time we are holding the read-write lock
       SRRWLock<true> rwl(_rws);
       rqtk.Run(GetKlc(), cuStr.Get());
       CUDA_MUST(cudaGetLastError());
+      CudaMain::FlushWddm(cuStr.Get());
       CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
     }
     return PqaError();

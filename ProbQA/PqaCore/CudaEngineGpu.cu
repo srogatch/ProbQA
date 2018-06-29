@@ -37,7 +37,7 @@ public:
 };
 
 __device__ bool TestBit(const uint8_t *pArr, const int64_t iBit) {
-  return pArr[iBit >> 3] & (1 << (iBit & 7));
+  return (pArr[iBit >> 3] & (1 << (iBit & 7))) != 0;
 }
 
 template<typename taNumber> __device__ taNumber& GetSA(const int64_t iQuestion, const int64_t iAnswer,
@@ -295,6 +295,7 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
       }
     }
   }
+  __syncthreads(); // let the above global memory writes be visible below
 
   shared[threadIdx.x]._accLhEnt.Init(0);
   shared[threadIdx.x]._accLack.Init(0);

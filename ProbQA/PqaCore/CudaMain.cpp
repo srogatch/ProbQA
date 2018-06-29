@@ -100,12 +100,12 @@ bool CudaMain::Initialize(const int iDevice) {
   CudaDeviceLock cdl = SetDevice(iDevice);
 
   CUDA_MUST(cudaSetDeviceFlags(
-    cudaDeviceScheduleBlockingSync
-    //cudaDeviceScheduleYield // cudaDeviceScheduleBlockingSync //DEBUG
+    //cudaDeviceScheduleBlockingSync
+    cudaDeviceScheduleYield // cudaDeviceScheduleBlockingSync //DEBUG
     | cudaDeviceMapHost
     //TODO: benchmark, not sure about this.
     // https://devtalk.nvidia.com/default/topic/621170/random-execution-times-and-freezes-with-concurent-kernels/
-    //| cudaDeviceLmemResizeToMax
+    | cudaDeviceLmemResizeToMax
   ));
   gDevsInitialized.insert(iDevice);
   return true;
@@ -144,6 +144,14 @@ CudaDeviceLock CudaMain::SetDevice(const int iDevice) {
 
 CudaDeviceLock CudaMain::TrySetDevice(const int iDevice) {
   return SetDeviceInternal<true>(iDevice);
+}
+
+void CudaMain::FlushWddm(cudaStream_t stream) {
+  cudaError_t status = cudaStreamQuery(stream);
+  if (status != cudaSuccess && status != cudaErrorNotReady) {
+    ProbQA::CudaException(status, SRPlat::SRMessageBuilder(SR_FILE_LINE)("CUDA error #")(status)(": ") \
+      (cudaGetErrorString(status)).GetOwnedSRString()).ThrowMoving();
+  }
 }
 
 } // namespace ProbQA

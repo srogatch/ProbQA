@@ -49,6 +49,7 @@ public:
   static bool IsInitialized(const int iDevice);
   static CudaDeviceLock SetDevice(const int iDevice);
   static CudaDeviceLock TrySetDevice(const int iDevice);
+  static void FlushWddm(cudaStream_t stream);
 };
 
 } // namespace ProbQA

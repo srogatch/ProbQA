@@ -46,6 +46,7 @@ template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqa
     uint8_t cpuByte;
     uint8_t *pDevByte = _pQAsked + (_activeQuestion >> 3);
     CUDA_MUST(cudaMemcpyAsync(&cpuByte, pDevByte, 1, cudaMemcpyDeviceToHost, cuStr.Get()));
+    CudaMain::FlushWddm(cuStr.Get());
     CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
     cpuByte |= (1 << (_activeQuestion & 7));
     CUDA_MUST(cudaMemcpyAsync(pDevByte, &cpuByte, 1, cudaMemcpyHostToDevice, cuStr.Get()));
@@ -53,6 +54,7 @@ template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqa
     SRRWLock<false> rwl(pEngine->GetRws());
     rak.Run(pEngine->GetKlc(), cuStr.Get());
     CUDA_MUST(cudaGetLastError());
+    CudaMain::FlushWddm(cuStr.Get());
     CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
   }
   _answers.emplace_back(_activeQuestion, iAnswer);
