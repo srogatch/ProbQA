@@ -297,6 +297,9 @@
     <ClInclude Include="CudaMemPool.h">
       <Filter>Header Files\CUDA Engine</Filter>
     </ClInclude>
+    <ClInclude Include="CudaPersistence.h">
+      <Filter>Header Files\CUDA Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -399,6 +402,9 @@
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
     <ClCompile Include="CudaMemPool.cpp">
+      <Filter>Source Files\CUDA Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="CudaPersistence.cpp">
       <Filter>Source Files\CUDA Engine</Filter>
     </ClCompile>
   </ItemGroup>

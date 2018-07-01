@@ -9,6 +9,7 @@
 #include "../PqaCore/CudaQuiz.h"
 #include "../PqaCore/ErrorHelper.h"
 #include "../PqaCore/CudaMemPool.h"
+#include "../PqaCore/CudaPersistence.h"
 
 using namespace SRPlat;
 
@@ -48,22 +49,10 @@ template<typename taNumber> CudaEngine<taNumber>::CudaEngine(const EngineDefinit
     CUDA_MUST(cudaGetLastError());
     CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
   } else { // load
-    //TODO: implement
-    //if (std::fread(_sA.Get(), sizeof(taNumber), nSAItems, pKbFi->_sf.Get()) != nSAItems) {
-    //  PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
-    //    SR_FILE_LINE " Can't read cube A from file.")).ThrowMoving();
-    //}
-    //_sA.Prefetch(cuStr.Get(), 0, nSAItems, _iDevice);
-    //if (std::fread(_mD.Get(), sizeof(taNumber), nMDItems, pKbFi->_sf.Get()) != nMDItems) {
-    //  PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
-    //    SR_FILE_LINE " Can't read matrix D from file.")).ThrowMoving();
-    //}
-    //_mD.Prefetch(cuStr.Get(), 0, nMDItems, _iDevice);
-    //if (std::fread(_vB.Get(), sizeof(taNumber), nVBItems, pKbFi->_sf.Get()) != nVBItems) {
-    //  PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(
-    //    SR_FILE_LINE " Can't read vector B from file.")).ThrowMoving();
-    //}
-    //_vB.Prefetch(cuStr.Get(), 0, nVBItems, _iDevice);
+    CudaPersistence cuPer{_cFileBufSize, pKbFi, cuStr.Get()};
+    cuPer.ReadFile(_sA.Get(), sizeof(taNumber) * nSAItems);
+    cuPer.ReadFile(_mD.Get(), sizeof(taNumber) * nMDItems);
+    cuPer.ReadFile(_vB.Get(), sizeof(taNumber) * nVBItems);
   }
   AfterStatisticsInit(pKbFi);
   BceUpdateWithDimensions(cuStr.Get());
@@ -372,20 +361,16 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::SaveStatistics(KBFile
   const size_t nMDItems = int64_t(nQuestions) * nTargets;
   const size_t nVBItems = nTargets;
 
-  //TODO: implement
-  //if (std::fwrite(_sA.Get(), sizeof(taNumber), nSAItems, kbfi._sf.Get()) != nSAItems) {
-  //  return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(
-  //    SR_FILE_LINE " Can't write cube A to file."));
-  //}
-  //if (std::fwrite(_mD.Get(), sizeof(taNumber), nMDItems, kbfi._sf.Get()) != nMDItems) {
-  //  return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(
-  //    SR_FILE_LINE " Can't write matrix D to file."));
-  //}
-  //if (std::fwrite(_vB.Get(), sizeof(taNumber), nVBItems, kbfi._sf.Get()) != nVBItems) {
-  //  return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(
-  //    SR_FILE_LINE " Can't write vector B to file."));
-  //}
-  return PqaError();
+  CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
+  CudaStream cuStr = _cspNb.Acquire();
+  CudaPersistence cuPer{_cFileBufSize, &kbfi, cuStr.Get()};
+  try {
+    cuPer.WriteFile(_sA.Get(), sizeof(taNumber) * nSAItems);
+    cuPer.WriteFile(_mD.Get(), sizeof(taNumber) * nMDItems);
+    cuPer.WriteFile(_vB.Get(), sizeof(taNumber) * nVBItems);
+    return PqaError();
+  }
+  CATCH_TO_ERR_RETURN;
 }
 
 //// Instantiations

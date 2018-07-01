@@ -192,6 +192,7 @@
     <ClInclude Include="CpuEngine.fwd.h" />
     <ClInclude Include="CpuEngine.h" />
     <ClInclude Include="CudaArray.h" />
+    <ClInclude Include="CudaPersistence.h" />
     <ClInclude Include="CudaEngine.h" />
     <ClInclude Include="CudaEngineGpu.cuh" />
     <ClInclude Include="CudaException.h" />
@@ -244,6 +245,7 @@
     <ClCompile Include="CudaException.cpp" />
     <ClCompile Include="CudaMain.cpp" />
     <ClCompile Include="CudaMemPool.cpp" />
+    <ClCompile Include="CudaPersistence.cpp" />
     <ClCompile Include="CudaQuiz.cpp" />
     <ClCompile Include="CudaStreamPool.cpp" />
     <ClCompile Include="PqaCInterop.cpp" />

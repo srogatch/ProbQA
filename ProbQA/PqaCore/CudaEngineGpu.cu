@@ -302,9 +302,9 @@ template<typename taNumber> __device__ void EvaluateQuestion(const int64_t iQues
     const taNumber avgV = shared[0]._accVelocity.Get() * normalizer;
     const taNumber nExpectedTargets = exp2(avgH);
     const taNumber vComp = CalcVelocityComponent(avgV, nqk._nTargets);
-    nqk._pTotals[iQuestion] = intPow(avgL, 1)
+    nqk._pTotals[iQuestion] = intPow(avgL, 2)
       * intPow(vComp, 9)
-      * intPow(nExpectedTargets, -2);
+      * intPow(nExpectedTargets, -4);
   }
 }
 
