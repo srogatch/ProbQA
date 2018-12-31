@@ -49,6 +49,10 @@ public:
     return *this;
   }
 
+  SRMessageBuilder& operator()(const char ch) {
+    return AppendChar(ch);
+  }
+
   template<typename T> SRMessageBuilder& operator()(const T& val) {
     _buf += std::to_string(val);
     return *this;

@@ -110,7 +110,7 @@ size_t SRMultiException::AddExceptionOwn(SRException *pEx) {
   return EnsureImpl()->AddExceptionOwn(pEx);
 }
 
-SRString SRMultiException::ToString() {
+SRString SRMultiException::ToString() const {
   SRLock<TSync> sl(_sync);
   size_t nExs;
   if (_pImpl == nullptr || (nExs = _pImpl->GetCount()) == 0) {

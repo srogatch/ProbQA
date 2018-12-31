@@ -24,7 +24,7 @@ public:
 
   SREXCEPTION_TYPICAL(SRStd);
 
-  virtual SRString ToString() override final {
+  virtual SRString ToString() const override final {
     return SRMessageBuilder()(GetMsg())(" Type name [")(_typeName)("]. std::exception message [")(_stdexMsg)("].")
       .GetOwnedSRString();
   }

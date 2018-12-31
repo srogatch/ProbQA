@@ -132,6 +132,16 @@ PQACORE_API uint8_t CiLogger_Init(void **ppStrErr, const char* baseName) {
     *ppStrErr = pMsg;
     return 0;
   }
+  catch (const SRException& ex) {
+    SRString strEx = ex.ToString();
+    const char* pS;
+    const size_t len = strEx.GetData(pS);
+    char *pMsg = new char[len + 1];
+    memcpy(pMsg, pS, len);
+    pMsg[len] = 0;
+    *ppStrErr = pMsg;
+    return 0;
+  }
   catch (...) {
     SendUnexpectedError(ppStrErr);
     return 0;

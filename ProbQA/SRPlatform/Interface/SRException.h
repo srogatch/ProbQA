@@ -45,7 +45,7 @@ public:
 
   const SRString& GetMsg() const;
   SRString MoveMsg();
-  virtual SRString ToString() { return _message; }
+  virtual SRString ToString() const { return _message; }
 };
 
 } // namespace SRPlat

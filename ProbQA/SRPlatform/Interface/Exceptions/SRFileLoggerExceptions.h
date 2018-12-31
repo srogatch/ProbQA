@@ -22,7 +22,7 @@ public:
 
   SREXCEPTION_TYPICAL(SRCannotOpenLogFile);
 
-  virtual SRString ToString() override final {
+  virtual SRString ToString() const override final {
     return SRMessageBuilder()(GetMsg())('[')(_fileName)(']').GetOwnedSRString();
   }
 };
@@ -41,7 +41,7 @@ public:
 
   SREXCEPTION_TYPICAL(SRLoggerShutDown);
 
-  virtual SRString ToString() override final {
+  virtual SRString ToString() const override final {
     return SRMessageBuilder()(GetMsg())('[')(_unloggedMsg)(']').GetOwnedSRString();
   }
 };

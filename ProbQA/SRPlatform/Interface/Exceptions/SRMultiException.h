@@ -37,7 +37,7 @@ public:
 
   SREXCEPTION_TYPICAL(SRMulti);
 
-  virtual SRString ToString() override final;
+  virtual SRString ToString() const override final;
 
   size_t AddException(SRException &&ex);
   // Take ownership of pEx and add it to the collection.
