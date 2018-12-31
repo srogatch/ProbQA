@@ -40,16 +40,16 @@ typedef struct {
 extern "C" {
 #endif // __cplusplus
 
-PQACORE_API uint8_t CiLogger_Init(void **ppStrErr, const char* baseName);
+PQACORE_API uint8_t Logger_Init(void **ppStrErr, const char* baseName);
 PQACORE_API void CiReleaseString(void *pvString);
 
-PQACORE_API void* CiPqaGetEngineFactory();
-PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef);
-PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath,
+PQACORE_API void* CiGetPqaEngineFactory();
+PQACORE_API void* PqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef);
+PQACORE_API void* PqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath,
   uint64_t memPoolMaxBytes);
 
 PQACORE_API void CiReleasePqaError(void *pvErr);
-PQACORE_API void* CiPqaError_ToString(void *pvError, const uint8_t withParams);
+PQACORE_API void* PqaError_ToString(void *pvError, const uint8_t withParams);
 
 PQACORE_API void CiReleasePqaEngine(void *pvEngine);
 PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAnsweredQuestion* const pAQs,

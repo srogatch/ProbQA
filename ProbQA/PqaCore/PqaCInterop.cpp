@@ -62,11 +62,11 @@ void* ReturnPqaError(PqaError &&err) {
 
 } // anonymous namespace
 
-PQACORE_API void* CiPqaGetEngineFactory() {
+PQACORE_API void* CiGetPqaEngineFactory() {
   return &(PqaGetEngineFactory());
 }
 
-PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef) {
+PQACORE_API void* PqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef) {
   IPqaEngineFactory *pEf = static_cast<IPqaEngineFactory *>(pvFactory);
   if (pEf == nullptr) {
     *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
@@ -88,7 +88,7 @@ PQACORE_API void* CiPqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppE
   return pEngine;
 }
 
-PQACORE_API void* CiqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath,
+PQACORE_API void* PqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath,
   uint64_t memPoolMaxBytes)
 {
   IPqaEngineFactory *pEf = static_cast<IPqaEngineFactory *>(pvFactory);
@@ -113,13 +113,13 @@ PQACORE_API void CiReleaseString(void *pvString) {
   delete pS;
 }
 
-PQACORE_API void* CiPqaError_ToString(void *pvError, const uint8_t withParams) {
+PQACORE_API void* PqaError_ToString(void *pvError, const uint8_t withParams) {
   PqaError *pErr = static_cast<PqaError*>(pvError);
   SRString srStr = pErr->ToString(withParams);
   return PrepareSRString(srStr);
 }
 
-PQACORE_API uint8_t CiLogger_Init(void **ppStrErr, const char* baseName) {
+PQACORE_API uint8_t Logger_Init(void **ppStrErr, const char* baseName) {
   try {
     SRDefaultLogger::Init(SRString::MakeUnowned(baseName));
     *ppStrErr = nullptr;
