@@ -44,7 +44,7 @@ PQACORE_API uint8_t Logger_Init(void **ppStrErr, const char* baseName);
 PQACORE_API void CiReleaseString(void *pvString);
 
 PQACORE_API void* CiGetPqaEngineFactory();
-PQACORE_API void* PqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef);
+PQACORE_API void* PqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, const CiEngineDefinition *pEngDef);
 PQACORE_API void* PqaEngineFactory_LoadCpuEngine(void *pvFactory, void **ppError, const char* filePath,
   uint64_t memPoolMaxBytes);
 

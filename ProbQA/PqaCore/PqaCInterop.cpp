@@ -66,7 +66,7 @@ PQACORE_API void* CiGetPqaEngineFactory() {
   return &(PqaGetEngineFactory());
 }
 
-PQACORE_API void* PqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, CiEngineDefinition *pEngDef) {
+PQACORE_API void* PqaEngineFactory_CreateCpuEngine(void* pvFactory, void **ppError, const CiEngineDefinition *pEngDef) {
   IPqaEngineFactory *pEf = static_cast<IPqaEngineFactory *>(pvFactory);
   if (pEf == nullptr) {
     *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
