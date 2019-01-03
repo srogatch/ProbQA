@@ -114,7 +114,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         accLhEnt.Add(Hikj);
 
         const __m256d invDij = SRSimd::Load<true>(pInvDi + j);
-        accL.Add(_mm256_div_pd(_mm256_mul_pd(invDij, invDij), l2post));
+        accL.Add(_mm256_andnot_pd(gapMask, _mm256_div_pd(_mm256_mul_pd(invDij, invDij), l2post)));
 
         const __m256d diff = _mm256_sub_pd(posteriors, priors);
 

@@ -40,6 +40,8 @@ typedef struct {
 extern "C" {
 #endif // __cplusplus
 
+PQACORE_API void CiDebugBreak(void);
+
 PQACORE_API uint8_t Logger_Init(void **ppStrErr, const char* baseName);
 PQACORE_API void CiReleaseString(void *pvString);
 

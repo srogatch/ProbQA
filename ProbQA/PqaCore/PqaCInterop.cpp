@@ -337,3 +337,7 @@ PQACORE_API int64_t PqaEngine_GetActiveQuestionId(void *pvEngine, void **ppError
   AssignPqaError(ppError, err);
   return iQuestion;
 }
+
+PQACORE_API void CiDebugBreak(void) {
+  __debugbreak();
+}

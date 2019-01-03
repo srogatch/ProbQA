@@ -92,12 +92,12 @@ namespace ProbQANetCore
     private static extern IntPtr PqaEngine_Train(IntPtr pEngine, Int64 nQuestions, IntPtr pAQs, Int64 iTarget,
       double amount = 1.0);
 
-    public PqaError Train(Int64 nQuestions, AnsweredQuestion[] AQs, Int64 iTarget, double amount = 1.0)
+    public PqaError Train(AnsweredQuestion[] AQs, Int64 iTarget, double amount = 1.0)
     {
       GCHandle pAQs = GCHandle.Alloc(AQs, GCHandleType.Pinned);
       try
       {
-        return PqaError.Factor(PqaEngine_Train(_nativeEngine, nQuestions, pAQs.AddrOfPinnedObject(), iTarget, amount));
+        return PqaError.Factor(PqaEngine_Train(_nativeEngine, AQs.LongLength, pAQs.AddrOfPinnedObject(), iTarget, amount));
       }
       finally
       {

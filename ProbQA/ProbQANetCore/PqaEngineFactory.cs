@@ -87,7 +87,7 @@ namespace ProbQANetCore
       }
       if(nativeEngine == IntPtr.Zero)
       {
-        return null;
+        return null; // Shall we throw an exception here instead?
       }
       return new PqaEngine(nativeEngine);
     }
@@ -107,7 +107,7 @@ namespace ProbQANetCore
       }
       if(nativeEngine == IntPtr.Zero)
       {
-        return null;
+        return null; // Shall we throw an exception here instead?
       }
       return new PqaEngine(nativeEngine);
     }

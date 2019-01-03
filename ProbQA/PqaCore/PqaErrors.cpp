@@ -127,7 +127,7 @@ PqaError& PqaError::SetFromException(const std::exception &ex) {
 
 SRString PqaError::ToString(const bool withParams) {
   SRMessageBuilder mb;
-  mb.AppendChar('[')(ToSRString(_code))("] [")(_message);
+  mb.AppendChar('[')(ToSRString(_code))("] message=[")(_message);
   if (!withParams) {
     return mb.AppendChar(']').GetOwnedSRString();
   }

@@ -11,7 +11,7 @@ namespace ProbQANetCore
     bool TargetPermFromComp(Int64[] ids);
     bool TargetCompFromPerm(Int64[] ids);
 
-    PqaError Train(Int64 nQuestions, AnsweredQuestion[] AQs, Int64 iTarget, double amount = 1.0);
+    PqaError Train(AnsweredQuestion[] AQs, Int64 iTarget, double amount = 1.0);
 
     UInt64 GetTotalQuestionsAsked(out PqaError err);
     EngineDimensions CopyDims();
