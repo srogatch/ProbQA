@@ -23,3 +23,8 @@
 /ProbQA/PqaCuda/vc140.pdb
 /ProbQA/PqaCuda/x64
 /ProbQA/PqaCore/vc140.pdb
+__pycache__
+/Interop/Python/ProbQAInterop/DLLs/PqaCore.dll
+/Interop/Python/ProbQAInterop/DLLs/PqaCore.pdb
+/Interop/Python/ProbQAInterop/DLLs/SRPlatform.dll
+/Interop/Python/ProbQAInterop/DLLs/SRPlatform.pdb
