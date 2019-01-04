@@ -28,6 +28,8 @@ class SRPLATFORM_API SRUtils {
 public: // Methods
   ATTR_NORETURN static void ExitProgram(SRExitCode code);
 
+  static void RequestDebug();
+
   static SRString PrintUtcTimestamp();
   static SRString PrintUtcDate();
   template<bool taSubmillisecond> SRPLATFORM_API static SRString PrintUtcTime();

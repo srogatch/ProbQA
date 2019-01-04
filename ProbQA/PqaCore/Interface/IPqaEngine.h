@@ -76,6 +76,8 @@ public:
 
   // For the cells where both question and target are added (the intersection), the initial amount for the question
   //   is used and the initial amount for the target is ignored.
+  // In |pAqps| and |pAtps| the client code passes initial amounts and receives back IDs of questions and targets
+  //   added.
   virtual PqaError AddQsTs(const TPqaId nQuestions, AddQuestionParam *pAqps, const TPqaId nTargets,
     AddTargetParam *pAtps) = 0;
   virtual PqaError RemoveQuestions(const TPqaId nQuestions, const TPqaId *pQIds) = 0;

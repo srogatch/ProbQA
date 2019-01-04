@@ -62,6 +62,29 @@ void* ReturnPqaError(PqaError &&err) {
 
 } // anonymous namespace
 
+#define GET_ENGINE_OR_RET_ERR \
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine); \
+  if (pEng == nullptr) { \
+    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned( \
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine.")); \
+  }
+
+#define GET_ENGINE_OR_ASSIGN_ERR(retVal) \
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine); \
+  if (pEng == nullptr) { \
+    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned( \
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine.")); \
+    return retVal; \
+  }
+
+#define GET_ENGINE_OR_LOG_ERR(retVal) \
+  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine); \
+  if (pEng == nullptr) { \
+    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned( \
+      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine.")); \
+    return 0; \
+  }
+
 PQACORE_API void* CiGetPqaEngineFactory() {
   return &(PqaGetEngineFactory());
 }
@@ -156,61 +179,32 @@ PQACORE_API void CiReleasePqaEngine(void *pvEngine) {
 PQACORE_API void* PqaEngine_Train(void *pvEngine, int64_t nQuestions, const CiAnsweredQuestion* const pAQs,
   const int64_t iTarget, const double amount)
 {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-  }
+  GET_ENGINE_OR_RET_ERR;
   return ReturnPqaError(pEng->Train(nQuestions, reinterpret_cast<const AnsweredQuestion*>(pAQs), iTarget, amount));
 }
 
 PQACORE_API uint8_t PqaEngine_QuestionPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return 0;
-  }
+  GET_ENGINE_OR_LOG_ERR(0);
   return pEng->QuestionPermFromComp(count, pIds) ? 1 : 0;
 }
 
 PQACORE_API uint8_t PqaEngine_QuestionCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return 0;
-  }
+  GET_ENGINE_OR_LOG_ERR(0);
   return pEng->QuestionCompFromPerm(count, pIds) ? 1 : 0;
 }
 
 PQACORE_API uint8_t PqaEngine_TargetPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return 0;
-  }
+  GET_ENGINE_OR_LOG_ERR(0);
   return pEng->TargetPermFromComp(count, pIds) ? 1 : 0;
 }
 
 PQACORE_API uint8_t PqaEngine_TargetCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return 0;
-  }
+  GET_ENGINE_OR_LOG_ERR(0);
   return pEng->TargetCompFromPerm(count, pIds) ? 1 : 0;
 }
 
 PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return 0;
-  }
+  GET_ENGINE_OR_ASSIGN_ERR(0);
   PqaError err;
   const uint64_t nQAs = pEng->GetTotalQuestionsAsked(err);
   AssignPqaError(ppError, err);
@@ -218,12 +212,7 @@ PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppE
 }
 
 PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    SRDefaultLogger::Get()->Log(ISRLogger::Severity::Error, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return 0;
-  }
+  GET_ENGINE_OR_LOG_ERR(0);
   const EngineDimensions dims = pEng->CopyDims();
   pDims->_nAnswers = dims._nAnswers;
   pDims->_nQuestions = dims._nQuestions;
@@ -232,12 +221,7 @@ PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims
 }
 
 PQACORE_API int64_t PqaEngine_StartQuiz(void *pvEngine, void **ppError) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return cInvalidPqaId;
-  }
+  GET_ENGINE_OR_ASSIGN_ERR(cInvalidPqaId);
   PqaError err;
   const TPqaId iQuiz = pEng->StartQuiz(err);
   AssignPqaError(ppError, err);
@@ -247,12 +231,7 @@ PQACORE_API int64_t PqaEngine_StartQuiz(void *pvEngine, void **ppError) {
 PQACORE_API int64_t PqaEngine_ResumeQuiz(void *pvEngine, void **ppError, const int64_t nAnswered,
   const CiAnsweredQuestion* const pAQs)
 {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return cInvalidPqaId;
-  }
+  GET_ENGINE_OR_ASSIGN_ERR(cInvalidPqaId);
   PqaError err;
   const TPqaId iQuiz = pEng->ResumeQuiz(err, nAnswered, reinterpret_cast<const AnsweredQuestion*>(pAQs));
   AssignPqaError(ppError, err);
@@ -260,12 +239,7 @@ PQACORE_API int64_t PqaEngine_ResumeQuiz(void *pvEngine, void **ppError, const i
 }
 
 PQACORE_API int64_t PqaEngine_NextQuestion(void *pvEngine, void **ppError, const int64_t iQuiz) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return cInvalidPqaId;
-  }
+  GET_ENGINE_OR_ASSIGN_ERR(cInvalidPqaId);
   PqaError err;
   const TPqaId iQuestion = pEng->NextQuestion(err, iQuiz);
   AssignPqaError(ppError, err);
@@ -273,23 +247,14 @@ PQACORE_API int64_t PqaEngine_NextQuestion(void *pvEngine, void **ppError, const
 }
 
 PQACORE_API void* PqaEngine_RecordAnswer(void *pvEngine, const int64_t iQuiz, const int64_t iAnswer) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-  }
+  GET_ENGINE_OR_RET_ERR;
   return ReturnPqaError(pEng->RecordAnswer(iQuiz, iAnswer));
 }
 
 PQACORE_API int64_t PqaEngine_ListTopTargets(void *pvEngine, void **ppError, const int64_t iQuiz,
   const int64_t maxCount, CiRatedTarget *pDest)
 {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return cInvalidPqaId;
-  }
+  GET_ENGINE_OR_ASSIGN_ERR(cInvalidPqaId);
   PqaError err;
   const TPqaId nListed = pEng->ListTopTargets(err, iQuiz, maxCount, reinterpret_cast<RatedTarget*>(pDest));
   AssignPqaError(ppError, err);
@@ -299,39 +264,22 @@ PQACORE_API int64_t PqaEngine_ListTopTargets(void *pvEngine, void **ppError, con
 PQACORE_API void* PqaEngine_RecordQuizTarget(void *pvEngine, const int64_t iQuiz, const int64_t iTarget,
   const double amount)
 {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-  }
+  GET_ENGINE_OR_RET_ERR;
   return ReturnPqaError(pEng->RecordQuizTarget(iQuiz, iTarget, amount));
 }
 
 PQACORE_API void* PqaEngine_ReleaseQuiz(void *pvEngine, const int64_t iQuiz) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-  }
+  GET_ENGINE_OR_RET_ERR;
   return ReturnPqaError(pEng->ReleaseQuiz(iQuiz));
 }
 
 PQACORE_API void* PqaEngine_SaveKB(void *pvEngine, const char* const filePath, const uint8_t bDoubleBuffer) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    return new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-  }
+  GET_ENGINE_OR_RET_ERR;
   return ReturnPqaError(pEng->SaveKB(filePath, bDoubleBuffer != 0));
 }
 
 PQACORE_API int64_t PqaEngine_GetActiveQuestionId(void *pvEngine, void **ppError, const int64_t iQuiz) {
-  IPqaEngine *pEng = static_cast<IPqaEngine*>(pvEngine);
-  if (pEng == nullptr) {
-    *ppError = new PqaError(PqaErrorCode::NullArgument, nullptr, SRString::MakeUnowned(
-      SR_FILE_LINE "Nullptr is passed in place of IPqaEngine."));
-    return cInvalidPqaId;
-  }
+  GET_ENGINE_OR_ASSIGN_ERR(cInvalidPqaId);
   PqaError err;
   int64_t iQuestion = pEng->GetActiveQuestionId(err, iQuiz);
   AssignPqaError(ppError, err);
@@ -339,5 +287,66 @@ PQACORE_API int64_t PqaEngine_GetActiveQuestionId(void *pvEngine, void **ppError
 }
 
 PQACORE_API void CiDebugBreak(void) {
-  __debugbreak();
+  SRUtils::RequestDebug();
+}
+
+PQACORE_API void* PqaEngine_StartMaintenance(void *pvEngine, const bool forceQuizes) {
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->StartMaintenance(forceQuizes));
+}
+
+PQACORE_API void* PqaEngine_FinishMaintenance(void *pvEngine) {
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->FinishMaintenance());
+}
+
+PQACORE_API void* PqaEngine_AddQsTs(void *pvEngine, const int64_t nQuestions, CiAddQorTParam *pAddQuestionParams,
+  const int64_t nTargets, CiAddQorTParam *pAddTargetParams)
+{
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->AddQsTs(nQuestions, reinterpret_cast<AddQuestionParam*>(pAddQuestionParams),
+    nTargets, reinterpret_cast<AddTargetParam*>(pAddTargetParams)));
+}
+
+PQACORE_API void* PqaEngine_RemoveQuestions(void *pvEngine, const int64_t nQuestions, const int64_t *pQIds) {
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->RemoveQuestions(nQuestions, pQIds));
+}
+
+PQACORE_API void* PqaEngine_RemoveTargets(void *pvEngine, const int64_t nTargets, const int64_t *pTIds) {
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->RemoveTargets(nTargets, pTIds));
+}
+
+PQACORE_API void* PqaEngine_Compact(void *pvEngine, int64_t *pnQuestions, int64_t const ** const ppOldQuestions,
+  int64_t *pnTargets, int64_t const ** const ppOldTargets)
+{
+  GET_ENGINE_OR_RET_ERR;
+  CompactionResult cr;
+  PqaError err = pEng->Compact(cr);
+  if (err.IsOk()) {
+    *pnQuestions = cr._nQuestions;
+    *pnTargets = cr._nTargets;
+    *ppOldQuestions = cr._pOldQuestions;
+    *ppOldTargets = cr._pOldTargets;
+    //// Prevent them from getting _mm_free()'d
+    cr._pOldQuestions = nullptr;
+    cr._pOldTargets = nullptr;
+  }
+  return ReturnPqaError(std::move(err));
+}
+
+PQACORE_API void CiReleaseCompaction(const int64_t *p) {
+  _mm_free(const_cast<int64_t*>(p)); // It's const for the client code, but not for us
+}
+
+PQACORE_API void* PqaEngine_Shutdown(void *pvEngine, const char* const saveFilePath) {
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->Shutdown(saveFilePath));
+}
+
+PQACORE_API void* PqaEngine_SetLogger(void *pvEngine, void *pSRLogger) {
+  GET_ENGINE_OR_RET_ERR;
+  ISRLogger *pLogger = static_cast<ISRLogger*>(pSRLogger);
+  return ReturnPqaError(pEng->SetLogger(pLogger));
 }

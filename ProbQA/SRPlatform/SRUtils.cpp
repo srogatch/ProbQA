@@ -12,6 +12,16 @@ ATTR_NORETURN void SRUtils::ExitProgram(SRExitCode code) {
   std::quick_exit(static_cast<int>(code));
 }
 
+void SRUtils::RequestDebug() {
+  if (!IsDebuggerPresent()) {
+    std::wstring message(L"Connect the debugger to process ");
+    message += std::to_wstring(GetCurrentProcessId());
+    message += L", then close this dialog. Otherwise the process may terminate.";
+    MessageBox(nullptr, message.c_str(), L"SRPlatform has requested a Debug", 0);
+  }
+  __debugbreak();
+}
+
 SRString SRUtils::PrintUtcTimestamp() {
   SYSTEMTIME st;
   GetSystemTime(&st);
