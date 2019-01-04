@@ -1,3 +1,7 @@
+# Interoperability
+.NET: https://github.com/srogatch/ProbQA/tree/master/ProbQA/ProbQANetCore
+Python: https://github.com/srogatch/ProbQA/tree/master/Interop/Python/ProbQAInterop
+
 # ProbQA / Artificial Super-Neuron
 I wasn't impressed by current artificial neural networks because even a single neuron out of 14 billions in a human brain has to be much more intelligent than a few bytes of information and a threshold function. Some life forms have no more than that - a single neuron - still they manage to do so much. So perhaps a neuron has processing power comparable to that of a single modern PC. That processing power/memory is used for storing large internal statistics and plans on how to interact with the other neurons.
 
