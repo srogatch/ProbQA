@@ -620,7 +620,6 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::CompactSpec(Compaction
     if (iFirst == iLast) {
       break;
     }
-    cr._pOldTargets[iFirst] = iLast;
     moves.Get()[iGap]._iDest = iFirst;
     iGap++;
     moves.Get()[nTargetGaps - iGap]._iSrc = iLast;

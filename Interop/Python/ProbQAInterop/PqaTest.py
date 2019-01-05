@@ -3,7 +3,8 @@ import os
 
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# input('Attach the debugger and press ENTER')
+input('Attach the debugger to PID=%d and press ENTER' % os.getpid())
+# probqa.Utils.debug_break()
 
 probqa.SRLogger.init(os.path.join(MODULE_DIR, '../../../logs/PqaWebTest'))
 
@@ -43,8 +44,16 @@ print('Top targets:', engine.list_top_targets(i_quiz1, 3), engine.list_top_targe
 engine.record_quiz_target(i_quiz1, 3, 1.1)
 engine.record_quiz_target(i_quiz2, 4, 0.9)
 engine.release_quiz(i_quiz1)
-engine.release_quiz(i_quiz2)
+err = engine.start_maintenance(False, False)
+print('Attempt to start maintenance without forcing:', err)
+err = engine.start_maintenance(True, True)
+engine.add_qs_ts([probqa.AddQuestionParam()] * 3, [probqa.AddTargetParam()] * 5)
+engine.remove_questions([3, 7])
+engine.remove_targets([2, 9])
+print('Compaction result:', engine.compact())
+engine.finish_maintenance()
 engine.save_kb(os.path.join(MODULE_DIR, '../../../Data/KBs/Привет.kb'), True)
+engine.shutdown('../../../Data/KBs/on_shutdown.kb')
 
 engine, err = probqa.PqaEngineFactory.instance.load_cpu_engine(os.path.join(MODULE_DIR, '../../../Data/KBs/current.kb'))
 if err:

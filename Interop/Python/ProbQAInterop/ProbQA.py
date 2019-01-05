@@ -65,6 +65,10 @@ pqa_core = CDLLEx(pqa_engine_path, LOAD_WITH_ALTERED_SEARCH_PATH)
 
 
 # See https://github.com/srogatch/ProbQA/blob/master/ProbQA/PqaCore/Interface/PqaCInterop.h
+
+INVALID_PQA_ID = -1
+
+
 class CiEngineDefinition(ctypes.Structure):
     _pack_ = 8
     _fields_ = [
@@ -102,6 +106,15 @@ class CiRatedTarget(ctypes.Structure):
         ('iTarget', ctypes.c_int64),
         ('prob', ctypes.c_double),
     ]
+
+
+class CiAddQorTParam(ctypes.Structure):
+    _pack_ = 8
+    _fields_ = [
+        ('index', ctypes.c_int64),
+        ('initAmount', ctypes.c_double),
+    ]
+
 
 # PQACORE_API void CiDebugBreak(void);
 pqa_core.CiDebugBreak.restype = None
@@ -216,6 +229,47 @@ pqa_core.PqaEngine_ReleaseQuiz.argtypes = (ctypes.c_void_p, ctypes.c_int64)
 pqa_core.PqaEngine_SaveKB.restype = ctypes.c_void_p
 pqa_core.PqaEngine_SaveKB.argtypes = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_bool)
 
+# Second batch of interop implementation
+
+# PQACORE_API void* PqaEngine_StartMaintenance(void *pvEngine, const bool forceQuizes);
+pqa_core.PqaEngine_StartMaintenance.restype = ctypes.c_void_p
+pqa_core.PqaEngine_StartMaintenance.argtypes = (ctypes.c_void_p, ctypes.c_bool)
+
+# PQACORE_API void* PqaEngine_FinishMaintenance(void *pvEngine);
+pqa_core.PqaEngine_FinishMaintenance.restype = ctypes.c_void_p
+pqa_core.PqaEngine_FinishMaintenance.argtypes = (ctypes.c_void_p,)
+
+# PQACORE_API void* PqaEngine_AddQsTs(void *pvEngine, const int64_t nQuestions, CiAddQorTParam *pAddQuestionParams,
+#   const int64_t nTargets, CiAddQorTParam *pAddTargetParams);
+pqa_core.PqaEngine_AddQsTs.restype = ctypes.c_void_p
+pqa_core.PqaEngine_AddQsTs.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.POINTER(CiAddQorTParam),
+    ctypes.c_int64, ctypes.POINTER(CiAddQorTParam))
+
+# PQACORE_API void* PqaEngine_RemoveQuestions(void *pvEngine, const int64_t nQuestions, const int64_t *pQIds);
+pqa_core.PqaEngine_RemoveQuestions.restype = ctypes.c_void_p
+pqa_core.PqaEngine_RemoveQuestions.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.POINTER(ctypes.c_int64))
+
+# PQACORE_API void* PqaEngine_RemoveTargets(void *pvEngine, const int64_t nTargets, const int64_t *pTIds);
+pqa_core.PqaEngine_RemoveTargets.restype = ctypes.c_void_p
+pqa_core.PqaEngine_RemoveTargets.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.POINTER(ctypes.c_int64))
+
+# PQACORE_API void* PqaEngine_Compact(void *pvEngine, int64_t *pnQuestions, int64_t const ** const ppOldQuestions,
+#   int64_t *pnTargets, int64_t const ** const ppOldTargets);
+pqa_core.PqaEngine_Compact.restype = ctypes.c_void_p
+pqa_core.PqaEngine_Compact.argtypes = (ctypes.c_void_p,
+   ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.POINTER(ctypes.c_int64)),
+   ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.POINTER(ctypes.c_int64)))
+
+# PQACORE_API void CiReleaseCompaction(const int64_t *p);
+pqa_core.CiReleaseCompaction.restype = None
+pqa_core.CiReleaseCompaction.argtypes = (ctypes.POINTER(ctypes.c_int64),)
+
+# PQACORE_API void* PqaEngine_Shutdown(void *pvEngine, const char* const saveFilePath = nullptr);
+pqa_core.PqaEngine_Shutdown.restype = ctypes.c_void_p
+pqa_core.PqaEngine_Shutdown.argtypes = (ctypes.c_void_p, ctypes.c_char_p)
+
+# PQACORE_API void* PqaEngine_SetLogger(void *pvEngine, void *pSRLogger);
+# TODO: implement after the API exposing loggers is implemented
 
 # OOP wrapper follows - please, use these in Python code
 class PqaException(Exception):
@@ -223,6 +277,7 @@ class PqaException(Exception):
 
 
 class Utils:
+    # https://docs.python.org/3/library/codecs.html#standard-encodings
     @staticmethod
     def handle_native_string(c_str : ctypes.c_char_p) -> str:
         ans = c_str.value.decode('mbcs') # Windows-only
@@ -233,6 +288,9 @@ class Utils:
     def str_to_c_char_p(s : str) -> ctypes.c_char_p:
         return ctypes.c_char_p(s.encode('mbcs')) # Windows-only
 
+    @staticmethod
+    def debug_break():
+        pqa_core.CiDebugBreak()
 
 class SRLogger:
     @staticmethod
@@ -295,6 +353,24 @@ class EngineDimensions:
         return '[n_answers=%d, n_questions=%d, n_targets=%d]' % (self.n_answers, self.n_questions, self.n_targets)
 
 
+class AddQuestionParam:
+    def __init__(self, init_amount = 1.0):
+        self.i_question = INVALID_PQA_ID
+        self.init_amount = init_amount
+
+    def __repr__(self):
+        return '[i_question=%d, init_amount=%f]' % (self.i_question, self.init_amount)
+
+
+class AddTargetParam:
+    def __init__(self, init_amount = 1.0):
+        self.i_target = INVALID_PQA_ID
+        self.init_amount = init_amount
+
+    def __repr__(self):
+        return '[i_target=%d, init_amount=%f]' % (self.i_target, self.init_amount)
+
+
 class PqaError:
     @staticmethod
     def factor(c_err: ctypes.c_void_p) -> PqaError:
@@ -347,6 +423,22 @@ class PqaEngine:
             c_aqs[i].iQuestion = answered_questions[i].i_question
             c_aqs[i].iAnswer = answered_questions[i].i_answer
         return c_aqs, n_questions
+
+    @staticmethod
+    def to_c_ids(ids: List[int]) -> Tuple[ctypes.Array, int]:
+        n_ids = len(ids)
+        array_type = ctypes.c_int64 * n_ids
+        c_ids = array_type()
+        for i in range(n_ids):
+            c_ids[i] = ids[i]
+        return c_ids, n_ids
+
+    @staticmethod
+    def from_c_ids(c_ids : ctypes.POINTER(ctypes.c_int64), n_ids: int) -> List[int]:
+        ans = []
+        for i in range(n_ids):
+            ans.append(c_ids[i])
+        return ans
 
     # Permanent<->compact ID mappings follow. They raise on error.
     def question_perm_from_comp(self, ids: List[int]) -> List[int]:
@@ -487,6 +579,103 @@ class PqaEngine:
                 raise PqaException('Failed to save_kb(): ' + str(err))
         return err
 
+    # Note that this function may throw or return error in case there are just active quizzes on the engine
+    def start_maintenance(self, force_quizzes: bool, throw: bool = True) -> PqaError:
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_StartMaintenance(self.c_engine, force_quizzes)
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to start_maintenance(): ' + str(err))
+        return err
+
+    def finish_maintenance(self, throw: bool = True) -> PqaError:
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_FinishMaintenance(self.c_engine)
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to finish_maintenance(): ' + str(err))
+        return err
+
+    def add_qs_ts(self, add_questions: List[AddQuestionParam], add_targets: List[AddTargetParam],
+                  throw: bool = True) -> PqaError:
+        n_questions = len(add_questions)
+        add_questions_array_type = CiAddQorTParam * n_questions
+        c_add_questions = add_questions_array_type()
+        for i in range(n_questions):
+            c_add_questions[i].index = add_questions[i].i_question
+            c_add_questions[i].initAmount = add_questions[i].init_amount
+
+        n_targets = len(add_targets)
+        add_targets_array_type = CiAddQorTParam * n_targets
+        c_add_targets = add_targets_array_type()
+        for i in range(n_targets):
+            c_add_targets[i].index = add_targets[i].i_target
+            c_add_targets[i].initAmount = add_targets[i].init_amount
+
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_AddQsTs(self.c_engine, n_questions, c_add_questions, n_targets, c_add_targets)
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to add questions and/or targets: ' + str(err))
+        for i in range(n_questions):
+            add_questions[i].i_question = c_add_questions[i].index
+        for i in range(n_targets):
+            add_targets[i].i_target = c_add_targets[i].index
+        return err
+
+    def remove_questions(self, question_ids: List[int], throw: bool = True) -> PqaError:
+        c_ids, n_ids = PqaEngine.to_c_ids(question_ids)
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_RemoveQuestions(self.c_engine, ctypes.c_int64(n_ids), c_ids)
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to remove_questions(): ' + str(err))
+        return err
+
+    def remove_targets(self, target_ids: List[int], throw: bool = True):
+        c_ids, n_ids = PqaEngine.to_c_ids(target_ids)
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_RemoveTargets(self.c_engine, ctypes.c_int64(n_ids), c_ids)
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to remove_targets(): ' + str(err))
+        return err
+
+    def compact(self) -> Tuple[List[int], List[int]]:
+        n_questions = ctypes.c_int64()
+        n_targets = ctypes.c_int64()
+        p_questions = ctypes.POINTER(ctypes.c_int64)()
+        p_targets = ctypes.POINTER(ctypes.c_int64)()
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_Compact(self.c_engine, ctypes.byref(n_questions), ctypes.byref(p_questions),
+             ctypes.byref(n_targets), ctypes.byref(p_targets))
+        err = PqaError.factor(c_err)
+        if err:
+            # C Interop layer releases compaction result in case of an error
+            raise PqaException('Failed to compact(): ' + str(err))
+        try:
+            old_questions = PqaEngine.from_c_ids(p_questions, n_questions.value)
+            old_targets = PqaEngine.from_c_ids(p_targets, n_targets.value)
+        finally:
+            pqa_core.CiReleaseCompaction(p_questions)
+            pqa_core.CiReleaseCompaction(p_targets)
+        return old_questions, old_targets
+
+    def shutdown(self, save_file_path: str = None, throw: bool = True) -> PqaError:
+        c_err = ctypes.c_void_p()
+        c_sfp = Utils.str_to_c_char_p(save_file_path) if save_file_path else ctypes.c_char_p()
+        c_err.value = pqa_core.PqaEngine_Shutdown(self.c_engine, c_sfp)
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to shutdown(): ' + str(err))
+        return err
+
 
 class PqaEngineFactory:
     instance = None
@@ -531,6 +720,3 @@ class PqaEngineFactory:
 
 PqaEngineFactory.instance = PqaEngineFactory()
 
-
-def debug_break():
-    pqa_core.CiDebugBreak()
