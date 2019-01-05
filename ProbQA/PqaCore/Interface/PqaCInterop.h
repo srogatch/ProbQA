@@ -81,14 +81,14 @@ PQACORE_API void* PqaEngine_ReleaseQuiz(void *pvEngine, const int64_t iQuiz);
 PQACORE_API void* PqaEngine_SaveKB(void *pvEngine, const char* const filePath, const uint8_t bDoubleBuffer);
 
 //// Second batch of interop implementation
-PQACORE_API void* PqaEngine_StartMaintenance(void *pvEngine, const bool forceQuizes);
+PQACORE_API void* PqaEngine_StartMaintenance(void *pvEngine, const bool forceQuizzes);
 PQACORE_API void* PqaEngine_FinishMaintenance(void *pvEngine);
 PQACORE_API void* PqaEngine_AddQsTs(void *pvEngine, const int64_t nQuestions, CiAddQorTParam *pAddQuestionParams,
   const int64_t nTargets, CiAddQorTParam *pAddTargetParams);
 PQACORE_API void* PqaEngine_RemoveQuestions(void *pvEngine, const int64_t nQuestions, const int64_t *pQIds);
 PQACORE_API void* PqaEngine_RemoveTargets(void *pvEngine, const int64_t nTargets, const int64_t *pTIds);
-PQACORE_API void* PqaEngine_Compact(void *pvEngine, int64_t *pnQuestions, int64_t const * const * ppOldQuestions,
-  int64_t *pnTargets, int64_t const * const * ppOldTargets);
+PQACORE_API void* PqaEngine_Compact(void *pvEngine, int64_t *pnQuestions, int64_t const ** const ppOldQuestions,
+  int64_t *pnTargets, int64_t const ** const ppOldTargets);
 PQACORE_API void CiReleaseCompaction(const int64_t *p);
 PQACORE_API void* PqaEngine_Shutdown(void *pvEngine, const char* const saveFilePath = nullptr);
 PQACORE_API void* PqaEngine_SetLogger(void *pvEngine, void *pSRLogger);

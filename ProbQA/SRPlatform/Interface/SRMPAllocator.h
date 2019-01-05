@@ -67,8 +67,11 @@ public:
   // Empty for stateless allocators.
   explicit SRMPAllocator(taMemPool &memPool) noexcept : _pMemPool(&memPool) { }
 
+  // See https://stackoverflow.com/questions/54050890/how-to-utilize-template-copymove-constructor-and-assignment-operator
+  SRMPAllocator(const SRMPAllocator& fellow) : _pMemPool(fellow._pMemPool) { }
+
   template <typename U> SRMPAllocator(const SRMPAllocator<U, taMemPool>& fellow) noexcept
-    : _pMemPool(fellow.GetMemPool()) { }
+    : _pMemPool(fellow._pMemPool) { }
 
   ~SRMPAllocator() noexcept { }
 

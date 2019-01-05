@@ -30,7 +30,7 @@ public: // methods
   CudaArray(const CudaArray&) = delete;
   CudaArray& operator=(const CudaArray&) = delete;
 
-  CudaArray(CudaArray&& source) : _d_p(source._d_p) {
+  CudaArray(CudaArray&& source) noexcept : _d_p(source._d_p) {
     source._d_p = nullptr;
   }
 

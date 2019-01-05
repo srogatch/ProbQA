@@ -18,7 +18,7 @@ CudaStream::~CudaStream() {
   }
 }
 
-CudaStream::CudaStream(CudaStream &&fellow) : _stream(fellow._stream), _pPool(fellow._pPool) {
+CudaStream::CudaStream(CudaStream &&fellow) noexcept : _stream(fellow._stream), _pPool(fellow._pPool) {
   fellow._stream = nullptr;
   fellow._pPool = nullptr;
 }

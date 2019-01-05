@@ -78,7 +78,7 @@ PqaError& PqaError::operator=(PqaError&& fellow) {
   return *this;
 }
 
-PqaError::PqaError(PqaError&& fellow) : _code(fellow._code), _pParams(fellow.DetachParams()),
+PqaError::PqaError(PqaError&& fellow) noexcept : _code(fellow._code), _pParams(fellow.DetachParams()),
   _message(std::forward<SRPlat::SRString>(fellow._message))
 {
   fellow._code = PqaErrorCode::None;

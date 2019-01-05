@@ -54,7 +54,7 @@ CudaDeviceLock& CudaDeviceLock::operator=(const CudaDeviceLock &fellow) {
   return *this;
 }
 
-CudaDeviceLock::CudaDeviceLock(CudaDeviceLock &&fellow) {
+CudaDeviceLock::CudaDeviceLock(CudaDeviceLock &&fellow) noexcept {
   _bAcquired = fellow._bAcquired;
   fellow._bAcquired = false;
 }

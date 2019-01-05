@@ -17,7 +17,7 @@ public:
   SRCannotOpenLogFileException(const SRCannotOpenLogFileException &fellow)
     : _fileName(fellow._fileName), SRException(fellow) { }
 
-  SRCannotOpenLogFileException(SRCannotOpenLogFileException &&fellow)
+  SRCannotOpenLogFileException(SRCannotOpenLogFileException &&fellow) noexcept
     : _fileName(std::forward<SRString>(fellow._fileName)), SRException(std::forward<SRException>(fellow)) { }
 
   SREXCEPTION_TYPICAL(SRCannotOpenLogFile);
@@ -36,7 +36,7 @@ public:
   SRLoggerShutDownException(const SRLoggerShutDownException &fellow)
     : _unloggedMsg(fellow._unloggedMsg), SRException(fellow) { }
 
-  SRLoggerShutDownException(SRLoggerShutDownException &&fellow)
+  SRLoggerShutDownException(SRLoggerShutDownException &&fellow) noexcept
     : _unloggedMsg(std::forward<SRString>(fellow._unloggedMsg)), SRException(std::forward<SRException>(fellow)) { }
 
   SREXCEPTION_TYPICAL(SRLoggerShutDown);

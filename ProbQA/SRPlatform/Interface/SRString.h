@@ -27,7 +27,7 @@ public: // methods
   SRString();
   SRString(const SRString& fellow);
   SRString& operator=(const SRString& fellow);
-  SRString(SRString&& fellow);
+  SRString(SRString&& fellow) noexcept;
   SRString& operator=(SRString&& fellow);
   ~SRString();
 

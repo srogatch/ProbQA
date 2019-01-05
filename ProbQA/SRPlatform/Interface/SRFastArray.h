@@ -54,21 +54,8 @@ private: // methods
     return ThrowingAlloc(nItems, paddedBytes);
   }
 
-public: // methods
-  explicit SRFastArray() : _pItems(nullptr) { }
-  explicit SRFastArray(const size_t count) : SRFastArrayBase(count), _pItems(ThrowingAlloc(count)) {
-  }
-  ~SRFastArray() {
-    Clear();
-  }
-  template<bool taFellowCD> SRFastArray(const SRFastArray<taItem, taFellowCD>& fellow) : SRFastArrayBase(fellow) {
-    size_t paddedBytes;
-    _pItems = ThrowingAlloc(_count, paddedBytes);
-    const size_t nVects = paddedBytes >> SRSimd::_cLogNBytes;
-    SRUtils::Copy256<taCacheDefault, taFellowCD>(_pItems, fellow._pItems, nVects);
-  }
   // Leaves the destination object empty if unable to allocate memory. This is to avoid excessive memory usage.
-  template<bool taFellowCD> SRFastArray& operator=(const SRFastArray<taItem, taFellowCD>& fellow) {
+  template<bool taFellowCD> SRFastArray& CopyAssign(const SRFastArray<taItem, taFellowCD>& fellow) {
     if (static_cast<SRFastArrayBase*>(this) != static_cast<const SRFastArrayBase*>(&fellow)) {
       const size_t oldBytes = GetPaddedByteCount(_count);
       const size_t targetBytes = GetPaddedByteCount(fellow._count);
@@ -87,15 +74,9 @@ public: // methods
     }
     return *this;
   }
-  template<bool taFellowCD> SRFastArray(SRFastArray<taItem, taFellowCD>&& fellow)
-    : SRFastArrayBase(std::forward<SRFastArrayBase>(fellow)), _pItems(fellow._pItems)
-  {
-    fellow._pItems = nullptr;
-    fellow._count = 0;
-  }
-  template<bool taFellowCD> SRFastArray& operator=(SRFastArray<taItem, taFellowCD>&& fellow) {
+
+  template<bool taFellowCD> SRFastArray& MoveAssign(SRFastArray<taItem, taFellowCD>&& fellow) noexcept {
     if (static_cast<SRFastArrayBase*>(this) != static_cast<const SRFastArrayBase*>(&fellow)) {
-      //TODO: replicate this fix to master
       _mm_free(_pItems);
       _pItems = fellow._pItems;
       _count = fellow._count;
@@ -103,6 +84,51 @@ public: // methods
       fellow._count = 0;
     }
     return *this;
+  }
+
+public: // methods
+  explicit SRFastArray() : _pItems(nullptr) { }
+  explicit SRFastArray(const size_t count) : SRFastArrayBase(count), _pItems(ThrowingAlloc(count)) {
+  }
+  ~SRFastArray() {
+    Clear();
+  }
+
+  SRFastArray(const SRFastArray& fellow) : SRFastArray(fellow, 0) { }
+
+  template<bool taFellowCD> SRFastArray(const SRFastArray<taItem, taFellowCD>& fellow, int=0)
+    : SRFastArrayBase(fellow)
+  {
+    size_t paddedBytes;
+    _pItems = ThrowingAlloc(_count, paddedBytes);
+    const size_t nVects = paddedBytes >> SRSimd::_cLogNBytes;
+    SRUtils::Copy256<taCacheDefault, taFellowCD>(_pItems, fellow._pItems, nVects);
+  }
+
+  // But see https://stackoverflow.com/questions/54050890/how-to-utilize-template-copymove-constructor-and-assignment-operator
+  SRFastArray& operator=(const SRFastArray& fellow) {
+    return CopyAssign(fellow);
+  }
+  template<bool taFellowCD> SRFastArray& operator=(const SRFastArray<taItem, taFellowCD>& fellow) {
+    return CopyAssign(fellow);
+  }
+
+  // See https://stackoverflow.com/questions/18085383/c11-rvalue-reference-calling-copy-constructor-too
+  SRFastArray(SRFastArray&& fellow) noexcept : SRFastArray(std::forward<SRFastArray>(fellow), 0) { }
+
+  template<bool taFellowCD> SRFastArray(SRFastArray<taItem, taFellowCD>&& fellow, int=0) noexcept
+    : SRFastArrayBase(std::forward<SRFastArrayBase>(fellow)), _pItems(fellow._pItems)
+  {
+    fellow._pItems = nullptr;
+    fellow._count = 0;
+  }
+
+
+  SRFastArray& operator=(SRFastArray&& fellow) noexcept {
+    return MoveAssign(fellow);
+  }
+  template<bool taFellowCD> SRFastArray& operator=(SRFastArray<taItem, taFellowCD>&& fellow) noexcept {
+    return MoveAssign(fellow);
   }
 
   // __vectorcall can pass in registers first 4 integer parameters, but 6 first vector parameters. Therefore vector

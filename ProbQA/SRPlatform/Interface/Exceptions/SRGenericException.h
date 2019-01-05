@@ -20,7 +20,7 @@ public:
   explicit SRGenericException(const std::exception_ptr &ep);
   SRGenericException(const SRGenericException &fellow);
   SRGenericException& operator=(const SRGenericException &fellow);
-  SRGenericException(SRGenericException &&fellow);
+  SRGenericException(SRGenericException &&fellow) noexcept;
   SRGenericException& operator=(SRGenericException &&fellow);
 
   SREXCEPTION_TYPICAL(SRGeneric);

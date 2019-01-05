@@ -552,7 +552,7 @@ PqaError BaseEngine::SaveKB(const char* const filePath, const bool bDoubleBuffer
 }
 
 
-PqaError BaseEngine::StartMaintenance(const bool forceQuizes) {
+PqaError BaseEngine::StartMaintenance(const bool forceQuizzes) {
   try {
     constexpr auto cOrigMode = MaintenanceSwitch::Mode::Regular;
     constexpr auto cTargMode = MaintenanceSwitch::Mode::Maintenance;
@@ -568,7 +568,7 @@ PqaError BaseEngine::StartMaintenance(const bool forceQuizes) {
     const TPqaId nQuizzes = quizRange - _quizGaps.GetNGaps();
     assert(nQuizzes >= 0);
     if (nQuizzes != 0) {
-      if (forceQuizes) {
+      if (forceQuizzes) {
         for (TPqaId i = 0; i < quizRange; i++) {
           if (_quizGaps.IsGap(i)) {
             continue;

@@ -19,7 +19,7 @@ public:
   SRStdException(const SRStdException &fellow) : _typeName(fellow._typeName), _stdexMsg(fellow._stdexMsg),
     SRException(fellow) { }
 
-  SRStdException(SRStdException &&fellow) : _typeName(std::forward<SRString>(fellow._typeName)),
+  SRStdException(SRStdException &&fellow) noexcept : _typeName(std::forward<SRString>(fellow._typeName)),
     _stdexMsg(std::forward<SRString>(fellow._stdexMsg)), SRException(std::forward<SRException>(fellow)) { }
 
   SREXCEPTION_TYPICAL(SRStd);

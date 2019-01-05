@@ -32,7 +32,7 @@ public:
   explicit SRMultiException() : SRException(GetDefaultMessage()) { }
   SRMultiException(const SRMultiException &fellow);
   SRMultiException& operator=(const SRMultiException &fellow);
-  SRMultiException(SRMultiException &&fellow);
+  SRMultiException(SRMultiException &&fellow) noexcept;
   SRMultiException& operator=(SRMultiException &&fellow);
 
   SREXCEPTION_TYPICAL(SRMulti);

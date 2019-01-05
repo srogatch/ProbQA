@@ -67,6 +67,9 @@ public:
   // Empty for stateless allocators.
   SRAlignedAllocator() noexcept { }
 
+  // See https://stackoverflow.com/questions/54050890/how-to-utilize-template-copymove-constructor-and-assignment-operator
+  SRAlignedAllocator(const SRAlignedAllocator&) noexcept { }
+
   template <typename U> SRAlignedAllocator(const SRAlignedAllocator<U, Alignment>&) noexcept { }
 
   ~SRAlignedAllocator() noexcept { }

@@ -25,7 +25,7 @@ public: // methods
   explicit CudaDeviceLock() : _bAcquired(false) { }
   CudaDeviceLock(const CudaDeviceLock &fellow);
   CudaDeviceLock& operator=(const CudaDeviceLock &fellow);
-  CudaDeviceLock(CudaDeviceLock &&fellow);
+  CudaDeviceLock(CudaDeviceLock &&fellow) noexcept;
   CudaDeviceLock& operator=(CudaDeviceLock &&fellow);
   ~CudaDeviceLock();
 

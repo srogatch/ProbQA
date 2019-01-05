@@ -290,9 +290,9 @@ PQACORE_API void CiDebugBreak(void) {
   SRUtils::RequestDebug();
 }
 
-PQACORE_API void* PqaEngine_StartMaintenance(void *pvEngine, const bool forceQuizes) {
+PQACORE_API void* PqaEngine_StartMaintenance(void *pvEngine, const bool forceQuizzes) {
   GET_ENGINE_OR_RET_ERR;
-  return ReturnPqaError(pEng->StartMaintenance(forceQuizes));
+  return ReturnPqaError(pEng->StartMaintenance(forceQuizzes));
 }
 
 PQACORE_API void* PqaEngine_FinishMaintenance(void *pvEngine) {

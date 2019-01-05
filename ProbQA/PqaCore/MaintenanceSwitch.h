@@ -33,7 +33,7 @@ public: // types
     }
     AgnosticLock(const AgnosticLock&) = delete;
     AgnosticLock& operator=(const AgnosticLock&) = delete;
-    AgnosticLock(AgnosticLock&& source) : _pMs(source._pMs), _mode(source._mode) {
+    AgnosticLock(AgnosticLock&& source) noexcept : _pMs(source._pMs), _mode(source._mode) {
       source._pMs = nullptr;
     }
     AgnosticLock& operator=(AgnosticLock&& source) {
@@ -73,7 +73,7 @@ public: // types
     }
     SpecificLeaver(const SpecificLeaver&) = delete;
     SpecificLeaver& operator=(const SpecificLeaver&) = delete;
-    SpecificLeaver(SpecificLeaver&& source) : _pMs(source._pMs) {
+    SpecificLeaver(SpecificLeaver&& source) noexcept : _pMs(source._pMs) {
       source._pMs = nullptr;
     }
     SpecificLeaver& operator=(SpecificLeaver&& source) {

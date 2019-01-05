@@ -66,7 +66,7 @@ public:
   PqaError& operator=(const PqaError& fellow) = delete;
   PqaError(const PqaError& fellow) = delete;
   PqaError& operator=(PqaError&& fellow);
-  PqaError(PqaError&& fellow);
+  PqaError(PqaError&& fellow) noexcept;
   ~PqaError();
 
   bool IsOk() const { return _code == PqaErrorCode::None; }

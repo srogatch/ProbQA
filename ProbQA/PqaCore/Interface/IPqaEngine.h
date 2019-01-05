@@ -61,10 +61,10 @@ public:
   //   is only locked for the period of copying in memory to the buffer, then saving to disk proceeds without a lock.
   virtual PqaError SaveKB(const char* const filePath, const bool bDoubleBuffer) = 0;
 
-  // When |forceQuizes|=false, the function fails if there are any quizzes in progress.
-  // When |forceQuizes|=true, the function closes all the open quizzes.
+  // When |forceQuizzes|=false, the function fails if there are any quizzes in progress.
+  // When |forceQuizzes|=true, the function closes all the open quizzes.
   // Upon success, the function prohibits starting any new quizes until FinishMaintenance() is called.
-  virtual PqaError StartMaintenance(const bool forceQuizes) = 0;
+  virtual PqaError StartMaintenance(const bool forceQuizzes) = 0;
   virtual PqaError FinishMaintenance() = 0;
 
 #pragma region Maintenance-only mode operations

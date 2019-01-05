@@ -71,7 +71,7 @@ SRMultiException& SRMultiException::operator=(const SRMultiException &fellow) {
   return *this;
 }
 
-SRMultiException::SRMultiException(SRMultiException &&fellow) : SRException(GetDefaultMessage()) {
+SRMultiException::SRMultiException(SRMultiException &&fellow) noexcept : SRException(GetDefaultMessage()) {
   SRLock<TSync> fsl(fellow._sync);
   std::swap(_message, fellow._message);
   _pImpl = fellow._pImpl;

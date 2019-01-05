@@ -26,7 +26,7 @@ SRGenericException& SRGenericException::operator=(const SRGenericException &fell
   return *this;
 }
 
-SRGenericException::SRGenericException(SRGenericException &&fellow) : SRException(GetDefaultMessage()) {
+SRGenericException::SRGenericException(SRGenericException &&fellow) noexcept : SRException(GetDefaultMessage()) {
   std::swap(_message, fellow._message);
   _ep = std::forward<std::exception_ptr>(fellow._ep);
 }

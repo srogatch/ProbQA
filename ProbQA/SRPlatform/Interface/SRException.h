@@ -21,7 +21,7 @@ public: \
   explicit derivedName##Exception(SRString &&message) : baseName##Exception(std::forward<SRString>(message)) { } \
   derivedName##Exception(const derivedName##Exception &fellow) \
     : baseName##Exception(fellow) { } \
-  derivedName##Exception(derivedName##Exception &&fellow) \
+  derivedName##Exception(derivedName##Exception &&fellow) noexcept \
     : baseName##Exception(std::forward<baseName##Exception>(fellow)) { } \
   SREXCEPTION_TYPICAL(derivedName); \
 };
@@ -36,7 +36,7 @@ public:
   explicit SRException(SRString &&message);
   virtual ~SRException() {}
   SRException(const SRException &fellow) : _message(fellow._message) { }
-  SRException(SRException &&fellow) : _message(std::forward<SRString>(fellow._message)) { }
+  SRException(SRException &&fellow) noexcept : _message(std::forward<SRString>(fellow._message)) { }
 
   virtual SRException* Clone() { return new SRException(*this); }
   virtual SRException* Move() { return new SRException(std::move(*this)); }

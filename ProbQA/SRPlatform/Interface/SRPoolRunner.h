@@ -39,7 +39,8 @@ public: // types
     Keeper(const Keeper&) = delete;
     Keeper& operator=(const Keeper&) = delete;
 
-    Keeper(Keeper&& source) : _pSubtasks(source._pSubtasks), _pTask(source._pTask), _nSubtasks(source._nSubtasks)
+    Keeper(Keeper&& source) noexcept : _pSubtasks(source._pSubtasks), _pTask(source._pTask),
+      _nSubtasks(source._nSubtasks)
     {
       source._pTask = nullptr;
       source._nSubtasks = 0;

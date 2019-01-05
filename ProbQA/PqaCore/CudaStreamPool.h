@@ -16,7 +16,7 @@ class CudaStream {
 public:
   CudaStream(cudaStream_t stream, CudaStreamPool *pPool) : _stream(stream), _pPool(pPool) { }
   ~CudaStream();
-  CudaStream(CudaStream &&fellow);
+  CudaStream(CudaStream &&fellow) noexcept;
   CudaStream& operator=(CudaStream &&fellow);
   CudaStream(const CudaStream&) = delete;
   CudaStream& operator=(const CudaStream&) = delete;

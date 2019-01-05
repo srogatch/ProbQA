@@ -38,7 +38,7 @@ public: // Methods
     const size_t nVects);
   
   // Copy nVects of 256-bit vectors.
-  template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline static void Copy256(
+  template<bool taCacheStore, bool taCacheLoad> ATTR_NOALIAS inline static void Copy256(
     void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, size_t nVects);
 
   // Both store and load pointers are unaligned
@@ -75,7 +75,7 @@ public: // Methods
   ATTR_RESTRICT inline static void* ThrowingSimdAlloc(const size_t paddedBytes);
 };
 
-template<bool taCacheStore, bool taCacheLoad> SRPLATFORM_API ATTR_NOALIAS inline
+template<bool taCacheStore, bool taCacheLoad> ATTR_NOALIAS inline
 void SRUtils::Copy256(void *const PTR_RESTRICT pStore, const void *const PTR_RESTRICT pLoad, size_t nVects)
 {
   const __m256i *PTR_RESTRICT pSrc = SRCast::CPtr<__m256i>(pLoad);

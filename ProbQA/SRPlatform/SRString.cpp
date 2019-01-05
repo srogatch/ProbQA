@@ -54,7 +54,7 @@ SRString& SRString::operator=(const SRString& fellow) {
   return *this;
 }
 
-SRString::SRString(SRString&& fellow) : _pData(fellow._pData), _bOwned(fellow._bOwned), _length(fellow._length) {
+SRString::SRString(SRString&& fellow) noexcept : _pData(fellow._pData), _bOwned(fellow._bOwned), _length(fellow._length) {
   fellow._pData = nullptr;
   fellow._bOwned = 0;
   fellow._length = 0;

@@ -26,7 +26,7 @@ public: // methods
   CudaMPArray(const CudaMPArray&) = delete;
   CudaMPArray& operator=(const CudaMPArray&) = delete;
 
-  CudaMPArray(CudaMPArray&& source) : _d_p(source._d_p), _pMp(source._pMp), _nBytes(source._nBytes) {
+  CudaMPArray(CudaMPArray&& source) noexcept : _d_p(source._d_p), _pMp(source._pMp), _nBytes(source._nBytes) {
     source._d_p = nullptr;
   }
 
