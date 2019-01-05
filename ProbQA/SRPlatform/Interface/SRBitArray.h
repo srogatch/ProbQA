@@ -185,16 +185,19 @@ public:
   //// A group of methods for fast single-bit manipulations
   // Returns the previous state of this bit.
   bool SetOne(const uint64_t iBit) {
+    assert(iBit < _nBits);
     //SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] |= (1ui8 << (iBit & 7));
     return _bittestandset64(SRCast::Ptr<int64_t>(_pBits), iBit) != 0;
   }
   // Returns the previous state of this bit.
   bool ClearOne(const uint64_t iBit) {
+    assert(iBit < _nBits);
     //SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] &= ~(1ui8 << (iBit & 7));
     return _bittestandreset64(SRCast::Ptr<int64_t>(_pBits), iBit) != 0;
   }
   // Returns the previous state of this bit.
   bool ToggleOne(const uint64_t iBit) {
+    assert(iBit < _nBits);
     //SRCast::Ptr<uint8_t>(_pBits)[iBit >> 3] ^= (1ui8 << (iBit & 7));
     return _bittestandcomplement64(SRCast::Ptr<int64_t>(_pBits), iBit) != 0;
   }
@@ -238,6 +241,7 @@ public:
   }
 
   bool GetOne(const uint64_t iBit) const {
+    assert(iBit < _nBits);
     //return SRCast::CPtr<uint8_t>(_pBits)[iBit >> 3] & (1ui8 << (iBit & 7));
     return _bittest64(SRCast::CPtr<int64_t>(_pBits), iBit) != 0;
   }

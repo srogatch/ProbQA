@@ -540,6 +540,9 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::AddQsTsSpec(const TPqa
     _pimQuestions.GrowTo(totQ);
     _pimTargets.GrowTo(totT);
 
+    _questionGaps.GrowTo(totQ);
+    _targetGaps.GrowTo(totT);
+
     // Set the initial amounts for questions and targets acquired from gaps
     for (TPqaId i = 0; i < nQReuse; i++) {
       const TPqaId curQ = pAqps[i]._iQuestion;
@@ -608,6 +611,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::CompactSpec(Compaction
   TPqaId iGap = 0;
   for (iFirst = 0, iLast = _dims._nTargets - 1; iFirst <= iLast; iFirst++) {
     if (!_targetGaps.IsGap(iFirst)) {
+      cr._pOldTargets[iFirst] = iFirst;
       continue;
     }
     while (_targetGaps.IsGap(iLast) && iLast > iFirst) {
@@ -616,6 +620,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::CompactSpec(Compaction
     if (iFirst == iLast) {
       break;
     }
+    cr._pOldTargets[iFirst] = iLast;
     moves.Get()[iGap]._iDest = iFirst;
     iGap++;
     moves.Get()[nTargetGaps - iGap]._iSrc = iLast;

@@ -14,7 +14,10 @@ template <typename taId> class GapTracker {
 public:
   explicit GapTracker() : _isGap(0, true) { }
 
-  bool IsGap(const taId at) const { return _isGap.GetOne(SRPlat::SRCast::ToUint64(at)); }
+  bool IsGap(const taId at) const {
+    assert(0 <= at && at < taId(_isGap.Size()));
+    return _isGap.GetOne(SRPlat::SRCast::ToUint64(at));
+  }
 
   // Get |iQuad|th 4 adjacent bits denoting gaps.
   uint8_t GetQuad(const taId iQuad) const { return _isGap.GetQuad(iQuad); }

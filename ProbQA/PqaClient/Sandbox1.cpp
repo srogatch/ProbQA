@@ -1233,6 +1233,15 @@ void BenchmarkStbqTbl() {
   printf("STBQ via table: %.3lf Ops/sec calculated %" PRId64 "\n", cnStbqs / nSec, sum);
 }
 
+void VectorPush() {
+  SRPlat::SRFastArray<double, true> fa1(10);
+  SRPlat::SRFastArray<double, true> fa2(fa1);
+  std::vector<SRPlat::SRFastArray<double, true>> v;
+  v.reserve(1);
+  v.emplace_back(10);
+  v.emplace_back(10);
+}
+
 //int __cdecl main() {
 //  //std::atomic<double> test1;
 //  //bool test2 = test1.is_lock_free();
