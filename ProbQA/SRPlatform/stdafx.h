@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <io.h>
 #include <queue>
 #include <random>
 #include <sstream>

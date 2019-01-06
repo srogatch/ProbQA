@@ -243,6 +243,10 @@ PqaError BaseEngine::Shutdown(const char* const saveFilePath) {
     }
     KBFileInfo kbfi(sf, saveFilePath);
     aep.Add(LockedSaveKB(kbfi, false));
+    if (!sf.HardFlush()) {
+      aep.Add(PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(saveFilePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Failed in hard flushing the KB when shutting down. See ProbQA log for details.")));
+    }
   } WHILE_FALSE;
 
   //// Release quizzes
@@ -542,6 +546,10 @@ PqaError BaseEngine::SaveKB(const char* const filePath, const bool bDoubleBuffer
     }
   }
 
+  if (!sf.HardFlush()) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Failed in hard flushing the KB. See ProbQA log for details."));
+  }
   // Close it explicitly here, to be able to handle and report an error
   if (!sf.EarlyClose()) {
     return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(filePath), SRString::MakeUnowned(SR_FILE_LINE
