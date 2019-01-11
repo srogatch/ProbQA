@@ -453,7 +453,8 @@ TPqaId BaseEngine::GetActiveQuestionId(PqaError &err, const TPqaId iQuiz) {
   constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
   if (!_maintSwitch.TryEnterSpecific<msMode>()) {
     err = PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
-      " mode operation (record an answer) because current mode is not regular (but maintenance/shutdown?)."));
+      " mode operation (get active question ID for a quiz) because current mode is not regular"
+      " (but maintenance/shutdown?)."));
     return cInvalidPqaId;
   }
   MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
@@ -468,6 +469,29 @@ TPqaId BaseEngine::GetActiveQuestionId(PqaError &err, const TPqaId iQuiz) {
   }
 
   return pQuiz->GetActiveQuestion();
+}
+
+PqaError BaseEngine::SetActiveQuestion(const TPqaId iQuiz, const TPqaId iQuestion) {
+  constexpr auto msMode = MaintenanceSwitch::Mode::Regular;
+  if (!_maintSwitch.TryEnterSpecific<msMode>()) {
+    return PqaError(PqaErrorCode::WrongMode, nullptr, SRString::MakeUnowned(SR_FILE_LINE "Can't perform regular-only"
+      " mode operation (get active question ID for a quiz) because current mode is not regular"
+      " (but maintenance/shutdown?)."));
+  }
+  MaintenanceSwitch::SpecificLeaver<msMode> mssl(_maintSwitch);
+
+  BaseQuiz *pQuiz;
+  {
+    PqaError err;
+    pQuiz = UseQuiz(err, iQuiz);
+    if (pQuiz == nullptr) {
+      assert(!err.IsOk());
+      return err;
+    }
+  }
+
+  pQuiz->SetActiveQuestion(iQuestion);
+  return PqaError();
 }
 
 TPqaId BaseEngine::ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest) {

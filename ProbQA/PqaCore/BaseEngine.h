@@ -113,6 +113,7 @@ public:
   TPqaId NextQuestion(PqaError& err, const TPqaId iQuiz) override final;
   PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) override final;
   TPqaId GetActiveQuestionId(PqaError &err, const TPqaId iQuiz) override final;
+  PqaError SetActiveQuestion(const TPqaId iQuiz, const TPqaId iQuestion) override final;
   TPqaId ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest) override final;
   PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1) override final;
   PqaError ReleaseQuiz(const TPqaId iQuiz) override final;

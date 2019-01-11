@@ -218,6 +218,10 @@ pqa_core.PqaEngine_RecordAnswer.argtypes = (ctypes.c_void_p, ctypes.c_int64, cty
 pqa_core.PqaEngine_GetActiveQuestionId.restype = ctypes.c_int64
 pqa_core.PqaEngine_GetActiveQuestionId.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p), ctypes.c_int64)
 
+# PQACORE_API void* PqaEngine_SetActiveQuestion(void *pvEngine, const int64_t iQuiz, const int64_t iQuestion);
+pqa_core.PqaEngine_SetActiveQuestion.restype = ctypes.c_void_p # The error
+pqa_core.PqaEngine_SetActiveQuestion.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.c_int64)
+
 # PQACORE_API int64_t PqaEngine_ListTopTargets(void *pvEngine, void **ppError, const int64_t iQuiz,
 #   const int64_t maxCount, CiRatedTarget *pDest);
 pqa_core.PqaEngine_ListTopTargets.restype = ctypes.c_int64
@@ -547,6 +551,16 @@ class PqaEngine:
         if err:
             raise PqaException('Failed to get_active_question_id(): [%d, %s]' % (i_question, str(err)))
         return i_question
+
+    def set_active_question(self, i_quiz: int, i_question: int, throw: bool = True) -> PqaError:
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_SetActiveQuestion(self.c_engine, ctypes.c_int64(i_quiz),
+                                                           ctypes.c_int64(i_question))
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to set_active_question(): ' + str(err))
+        return err
 
     def list_top_targets(self, i_quiz: int, max_count: int) -> List[RatedTarget]:
         c_err = ctypes.c_void_p()

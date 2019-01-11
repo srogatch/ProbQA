@@ -47,6 +47,8 @@ public:
   virtual PqaError RecordAnswer(const TPqaId iQuiz, const TPqaId iAnswer) = 0;
   // Get the current question in the quiz.
   virtual TPqaId GetActiveQuestionId(PqaError &err, const TPqaId iQuiz) = 0;
+  // Set active question (usually when resuming a quiz together with the last question to be answered)
+  virtual PqaError SetActiveQuestion(const TPqaId iQuiz, const TPqaId iQuestion) = 0;
 
   // Returns the number of targets written to the destination.
   // Returns -1 on error.

@@ -78,7 +78,14 @@ template<typename taNumber> inline PqaError CEQuiz<taNumber>::RecordAnswer(const
   if (_activeQuestion == cInvalidPqaId) {
     return PqaError(PqaErrorCode::NoQuizActiveQuestion, new NoQuizActiveQuestionErrorParams(iAnswer),
       SRPlat::SRString::MakeUnowned(SR_FILE_LINE "An attempt to record an answer in a quiz that doesn't have an active"
-        "question"));
+        " question"));
+  }
+  if (_activeQuestion < 0 || _activeQuestion >= GetBaseEngine()->GetDims()._nQuestions
+    || GetBaseEngine()->GetQuestionGaps().IsGap(_activeQuestion)) 
+  {
+    return PqaError(PqaErrorCode::NoQuizActiveQuestion, new NoQuizActiveQuestionErrorParams(iAnswer),
+      SRPlat::SRString::MakeUnowned(SR_FILE_LINE "An attempt to record an answer in a quiz that has invalid active"
+        " question"));
   }
   _answers.emplace_back(_activeQuestion, iAnswer);
   SRBitHelper::Set(GetQAsked(), _activeQuestion);

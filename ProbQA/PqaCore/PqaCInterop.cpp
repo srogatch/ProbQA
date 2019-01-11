@@ -296,6 +296,11 @@ PQACORE_API int64_t PqaEngine_GetActiveQuestionId(void *pvEngine, void **ppError
   return iQuestion;
 }
 
+PQACORE_API void* PqaEngine_SetActiveQuestion(void *pvEngine, const int64_t iQuiz, const int64_t iQuestion) {
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->SetActiveQuestion(iQuiz, iQuestion));
+}
+
 PQACORE_API void CiDebugBreak(void) {
   SRUtils::RequestDebug();
 }
