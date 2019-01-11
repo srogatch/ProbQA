@@ -38,6 +38,9 @@ public:
   SRException(const SRException &fellow) : _message(fellow._message) { }
   SRException(SRException &&fellow) noexcept : _message(std::forward<SRString>(fellow._message)) { }
 
+  SRException& operator=(SRException&& fellow) = delete;
+  SRException& operator=(const SRException& fellow) = delete;
+
   virtual SRException* Clone() { return new SRException(*this); }
   virtual SRException* Move() { return new SRException(std::move(*this)); }
   virtual void ThrowMoving() { throw std::move(*this); }

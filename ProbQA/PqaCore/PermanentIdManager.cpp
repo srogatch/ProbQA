@@ -24,8 +24,8 @@ TPqaId PermanentIdManager::CompFromPerm(const TPqaId permId) {
   return it->second;
 }
 
-bool PermanentIdManager::Save(FILE *fpout) {
-  const TPqaId nComp = _comp2perm.size();
+bool PermanentIdManager::Save(FILE *fpout, const bool empty) {
+  const TPqaId nComp = (empty ? 0 : _comp2perm.size());
   if (fwrite(&_nextPermId, sizeof(_nextPermId), 1, fpout) != 1) {
     return false;
   }
@@ -62,15 +62,18 @@ bool PermanentIdManager::Load(FILE *fpin) {
 
 bool PermanentIdManager::RemoveComp(const TPqaId compId) {
   if (compId >= TPqaId(_comp2perm.size())) {
+    SRUtils::RequestDebug();
     return false;
   }
   const TPqaId iPerm = _comp2perm[compId];
   if (iPerm == cInvalidPqaId) {
+    SRUtils::RequestDebug();
     return false;
   }
   auto it = _perm2comp.find(iPerm);
   if (it == _perm2comp.end()) {
     //TODO: actually, this is inconsistency in the manager itself - consider throwing an exception
+    SRUtils::RequestDebug();
     return false;
   }
   _perm2comp.erase(it);
@@ -78,8 +81,25 @@ bool PermanentIdManager::RemoveComp(const TPqaId compId) {
   return true;
 }
 
+bool PermanentIdManager::RenewComp(const TPqaId compId) {
+  if (compId >= TPqaId(_comp2perm.size())) {
+    SRUtils::RequestDebug();
+    return false; // out of range for compact IDs on record
+  }
+  if (_comp2perm[compId] != cInvalidPqaId) {
+    // Compact ID is already mapped to a permanent ID. Use RemoveComp() first.
+    SRUtils::RequestDebug();
+    return false;
+  }
+  _comp2perm[compId] = _nextPermId;
+  _perm2comp.emplace(_nextPermId, compId);
+  _nextPermId++;
+  return true;
+}
+
 bool PermanentIdManager::GrowTo(const TPqaId nComp) {
   if (nComp < TPqaId(_comp2perm.size())) {
+    SRUtils::RequestDebug();
     return false;
   }
   for (TPqaId i = _comp2perm.size(); i < nComp; i++) {
@@ -92,24 +112,29 @@ bool PermanentIdManager::GrowTo(const TPqaId nComp) {
 
 bool PermanentIdManager::OnCompact(const TPqaId nNew, const TPqaId *pOldIds) {
   if (nNew > TPqaId(_comp2perm.size())) {
+    SRUtils::RequestDebug();
     return false;
   }
   if (nNew != TPqaId(_perm2comp.size())) {
+    SRUtils::RequestDebug();
     return false;
   }
   for (TPqaId i = 0; i < nNew; i++) {
     const TPqaId oldComp = pOldIds[i];
     if (oldComp < 0 || oldComp >= TPqaId(_comp2perm.size())) {
+      SRUtils::RequestDebug();
       return false;
     }
     const TPqaId oldPerm = _comp2perm[oldComp];
     if (oldPerm == cInvalidPqaId) {
       //TODO: actually, this is inconsistency in the manager itself - consider throwing an exception
+      SRUtils::RequestDebug();
       return false;
     }
     auto it = _perm2comp.find(oldPerm);
     if (it == _perm2comp.end()) {
       //TODO: actually, this is inconsistency in the manager itself - consider throwing an exception
+      SRUtils::RequestDebug();
       return false;
     }
     it->second = i;
@@ -120,6 +145,7 @@ bool PermanentIdManager::OnCompact(const TPqaId nNew, const TPqaId *pOldIds) {
   for (std::pair<TPqaId, TPqaId> m : _perm2comp) {
     if (m.second < 0 || m.second >= nNew) {
       //TODO: actually, this is inconsistency in the manager itself - consider throwing an exception
+      SRUtils::RequestDebug();
       return false;
     }
     _comp2perm[m.second] = m.first;

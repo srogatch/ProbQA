@@ -476,6 +476,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::AddQsTsSpec(const TPqa
     SRBitArray reusedQs(totQ, false);
     for (TPqaId i = 0; i < nQReuse; i++) {
       const TPqaId curQ = _questionGaps.Acquire();
+      _pimQuestions.RenewComp(curQ);
       assert(curQ < _dims._nQuestions);
       pAqps[i]._iQuestion = curQ;
       reusedQs.SetOne(curQ);
@@ -487,6 +488,7 @@ template<typename taNumber> PqaError CpuEngine<taNumber>::AddQsTsSpec(const TPqa
     const TPqaId totT = nTOld + nTNew;
     for (TPqaId i = 0; i < nTReuse; i++) {
       const TPqaId curT = _targetGaps.Acquire();
+      _pimTargets.RenewComp(curT);
       assert(curT < _dims._nTargets);
       pAtps[i]._iTarget = curT;
     }

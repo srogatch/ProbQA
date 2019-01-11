@@ -14,10 +14,12 @@ public: // methods
   TPqaId PermFromComp(const TPqaId compId);
   TPqaId CompFromPerm(const TPqaId permId);
 
-  bool Save(FILE *fpout);
+  bool Save(FILE *fpout, const bool empty=false);
   bool Load(FILE *fpin);
 
   bool RemoveComp(const TPqaId compId);
+  bool RenewComp(const TPqaId compId);
+
   // Grow, allocating permanent IDs
   bool GrowTo(const TPqaId nComp);
   bool OnCompact(const TPqaId nNew, const TPqaId *pOldIds);

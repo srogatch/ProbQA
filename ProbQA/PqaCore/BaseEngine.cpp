@@ -12,6 +12,8 @@ using namespace SRPlat;
 
 namespace ProbQA {
 
+#define BELOG(severityVar) SRLogStream(ISRLogger::Severity::severityVar, _pLogger.load(std::memory_order_acquire))
+
 BaseEngine::BaseEngine(const EngineDefinition& engDef, KBFileInfo *pKbFi) : _dims(engDef._dims),
   _precDef(engDef._prec), _maintSwitch(MaintenanceSwitch::Mode::Regular), _pLogger(SRDefaultLogger::Get()),
   _memPool(1 + (engDef._memPoolMaxBytes >> SRSimd::_cLogNBytes))
@@ -47,6 +49,10 @@ void BaseEngine::AfterStatisticsInit(KBFileInfo *pKbFi) {
     if (!_pimTargets.Load(pKbFi->_sf.Get())) {
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
         "Can't read the target permanent-compact ID mapping.")).ThrowMoving();
+    }
+    if (!_pimQuizzes.Load(pKbFi->_sf.Get())) {
+      PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(pKbFi->_filePath), SRString::MakeUnowned(SR_FILE_LINE
+        "Can't read the quizzes permanent-compact ID mapping.")).ThrowMoving();
     }
   }
 }
@@ -181,6 +187,24 @@ bool BaseEngine::TargetCompFromPerm(const TPqaId count, TPqaId *pIds) {
   return true;
 }
 
+bool BaseEngine::QuizPermFromComp(const TPqaId count, TPqaId *pIds) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRLock<SRCriticalSection> csl(_csQuizReg);
+  for (TPqaId i = 0; i < count; i++) {
+    pIds[i] = _pimQuizzes.PermFromComp(pIds[i]);
+  }
+  return true;
+}
+
+bool BaseEngine::QuizCompFromPerm(const TPqaId count, TPqaId *pIds) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRLock<SRCriticalSection> csl(_csQuizReg);
+  for (TPqaId i = 0; i < count; i++) {
+    pIds[i] = _pimQuizzes.CompFromPerm(pIds[i]);
+  }
+  return true;
+}
+
 EngineDimensions BaseEngine::CopyDims() const {
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   if (msal.GetMode() == MaintenanceSwitch::Mode::Regular) {
@@ -254,10 +278,18 @@ PqaError BaseEngine::Shutdown(const char* const saveFilePath) {
     if (_quizGaps.IsGap(i)) {
       continue;
     }
+    if (!_pimQuizzes.RemoveComp(i)) {
+      aep.Add(PqaError(PqaErrorCode::Internal, new InternalErrorParams(__FILE__, __LINE__),
+        SRString::MakeUnowned("Failed to remove quiz compact ID.") ));
+    }
     aep.Add(DestroyQuiz(_quizzes[i]));
   }
   _quizzes.clear();
   _quizGaps.Compact(0);
+  if (!_pimQuizzes.OnCompact(0, nullptr)) {
+    aep.Add(PqaError(PqaErrorCode::Internal, new InternalErrorParams(__FILE__, __LINE__),
+      SRString::MakeUnowned("Failed to compact the quiz permanent-compact ID mapper.") ));
+  }
   
   //TODO: check the order - perhaps some releases should happen while the workers are still operational
   //// Shutdown worker threads
@@ -331,6 +363,10 @@ PqaError BaseEngine::LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer) {
   if (!_pimTargets.Save(kbfi._sf.Get())) {
     return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
       "Can't write the target permanent-compact ID mappings."));
+  }
+  if (!_pimQuizzes.Save(kbfi._sf.Get(), true)) {
+    return PqaError(PqaErrorCode::FileOp, new FileOpErrorParams(kbfi._filePath), SRString::MakeUnowned(SR_FILE_LINE
+      "Can't write the quiz permanent-compact ID mappings."));
   }
 
   return PqaError();
@@ -520,6 +556,9 @@ PqaError BaseEngine::ReleaseQuiz(const TPqaId iQuiz) {
     _quizzes[iQuiz] = nullptr; // avoid double-free problems
 
     _quizGaps.Release(iQuiz);
+    if (!_pimQuizzes.RemoveComp(iQuiz)) {
+      BELOG(Error) << SR_FILE_LINE << "Failed to remove quiz " << iQuiz << " from permanent-compact ID mapper.";
+    }
   }
 
   return DestroyQuiz(pQuiz);
@@ -584,6 +623,10 @@ PqaError BaseEngine::StartMaintenance(const bool forceQuizzes) {
           BaseQuiz *pQuiz = _quizzes[i];
           aep.Add(DestroyQuiz(pQuiz));
           _quizGaps.Release(i);
+          if (!_pimQuizzes.RemoveComp(i)) {
+            aep.Add(PqaError(PqaErrorCode::Internal, new InternalErrorParams(__FILE__, __LINE__),
+              SRString::MakeUnowned("Failed to remove quiz compact ID.")));
+          }
         }
         assert(TPqaId(_quizzes.size()) == _quizGaps.GetNGaps());
       }
@@ -596,7 +639,7 @@ PqaError BaseEngine::StartMaintenance(const bool forceQuizzes) {
       }
     }
     return aep.ToError(SRString::MakeUnowned(
-      SR_FILE_LINE "Error(s) occured during mode switch. Current mode can be any."));
+      SR_FILE_LINE "Error(s) occurred during mode switch. Current mode can be any."));
   }
   CATCH_TO_ERR_RETURN;
 }
@@ -699,10 +742,14 @@ PqaError BaseEngine::Compact(CompactionResult &cr) {
 
 TPqaId BaseEngine::AssignQuiz(BaseQuiz *pQuiz) {
   SRLock<SRCriticalSection> csl(_csQuizReg);
-  TPqaId quizId = _quizGaps.Acquire();
+  const TPqaId quizId = _quizGaps.Acquire();
   if (quizId >= TPqaId(_quizzes.size())) {
     assert(quizId == TPqaId(_quizzes.size()));
     _quizzes.emplace_back(nullptr);
+    _pimQuizzes.GrowTo(_quizzes.size());
+  }
+  else {
+    _pimQuizzes.RenewComp(quizId);
   }
   _quizzes[SRCast::ToSizeT(quizId)] = pQuiz;
   return quizId;
@@ -712,6 +759,7 @@ void BaseEngine::UnassignQuiz(const TPqaId iQuiz) {
   SRLock<SRCriticalSection> csl(_csQuizReg);
   _quizzes[SRCast::ToSizeT(iQuiz)] = nullptr;
   _quizGaps.Release(iQuiz);
+  _pimQuizzes.RemoveComp(iQuiz);
 }
 
 } // namespace ProbQA

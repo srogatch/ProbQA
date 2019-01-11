@@ -19,7 +19,15 @@ public:
     : SRPlat::SRException(std::forward<SRPlat::SRString>(message)), _pParams(pParams), _errCode(errCode) { }
   virtual ~PqaException() override { delete _pParams; }
 
-  SREXCEPTION_TYPICAL(Pqa);
+  PqaException(const PqaException& fellow) = delete;
+  PqaException(PqaException&& fellow) noexcept : SRPlat::SRException(std::forward<SRPlat::SRException>(fellow)) {
+    _errCode = fellow._errCode;
+    _pParams = fellow._pParams;
+    fellow._pParams = nullptr;
+  }
+
+  virtual PqaException* Move() override { return new PqaException(std::move(*this)); }
+  virtual void ThrowMoving() override { throw std::move(*this); }
 
   PqaErrorCode GetCode() const { return _errCode; }
   IPqaErrorParams* DetachParams() { IPqaErrorParams*  answer = _pParams; _pParams = nullptr; return answer; }

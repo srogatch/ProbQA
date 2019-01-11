@@ -24,6 +24,8 @@ public:
   virtual bool QuestionCompFromPerm(const TPqaId count, TPqaId *pIds) = 0;
   virtual bool TargetPermFromComp(const TPqaId count, TPqaId *pIds) = 0;
   virtual bool TargetCompFromPerm(const TPqaId count, TPqaId *pIds) = 0;
+  virtual bool QuizPermFromComp(const TPqaId count, TPqaId *pIds) = 0;
+  virtual bool QuizCompFromPerm(const TPqaId count, TPqaId *pIds) = 0;
 
   // Statistics method, especially useful for charging.
   virtual uint64_t GetTotalQuestionsAsked(PqaError& err) = 0;

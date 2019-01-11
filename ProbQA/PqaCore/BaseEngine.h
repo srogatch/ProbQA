@@ -28,6 +28,7 @@ protected: // variables
 
   PermanentIdManager _pimQuestions; // Guarded by _rws in maintenance mode. Read-only in regular mode.
   PermanentIdManager _pimTargets; // Guarded by _rws in maintenance mode. Read-only in regular mode.
+  PermanentIdManager _pimQuizzes; // Guarded by _csQuizReg . No need to obtain _rws.
 
   const PrecisionDefinition _precDef;
   EngineDimensions _dims; // Guarded by _rws in maintenance mode. Read-only in regular mode.
@@ -102,6 +103,8 @@ public:
   bool QuestionCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
   bool TargetPermFromComp(const TPqaId count, TPqaId *pIds) override final;
   bool TargetCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
+  bool QuizPermFromComp(const TPqaId count, TPqaId *pIds) override final;
+  bool QuizCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
 
   uint64_t GetTotalQuestionsAsked(PqaError& err) override final;
   EngineDimensions CopyDims() const override final;
