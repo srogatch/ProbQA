@@ -203,6 +203,16 @@ PQACORE_API uint8_t PqaEngine_TargetCompFromPerm(void *pvEngine, const int64_t c
   return pEng->TargetCompFromPerm(count, pIds) ? 1 : 0;
 }
 
+PQACORE_API uint8_t PqaEngine_QuizPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds) {
+  GET_ENGINE_OR_LOG_ERR(0);
+  return pEng->QuizPermFromComp(count, pIds);
+}
+
+PQACORE_API uint8_t PqaEngine_QuizCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds) {
+  GET_ENGINE_OR_LOG_ERR(0);
+  return pEng->QuizCompFromPerm(count, pIds);
+}
+
 PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError) {
   GET_ENGINE_OR_ASSIGN_ERR(0);
   PqaError err;

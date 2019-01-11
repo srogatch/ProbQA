@@ -180,6 +180,14 @@ pqa_core.PqaEngine_TargetPermFromComp.argtypes = (ctypes.c_void_p, ctypes.c_int6
 pqa_core.PqaEngine_TargetCompFromPerm.restype = ctypes.c_bool
 pqa_core.PqaEngine_TargetCompFromPerm.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.POINTER(ctypes.c_int64))
 
+# PQACORE_API uint8_t PqaEngine_QuizPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds);
+pqa_core.PqaEngine_QuizPermFromComp.restype = ctypes.c_bool
+pqa_core.PqaEngine_QuizPermFromComp.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.POINTER(ctypes.c_int64))
+
+# PQACORE_API uint8_t PqaEngine_QuizCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds);
+pqa_core.PqaEngine_QuizCompFromPerm.restype = ctypes.c_bool
+pqa_core.PqaEngine_QuizCompFromPerm.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.POINTER(ctypes.c_int64))
+
 # PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError);
 pqa_core.PqaEngine_GetTotalQuestionsAsked.restype = ctypes.c_uint64
 pqa_core.PqaEngine_GetTotalQuestionsAsked.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p))
@@ -453,6 +461,12 @@ class PqaEngine:
     def target_comp_from_perm(self, ids: List[int]) -> List[int]:
         return self.__call_id_mapping(pqa_core.PqaEngine_TargetCompFromPerm, ids)
 
+    def quiz_perm_from_comp(self, ids: List[int]) -> List[int]:
+        return self.__call_id_mapping(pqa_core.PqaEngine_QuizPermFromComp, ids)
+
+    def quiz_comp_from_perm(self, ids: List[int]) -> List[int]:
+        return self.__call_id_mapping(pqa_core.PqaEngine_QuizCompFromPerm, ids)
+
     def train(self, answered_questions: List[AnsweredQuestion], i_target : int,
               amount: float = 1.0, throw: bool = True) -> PqaError:
         c_aqs, n_questions = PqaEngine.to_c_answered_questions(answered_questions)
@@ -703,7 +717,7 @@ class PqaEngineFactory:
             err = PqaError.factor(c_err)
         if (c_engine.value is None) or (c_engine.value == 0):
             raise PqaException('Couldn\'t create a CPU Engine due to a native error: ' + str(err))
-        return (PqaEngine(c_engine), err)
+        return PqaEngine(c_engine), err
 
     def load_cpu_engine(self, file_path:str, mem_pool_max_bytes:int = EngineDefinition.DEFAULT_MEM_POOL_MAX_BYTES
                         ) -> Tuple[PqaEngine, PqaError]:
@@ -716,7 +730,21 @@ class PqaEngineFactory:
             err = PqaError.factor(c_err)
         if (c_engine.value is None) or (c_engine.value == 0):
             raise PqaException('Couldn\'t load a CPU Engine due to a native error: ' + str(err))
-        return (PqaEngine(c_engine), err)
+        return PqaEngine(c_engine), err
+
 
 PqaEngineFactory.instance = PqaEngineFactory()
 
+
+class MaintenanceLock:
+    def __init__(self, engine: PqaEngine, force_quizzes:bool):
+        self.engine = engine
+        self.force_quizzes = force_quizzes
+
+    def __enter__(self) -> None:
+        self.engine.start_maintenance(self.force_quizzes)
+
+    def __exit__(self, exc_type, exc_value, exc_trace) -> None:
+        self.engine.finish_maintenance()
+        # Exception must be re-raised next, according to
+        # https://stackoverflow.com/questions/28157929/python-how-to-safely-handle-an-exception-inside-a-context-manager
