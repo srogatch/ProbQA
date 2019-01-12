@@ -70,6 +70,8 @@ PQACORE_API uint8_t PqaEngine_TargetCompFromPerm(void *pvEngine, const int64_t c
 
 PQACORE_API uint8_t PqaEngine_QuizPermFromComp(void *pvEngine, const int64_t count, int64_t *pIds);
 PQACORE_API uint8_t PqaEngine_QuizCompFromPerm(void *pvEngine, const int64_t count, int64_t *pIds);
+// Return whether the next permanent has been increased as a result of this operation.
+PQACORE_API uint8_t PqaEngine_EnsurePermQuizGreater(void *pvEngine, const int64_t bound);
 
 PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError);
 PQACORE_API uint8_t PqaEngine_CopyDims(void *pvEngine, CiEngineDimensions *pDims);

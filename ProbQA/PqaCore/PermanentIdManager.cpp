@@ -60,6 +60,14 @@ bool PermanentIdManager::Load(FILE *fpin) {
   return true;
 }
 
+bool PermanentIdManager::EnsurePermIdGreater(const TPqaId bound) {
+  if (_nextPermId <= bound) {
+    _nextPermId = bound + 1;
+    return true;
+  }
+  return false;
+}
+
 bool PermanentIdManager::RemoveComp(const TPqaId compId) {
   if (compId >= TPqaId(_comp2perm.size())) {
     SRUtils::RequestDebug();

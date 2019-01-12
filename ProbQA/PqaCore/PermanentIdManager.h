@@ -16,6 +16,7 @@ public: // methods
 
   bool Save(FILE *fpout, const bool empty=false);
   bool Load(FILE *fpin);
+  bool EnsurePermIdGreater(const TPqaId bound);
 
   bool RemoveComp(const TPqaId compId);
   bool RenewComp(const TPqaId compId);

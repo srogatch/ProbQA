@@ -205,6 +205,12 @@ bool BaseEngine::QuizCompFromPerm(const TPqaId count, TPqaId *pIds) {
   return true;
 }
 
+bool BaseEngine::EnsurePermQuizGreater(const TPqaId bound) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRLock<SRCriticalSection> csl(_csQuizReg);
+  return _pimQuizzes.EnsurePermIdGreater(bound);
+}
+
 EngineDimensions BaseEngine::CopyDims() const {
   MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
   if (msal.GetMode() == MaintenanceSwitch::Mode::Regular) {

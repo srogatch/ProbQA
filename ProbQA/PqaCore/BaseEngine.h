@@ -105,6 +105,7 @@ public:
   bool TargetCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
   bool QuizPermFromComp(const TPqaId count, TPqaId *pIds) override final;
   bool QuizCompFromPerm(const TPqaId count, TPqaId *pIds) override final;
+  bool EnsurePermQuizGreater(const TPqaId bound) override final;
 
   uint64_t GetTotalQuestionsAsked(PqaError& err) override final;
   EngineDimensions CopyDims() const override final;
