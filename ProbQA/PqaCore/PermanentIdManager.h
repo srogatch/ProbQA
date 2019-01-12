@@ -25,6 +25,8 @@ public: // methods
   bool GrowTo(const TPqaId nComp);
   bool OnCompact(const TPqaId nNew, const TPqaId *pOldIds);
 
+  bool RemapPermId(const TPqaId srcPermId, const TPqaId destPermId);
+
 private: // variables
   std::unordered_map<TPqaId, TPqaId> _perm2comp;
   std::vector<TPqaId> _comp2perm;

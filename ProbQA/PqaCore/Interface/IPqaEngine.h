@@ -29,6 +29,7 @@ public:
   // Ensure that the next permanent quiz ID provided to the engine is greater than |bound|.
   // Return whether the next permanent has been increased as a result of this operation.
   virtual bool EnsurePermQuizGreater(const TPqaId bound) = 0;
+  virtual bool RemapQuizPermId(const TPqaId srcPermId, const TPqaId destPermId) = 0;
 
   // Statistics method, especially useful for charging.
   virtual uint64_t GetTotalQuestionsAsked(PqaError& err) = 0;

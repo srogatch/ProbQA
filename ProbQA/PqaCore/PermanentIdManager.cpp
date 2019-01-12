@@ -162,4 +162,23 @@ bool PermanentIdManager::OnCompact(const TPqaId nNew, const TPqaId *pOldIds) {
   return true;
 }
 
+bool PermanentIdManager::RemapPermId(const TPqaId srcPermId, const TPqaId destPermId) {
+  if (destPermId >= _nextPermId) {
+    return false; // can't remap to future permId's
+  }
+  auto jt = _perm2comp.find(destPermId);
+  if (jt != _perm2comp.end()) {
+    return false; // there's already such permId on record
+  }
+  auto it = _perm2comp.find(srcPermId);
+  if (it == _perm2comp.end()) {
+    return false; // no such permId on record
+  }
+  const TPqaId compId = it->second;
+  _perm2comp.erase(it);
+  _perm2comp.emplace(destPermId, compId);
+  _comp2perm[compId] = destPermId;
+  return true;
+}
+
 } // namespace ProbQA

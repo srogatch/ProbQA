@@ -193,6 +193,10 @@ pqa_core.PqaEngine_QuizCompFromPerm.argtypes = (ctypes.c_void_p, ctypes.c_int64,
 pqa_core.PqaEngine_EnsurePermQuizGreater.restype = ctypes.c_bool
 pqa_core.PqaEngine_EnsurePermQuizGreater.argtypes = (ctypes.c_void_p, ctypes.c_int64)
 
+# PQACORE_API uint8_t PqaEngine_RemapQuizPermId(void *pvEngine, const int64_t srcPermId, const int64_t destPermId);
+pqa_core.PqaEngine_RemapQuizPermId.restype = ctypes.c_bool
+pqa_core.PqaEngine_RemapQuizPermId.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.c_int64)
+
 # PQACORE_API uint64_t PqaEngine_GetTotalQuestionsAsked(void *pvEngine, void **ppError);
 pqa_core.PqaEngine_GetTotalQuestionsAsked.restype = ctypes.c_uint64
 pqa_core.PqaEngine_GetTotalQuestionsAsked.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p))
@@ -478,6 +482,13 @@ class PqaEngine:
 
     def ensure_perm_quiz_greater(self, bound: int) -> bool:
         return pqa_core.PqaEngine_EnsurePermQuizGreater(self.c_engine, ctypes.c_int64(bound))
+
+    def remap_quiz_perm_id(self, src_id:int, dest_id:int, throw:bool = True) -> bool:
+        b_ok = pqa_core.PqaEngine_RemapQuizPermId(self.c_engine, ctypes.c_int64(src_id), ctypes.c_int64(dest_id))
+        if not b_ok:
+            if throw:
+                raise PqaError('Failed to remap_quiz_perm_id() from %d to %d.' % (src_id, dest_id))
+        return b_ok
 
     def train(self, answered_questions: List[AnsweredQuestion], i_target : int,
               amount: float = 1.0, throw: bool = True) -> PqaError:
