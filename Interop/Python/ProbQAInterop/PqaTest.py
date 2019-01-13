@@ -9,7 +9,7 @@ input('Attach the debugger to PID=%d and press ENTER' % os.getpid())
 probqa.SRLogger.init(os.path.join(MODULE_DIR, '../../../logs/PqaWebTest'))
 
 # Test creation of the engine
-engine, err = probqa.PqaEngineFactory.instance.create_cpu_engine(probqa.EngineDefinition(
+engine, err = probqa.pqa_engine_factory_instance.create_cpu_engine(probqa.EngineDefinition(
     n_answers = 5, # Use 0 or 1 to trigger an error
     n_questions = 10,
     n_targets = 10,
@@ -61,7 +61,7 @@ engine.finish_maintenance()
 engine.save_kb(os.path.join(MODULE_DIR, '../../../Data/KBs/Привет.kb'), True)
 engine.shutdown('../../../Data/KBs/on_shutdown.kb')
 
-engine, err = probqa.PqaEngineFactory.instance.load_cpu_engine(os.path.join(MODULE_DIR, '../../../Data/KBs/current.kb'))
+engine, err = probqa.pqa_engine_factory_instance.load_cpu_engine(os.path.join(MODULE_DIR, '../../../Data/KBs/current.kb'))
 if err:
     print(err.to_string(True))
 if not engine:

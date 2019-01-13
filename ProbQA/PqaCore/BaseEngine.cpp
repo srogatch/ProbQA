@@ -837,12 +837,12 @@ PqaError BaseEngine::ClearOldQuizzes(const TPqaId maxCount, const double maxAgeS
   struct QuizAge {
     TPqaId _iQuiz;
     double _ageSec;
-    QuizAge(const TPqaId iQuiz, const double ageSec) : _iQuiz(iQuiz), _ageSec(ageSec) { }
     bool operator<(const QuizAge& fellow) const {
       return _ageSec < fellow._ageSec;
     }
   };
-  std::vector<QuizAge> quizAges;
+  SRSmartMPP<QuizAge> quizAges(_memPool, _quizzes.size() - _quizGaps.GetNGaps());
+  TPqaId nInHeap = 0;
   time_t callTime = time(nullptr);
   for (TPqaId i = 0; i < TPqaId(_quizzes.size()); i++) {
     if (_quizGaps.IsGap(i)) {
@@ -852,19 +852,20 @@ PqaError BaseEngine::ClearOldQuizzes(const TPqaId maxCount, const double maxAgeS
     if (pQuiz == nullptr) {
       continue;
     }
-    double ageSec = difftime(callTime, pQuiz->GetLastUsage());
+    const double ageSec = difftime(callTime, pQuiz->GetLastUsage());
     if (ageSec > maxAgeSec) {
       LockedReleaseQuiz(i, aep);
       continue;
     }
-    quizAges.emplace_back(i, ageSec);
+    quizAges.Get()[nInHeap]._iQuiz = i;
+    quizAges.Get()[nInHeap]._ageSec = ageSec;
+    nInHeap++;
   }
-  if (TPqaId(quizAges.size()) > maxCount) {
-    TPqaId nInHeap = quizAges.size();
-    std::make_heap(quizAges.begin(), quizAges.end());
+  if (nInHeap > maxCount) {
+    std::make_heap(quizAges.Get(), quizAges.Get()+nInHeap);
     while (nInHeap > maxCount) {
-      LockedReleaseQuiz(quizAges[0]._iQuiz, aep);
-      std::pop_heap(quizAges.begin(), quizAges.begin() + nInHeap);
+      LockedReleaseQuiz(quizAges.Get()[0]._iQuiz, aep);
+      std::pop_heap(quizAges.Get(), quizAges.Get() + nInHeap);
       nInHeap--;
     }
   }

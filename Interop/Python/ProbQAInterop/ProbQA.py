@@ -289,6 +289,10 @@ pqa_core.CiReleaseCompaction.argtypes = (ctypes.POINTER(ctypes.c_int64),)
 pqa_core.PqaEngine_Shutdown.restype = ctypes.c_void_p
 pqa_core.PqaEngine_Shutdown.argtypes = (ctypes.c_void_p, ctypes.c_char_p)
 
+# PQACORE_API void* PqaEngine_ClearOldQuizzes(void *pvEngine, const int64_t maxCount, const double maxAgeSec);
+pqa_core.PqaEngine_ClearOldQuizzes.restype = ctypes.c_void_p
+pqa_core.PqaEngine_ClearOldQuizzes.argtypes = (ctypes.c_void_p, ctypes.c_int64, ctypes.c_double)
+
 # PQACORE_API void* PqaEngine_SetLogger(void *pvEngine, void *pSRLogger);
 # TODO: implement after the API exposing loggers is implemented
 
@@ -723,10 +727,18 @@ class PqaEngine:
                 raise PqaException('Failed to shutdown(): ' + str(err))
         return err
 
+    def clear_old_quizzes(self, max_count: int, max_age_sec: float, throw: bool = True) -> PqaError:
+        c_err = ctypes.c_void_p()
+        c_err.value = pqa_core.PqaEngine_ClearOldQuizzes(self.c_engine, ctypes.c_int64(max_count),
+                                                         ctypes.c_double(max_age_sec))
+        err = PqaError.factor(c_err)
+        if err:
+            if throw:
+                raise PqaException('Failed to clear_old_quizzes(): ' + str(err))
+        return err
+
 
 class PqaEngineFactory:
-    instance = None
-    
     def __init__(self):
         self.c_factory = pqa_core.CiGetPqaEngineFactory()
 
@@ -766,7 +778,7 @@ class PqaEngineFactory:
         return PqaEngine(c_engine), err
 
 
-PqaEngineFactory.instance = PqaEngineFactory()
+pqa_engine_factory_instance = PqaEngineFactory()
 
 
 class MaintenanceLock:

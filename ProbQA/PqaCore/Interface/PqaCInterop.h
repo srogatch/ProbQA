@@ -82,6 +82,8 @@ PQACORE_API int64_t PqaEngine_ResumeQuiz(void *pvEngine, void **ppError, const i
 PQACORE_API int64_t PqaEngine_NextQuestion(void *pvEngine, void **ppError, const int64_t iQuiz);
 PQACORE_API void* PqaEngine_RecordAnswer(void *pvEngine, const int64_t iQuiz, const int64_t iAnswer);
 
+PQACORE_API void* PqaEngine_ClearOldQuizzes(void *pvEngine, const int64_t maxCount, const double maxAgeSec);
+
 PQACORE_API int64_t PqaEngine_GetActiveQuestionId(void *pvEngine, void **ppError, const int64_t iQuiz);
 PQACORE_API void* PqaEngine_SetActiveQuestion(void *pvEngine, const int64_t iQuiz, const int64_t iQuestion);
 

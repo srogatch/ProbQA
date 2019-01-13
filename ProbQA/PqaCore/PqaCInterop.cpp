@@ -375,3 +375,8 @@ PQACORE_API void* PqaEngine_SetLogger(void *pvEngine, void *pSRLogger) {
   ISRLogger *pLogger = static_cast<ISRLogger*>(pSRLogger);
   return ReturnPqaError(pEng->SetLogger(pLogger));
 }
+
+PQACORE_API void* PqaEngine_ClearOldQuizzes(void *pvEngine, const int64_t maxCount, const double maxAgeSec) {
+  GET_ENGINE_OR_RET_ERR;
+  return ReturnPqaError(pEng->ClearOldQuizzes(maxCount, maxAgeSec));
+}
