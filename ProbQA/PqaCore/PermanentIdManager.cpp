@@ -10,7 +10,7 @@ using namespace SRPlat;
 namespace ProbQA {
 
 TPqaId PermanentIdManager::PermFromComp(const TPqaId compId) {
-  if (compId >= TPqaId(_comp2perm.size())) {
+  if (compId < 0 || compId >= TPqaId(_comp2perm.size())) {
     return cInvalidPqaId;
   }
   return _comp2perm[compId];
