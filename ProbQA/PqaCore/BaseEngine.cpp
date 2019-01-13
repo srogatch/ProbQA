@@ -317,7 +317,7 @@ PqaError BaseEngine::Shutdown(const char* const saveFilePath) {
   //// Release memory pool
   _memPool.FreeAllChunks();
 
-  return aep.ToError(SRString::MakeUnowned(SR_FILE_LINE "Error(s) occured during shutdown."));
+  return aep.ToError(SRString::MakeUnowned(SR_FILE_LINE "Error(s) occurred during shutdown."));
 }
 
 PqaError BaseEngine::LockedSaveKB(KBFileInfo &kbfi, const bool bDoubleBuffer) {
@@ -413,7 +413,9 @@ BaseQuiz* BaseEngine::UseQuiz(PqaError& err, const TPqaId iQuiz) {
       SR_FILE_LINE "Quiz index is not in the registry (but rather at a gap)."));
     return nullptr;
   }
-  return _quizzes[iQuiz];
+  BaseQuiz *ans = _quizzes[iQuiz];
+  ans->OnUsage();
+  return ans;
 }
 
 TPqaId BaseEngine::NextQuestion(PqaError& err, const TPqaId iQuiz) {
@@ -796,6 +798,77 @@ void BaseEngine::UnassignQuiz(const TPqaId iQuiz) {
   _quizzes[SRCast::ToSizeT(iQuiz)] = nullptr;
   _quizGaps.Release(iQuiz);
   _pimQuizzes.RemoveComp(iQuiz);
+}
+
+void BaseEngine::LockedReleaseQuiz(const TPqaId iQuiz, AggregateErrorParams &aep) {
+  BaseQuiz *pQuiz = _quizzes[iQuiz];
+  _quizzes[iQuiz] = nullptr; // avoid double-free problems
+
+  _quizGaps.Release(iQuiz);
+  if (!_pimQuizzes.RemoveComp(iQuiz)) {
+    BELOG(Error) << SR_FILE_LINE << "Failed to remove quiz " << iQuiz << " from permanent-compact ID mapper.";
+  }
+  aep.Add(DestroyQuiz(pQuiz));
+}
+
+PqaError BaseEngine::ClearOldQuizzes(const TPqaId maxCount, const double maxAgeSec) {
+  if (maxCount < 0) {
+    return PqaError(PqaErrorCode::NegativeCount, new NegativeCountErrorParams(maxCount),
+      SRString::MakeUnowned(SR_FILE_LINE "The number of quizzes to keep cannot be less than 0."));
+  }
+  AggregateErrorParams aep;
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  switch (msal.GetMode()) {
+  case MaintenanceSwitch::Mode::Maintenance:
+  case MaintenanceSwitch::Mode::Shutdown:
+    // Quizzes are not expected to exist in Maintenance and Shutdown mode
+    return PqaError();
+  case MaintenanceSwitch::Mode::Regular:
+    break;
+  default:
+  {
+    SRMessageBuilder mb(SR_FILE_LINE);
+    mb("Don't know how to handle mode: ")(int(msal.GetMode()));
+    return PqaError(PqaErrorCode::UnhandledCase, nullptr, mb.GetOwnedSRString());
+  }
+  }
+  SRLock<SRCriticalSection> csl(_csQuizReg);
+
+  struct QuizAge {
+    TPqaId _iQuiz;
+    double _ageSec;
+    QuizAge(const TPqaId iQuiz, const double ageSec) : _iQuiz(iQuiz), _ageSec(ageSec) { }
+    bool operator<(const QuizAge& fellow) const {
+      return _ageSec < fellow._ageSec;
+    }
+  };
+  std::vector<QuizAge> quizAges;
+  time_t callTime = time(nullptr);
+  for (TPqaId i = 0; i < TPqaId(_quizzes.size()); i++) {
+    if (_quizGaps.IsGap(i)) {
+      continue;
+    }
+    BaseQuiz *pQuiz = _quizzes[i];
+    if (pQuiz == nullptr) {
+      continue;
+    }
+    double ageSec = difftime(callTime, pQuiz->GetLastUsage());
+    if (ageSec > maxAgeSec) {
+      LockedReleaseQuiz(i, aep);
+      continue;
+    }
+    quizAges.emplace_back(i, ageSec);
+  }
+  if (TPqaId(quizAges.size()) > maxCount) {
+    TPqaId nInHeap = quizAges.size();
+    std::make_heap(quizAges.begin(), quizAges.end());
+    while (nInHeap > maxCount) {
+      LockedReleaseQuiz(quizAges[0]._iQuiz, aep);
+      std::pop_heap(quizAges.begin(), quizAges.begin() + nInHeap);
+      nInHeap--;
+    }
+  }
+  return aep.ToError(SRString::MakeUnowned(SR_FILE_LINE "Error(s) occurred during clearing old quizzes."));
 }
 
 } // namespace ProbQA

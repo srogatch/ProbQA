@@ -62,6 +62,9 @@ public:
   virtual PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1) = 0;
   // Release the resources occupied by the quiz.
   virtual PqaError ReleaseQuiz(const TPqaId iQuiz) = 0;
+
+  // Keep no more than |maxCount| most recent quizzes and release quizzes older than |maxAgeSec| seconds.
+  virtual PqaError ClearOldQuizzes(const TPqaId maxCount, const double maxAgeSec) = 0;
 #pragma endregion
 
   // Save the knowledge base, but not the quizzes in progress.

@@ -10,6 +10,7 @@
 #include "../PqaCore/Interface/PqaCommon.h"
 #include "../PqaCore/KBFileInfo.h"
 #include "../PqaCore/PermanentIdManager.h"
+#include "../PqaCore/Interface/PqaErrorParams.h"
 
 namespace ProbQA {
 
@@ -65,6 +66,8 @@ protected: // methods
   TPqaId AssignQuiz(BaseQuiz *pQuiz);
   void UnassignQuiz(const TPqaId iQuiz);
 
+  void LockedReleaseQuiz(const TPqaId iQuiz, AggregateErrorParams &aep);
+
 protected: // Specific methods for this engine
   virtual PqaError TrainSpec(const TPqaId nQuestions, const AnsweredQuestion* const pAQs, const TPqaId iTarget,
     const TPqaAmount amount) = 0;
@@ -119,6 +122,8 @@ public:
   TPqaId ListTopTargets(PqaError& err, const TPqaId iQuiz, const TPqaId maxCount, RatedTarget *pDest) override final;
   PqaError RecordQuizTarget(const TPqaId iQuiz, const TPqaId iTarget, const TPqaAmount amount = 1) override final;
   PqaError ReleaseQuiz(const TPqaId iQuiz) override final;
+
+  virtual PqaError ClearOldQuizzes(const TPqaId maxCount, const double maxAgeSec) override final;
 
   PqaError SaveKB(const char* const filePath, const bool bDoubleBuffer) override final;
 

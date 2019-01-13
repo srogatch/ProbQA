@@ -18,6 +18,7 @@ protected: // variables
   std::vector<AnsweredQuestion> _answers;
   TPqaId _activeQuestion = cInvalidPqaId;
   BaseEngine *_pEngine;
+  time_t _lastUsage = time(nullptr);
 
 protected: // methods
   BaseEngine * GetBaseEngine() const { return _pEngine; }
@@ -30,6 +31,8 @@ public: // methods
   const std::vector<AnsweredQuestion>& GetAnswers() const { return _answers; }
   void SetActiveQuestion(TPqaId iQuestion) { _activeQuestion = iQuestion; }
   TPqaId GetActiveQuestion() const { return _activeQuestion; }
+  void OnUsage() { _lastUsage = time(nullptr); }
+  time_t GetLastUsage() const { return _lastUsage; }
 };
 
 } // namespace ProbQA
