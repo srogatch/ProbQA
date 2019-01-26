@@ -10,6 +10,7 @@ The engine that powers the website is supposed to work similarly to a popular ga
 
 In ProbQA there is no secret: the user simply doesn't know exactly what he/she wants. So the program asks questions to come up with something suitable for the user.
 
+After trying the interactive recommendation engine, you can take a survey https://www.surveymonkey.com/r/SMJ2ZRZ
 
 # ProbQA / Artificial Super-Neuron
 I wasn't impressed by current artificial neural networks because even a single neuron out of 14 billions in a human brain has to be much more intelligent than a few bytes of information and a threshold function. Some life forms have no more than that - a single neuron - still they manage to do so much. So perhaps a neuron has processing power comparable to that of a single modern PC. That processing power/memory is used for storing large internal statistics and plans on how to interact with the other neurons.
