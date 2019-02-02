@@ -66,7 +66,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
       for (TPqaId j = 0; j < nTargVects; j++) {
         const uint8_t gaps = engine.GetTargetGaps().GetQuad(j);
         const __m256d gapMask = _mm256_castsi256_pd(SRSimd::SetToBitQuadHot(gaps));
-        const __m256d priors = _mm256_andnot_pd(gapMask, SRSimd::Load<true>(pPriors + j));
+        const __m256d priors = SRSimd::Load<true>(pPriors + j);
 
         __m256d invCountTotal; // mD[i][j]
         if (isAns0) {
@@ -79,7 +79,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
         }
 
         const __m256d Pr_Qi_eq_k_given_Tj = _mm256_mul_pd(SRSimd::Load<false>(psAik+j), invCountTotal);
-        const __m256d likelihood = _mm256_mul_pd(Pr_Qi_eq_k_given_Tj, priors);
+        const __m256d likelihood = _mm256_andnot_pd(gapMask, _mm256_mul_pd(Pr_Qi_eq_k_given_Tj, priors));
         
         SRSimd::Store<true>(pPosteriors + j, likelihood);
         //TODO: profiler shows this as the bottleneck (23%)
@@ -180,6 +180,7 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     const double avgH = averages.m128d_f64[0];
     const double nExpectedTargets = std::exp2(avgH);
     if (nExpectedTargets + 1e-6 < 1) {
+      printf(" %lf ", totW);
       LOCLOG(Warning) << SR_FILE_LINE "Got nExpectedTargets=" << nExpectedTargets << ", entropy=" << avgH;
     }
 
