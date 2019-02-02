@@ -87,6 +87,10 @@ protected: // Specific methods for this engine
   virtual PqaError ShutdownWorkers() = 0;
   virtual void UpdateWithDimensions() = 0;
 
+  virtual TPqaAmount LockedGetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) = 0;
+  virtual TPqaAmount LockedGetD(const TPqaId iQuestion, const TPqaId iTarget) = 0;
+  virtual TPqaAmount LockedGetB(const TPqaId iTarget) = 0;
+
 public: // Internal interface methods
   SRPlat::ISRLogger *GetLogger() const { return _pLogger.load(std::memory_order_relaxed); }
   TMemPool& GetMemPool() { return _memPool; }
@@ -139,6 +143,11 @@ public:
 
   PqaError Shutdown(const char* const saveFilePath = nullptr) override final;
   PqaError SetLogger(SRPlat::ISRLogger *pLogger) override final;
+
+  PqaError CopyATargets(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId maxTargets,
+    TPqaAmount *pFreqs) override final;
+  PqaError CopyDTargets(const TPqaId iQuestion, const TPqaId maxTargets, TPqaAmount *pFreqs) override final;
+  PqaError CopyBTargets(const TPqaId maxTargets, TPqaAmount *pFreqs) override final;
 };
 
 } // namespace ProbQA

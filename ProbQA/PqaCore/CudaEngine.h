@@ -36,6 +36,10 @@ protected: // methods
   PqaError DestroyStatistics() override final;
   void UpdateWithDimensions() override final;
 
+  TPqaAmount LockedGetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) override final;
+  TPqaAmount LockedGetD(const TPqaId iQuestion, const TPqaId iTarget) override final;
+  TPqaAmount LockedGetB(const TPqaId iTarget) override final;
+
 public: // Internal interface methods
   taNumber* GetMD() { return _mD.Get(); }
   taNumber* GetSA() { return _sA.Get(); }

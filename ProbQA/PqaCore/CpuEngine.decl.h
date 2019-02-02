@@ -62,6 +62,16 @@ protected: // Specific methods for this kind of engine
   PqaError DestroyStatistics() override final;
   void UpdateWithDimensions() override final;
 
+  TPqaAmount LockedGetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) override final {
+    return GetA(iQuestion, iAnswer, iTarget).ToAmount();
+  }
+  TPqaAmount LockedGetD(const TPqaId iQuestion, const TPqaId iTarget) override final {
+    return GetD(iQuestion, iTarget).ToAmount();
+  }
+  TPqaAmount LockedGetB(const TPqaId iTarget) override final {
+    return GetB(iTarget).ToAmount();
+  }
+
 public: // Internal interface methods
 
   const taNumber& GetA(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId iTarget) const;

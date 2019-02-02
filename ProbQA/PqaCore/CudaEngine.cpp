@@ -373,6 +373,29 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::SaveStatistics(KBFile
   CATCH_TO_ERR_RETURN;
 }
 
+template<typename taNumber> TPqaAmount CudaEngine<taNumber>::LockedGetA(const TPqaId iQuestion, const TPqaId iAnswer,
+  const TPqaId iTarget)
+{
+  (void)iQuestion;
+  (void)iAnswer;
+  (void)iTarget;
+  throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+}
+
+template<typename taNumber> TPqaAmount CudaEngine<taNumber>::LockedGetD(const TPqaId iQuestion, const TPqaId iTarget) {
+  (void)iQuestion;
+  (void)iTarget;
+  throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+}
+
+template<typename taNumber> TPqaAmount CudaEngine<taNumber>::LockedGetB(const TPqaId iTarget) {
+  (void)iTarget;
+  throw PqaException(PqaErrorCode::NotImplemented, new NotImplementedErrorParams(SRString::MakeUnowned(SR_FILE_LINE
+    "CUDA engine is being implemented.")));
+}
+
 //// Instantiations
 template class CudaEngine<float>;
 

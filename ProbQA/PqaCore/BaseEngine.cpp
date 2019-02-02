@@ -872,4 +872,48 @@ PqaError BaseEngine::ClearOldQuizzes(const TPqaId maxCount, const double maxAgeS
   return aep.ToError(SRString::MakeUnowned(SR_FILE_LINE "Error(s) occurred during clearing old quizzes."));
 }
 
+PqaError BaseEngine::CopyATargets(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId maxTargets,
+  TPqaAmount *pFreqs)
+{
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<false> rwl(_rws);
+  if (!(0 <= iQuestion && iQuestion < _dims._nQuestions)) {
+    return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, _dims._nQuestions), 
+      SRString::MakeUnowned(SR_FILE_LINE "Question index is out of range."));
+  }
+  if (!(0 <= iAnswer && iAnswer < _dims._nAnswers)) {
+    return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iAnswer, 0, _dims._nAnswers),
+      SRString::MakeUnowned(SR_FILE_LINE "Answer index is out of range."));
+  }
+  const TPqaId nToCopy = std::min(maxTargets, _dims._nTargets);
+  for (TPqaId i = 0; i < nToCopy; i++) {
+    pFreqs[i] = LockedGetA(iQuestion, iAnswer, i);
+  }
+  return PqaError();
+}
+
+PqaError BaseEngine::CopyDTargets(const TPqaId iQuestion, const TPqaId maxTargets, TPqaAmount *pFreqs) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<false> rwl(_rws);
+  if (!(0 <= iQuestion && iQuestion < _dims._nQuestions)) {
+    return PqaError(PqaErrorCode::IndexOutOfRange, new IndexOutOfRangeErrorParams(iQuestion, 0, _dims._nQuestions),
+      SRString::MakeUnowned(SR_FILE_LINE "Question index is out of range."));
+  }
+  const TPqaId nToCopy = std::min(maxTargets, _dims._nTargets);
+  for (TPqaId i = 0; i < nToCopy; i++) {
+    pFreqs[i] = LockedGetD(iQuestion, i);
+  }
+  return PqaError();
+}
+
+PqaError BaseEngine::CopyBTargets(const TPqaId maxTargets, TPqaAmount *pFreqs) {
+  MaintenanceSwitch::AgnosticLock msal(_maintSwitch);
+  SRRWLock<false> rwl(_rws);
+  const TPqaId nToCopy = std::min(maxTargets, _dims._nTargets);
+  for (TPqaId i = 0; i < nToCopy; i++) {
+    pFreqs[i] = LockedGetB(i);
+  }
+  return PqaError();
+}
+
 } // namespace ProbQA

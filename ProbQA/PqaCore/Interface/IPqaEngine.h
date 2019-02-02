@@ -35,6 +35,11 @@ public:
   virtual uint64_t GetTotalQuestionsAsked(PqaError& err) = 0;
   // Get engine dimensions: the number of questions, answers and targets
   virtual EngineDimensions CopyDims() const = 0;
+  virtual PqaError CopyATargets(const TPqaId iQuestion, const TPqaId iAnswer, const TPqaId maxTargets,
+    TPqaAmount *pFreqs) = 0;
+  virtual PqaError CopyDTargets(const TPqaId iQuestion, const TPqaId maxTargets, TPqaAmount *pFreqs) = 0;
+  virtual PqaError CopyBTargets(const TPqaId maxTargets, TPqaAmount *pFreqs) = 0;
+
 
   //// There must be no concurrent requests on the same quiz. This is not thread-safe.
 #pragma region Regular-only mode operations
