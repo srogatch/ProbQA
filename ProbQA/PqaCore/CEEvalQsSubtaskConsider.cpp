@@ -180,7 +180,6 @@ template<> void CEEvalQsSubtaskConsider<SRDoubleNumber>::Run() {
     const double avgH = averages.m128d_f64[0];
     const double nExpectedTargets = std::exp2(avgH);
     if (nExpectedTargets + 1e-6 < 1) {
-      printf(" %lf ", totW);
       LOCLOG(Warning) << SR_FILE_LINE "Got nExpectedTargets=" << nExpectedTargets << ", entropy=" << avgH;
     }
 
