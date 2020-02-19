@@ -20,6 +20,7 @@ void CudaPersistence::ReadFile(void *d_p, size_t nBytes) {
       PqaException(PqaErrorCode::FileOp, new FileOpErrorParams(_pKbFi->_filePath), SRString::MakeUnowned(
         SR_FILE_LINE " Can't read file.")).ThrowMoving();
     }
+    //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
     CUDA_MUST(cudaMemcpyAsync(d_p, _buffer.get(), nRead, cudaMemcpyHostToDevice, _cuStr));
     d_p = static_cast<uint8_t*>(d_p) + nRead;
     nBytes -= nRead;
@@ -29,6 +30,7 @@ void CudaPersistence::ReadFile(void *d_p, size_t nBytes) {
 void CudaPersistence::WriteFile(const void *d_p, size_t nBytes) {
   while (nBytes > 0) {
     const size_t nToWrite = std::min(nBytes, _bufSize);
+    //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
     CUDA_MUST(cudaMemcpyAsync(_buffer.get(), d_p, nToWrite, cudaMemcpyDeviceToHost, _cuStr));
     const size_t nWritten = fwrite(_buffer.get(), 1, nToWrite, _pKbFi->_sf.Get());
     if (nWritten != nToWrite) {

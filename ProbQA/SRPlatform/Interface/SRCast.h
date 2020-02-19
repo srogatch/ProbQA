@@ -38,13 +38,13 @@ public:
     return *CPtr<taResult>(&value);
   }
 
-  ATTR_NOALIAS constexpr static double ToDouble(const SRAmount amount) { return amount; }
+  ATTR_NOALIAS static double ToDouble(const SRAmount amount) { return amount; }
 
-  ATTR_NOALIAS constexpr static uint64_t U64FromF64(const double value) {
+  ATTR_NOALIAS static uint64_t U64FromF64(const double value) {
     // _castf64_u64() doesn't seem present in MSVC++
     return *reinterpret_cast<const uint64_t*>(&value);
   }
-  ATTR_NOALIAS constexpr static double F64FromU64(const uint64_t value) {
+  ATTR_NOALIAS static double F64FromU64(const uint64_t value) {
     return *reinterpret_cast<const double*>(&value);
   }
 };

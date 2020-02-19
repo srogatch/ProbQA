@@ -194,6 +194,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
         CudaMain::FlushWddm(cuStr.Get());
         CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
       }
+      //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
       CUDA_MUST(cudaMemcpyAsync(totals.Get(), nqk._pTotals, sizeof(taNumber)*nQuestions, cudaMemcpyDeviceToHost,
         cuStr.Get()));
       CudaMain::FlushWddm(cuStr.Get());
@@ -258,6 +259,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::ListTopTargetsSpec(PqaE
     {
       CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
       CudaStream cuStr = _cspNb.Acquire();
+      //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
       CUDA_MUST(cudaMemcpyAsync(priors.Get(), pQuiz->GetPriorMants(), sizeof(taNumber)*nTargets,
         cudaMemcpyDeviceToHost, cuStr.Get()));
       CudaMain::FlushWddm(cuStr.Get());
@@ -316,6 +318,7 @@ template<typename taNumber> PqaError CudaEngine<taNumber>::RecordQuizTargetSpec(
     {
       CudaDeviceLock cdl = CudaMain::SetDevice(_iDevice);
       CudaStream cuStr = _cspNb.Acquire();
+      //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
       CUDA_MUST(cudaMemcpyAsync(devAQs.Get(), hostAQs.Get(), sizeof(CudaAnsweredQuestion) * rqtk._nAQs,
         cudaMemcpyHostToDevice, cuStr.Get()));
       CudaMain::FlushWddm(cuStr.Get());

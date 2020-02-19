@@ -35,8 +35,10 @@ uint8_t* BaseCudaEngine::DevTargetGaps() {
 void BaseCudaEngine::BceUpdateWithDimensions(cudaStream_t stream) {
   _cuMp.FreeAllChunks();
   _gaps = CudaArray<uint8_t>(((_dims._nQuestions + 7) >> 3) + ((_dims._nTargets + 7) >> 3));
+  //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
   CUDA_MUST(cudaMemcpyAsync(DevQuestionGaps(), _questionGaps.GetBits(), (_dims._nQuestions +7)>>3,
     cudaMemcpyHostToDevice, stream));
+  //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
   CUDA_MUST(cudaMemcpyAsync(DevTargetGaps(), _targetGaps.GetBits(), (_dims._nTargets + 7) >> 3,
     cudaMemcpyHostToDevice, stream));
 }

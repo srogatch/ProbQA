@@ -45,10 +45,12 @@ template<typename taNumber> PqaError CudaQuiz<taNumber>::RecordAnswer(const TPqa
 
     uint8_t cpuByte;
     uint8_t *pDevByte = _pQAsked + (_activeQuestion >> 3);
+    //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
     CUDA_MUST(cudaMemcpyAsync(&cpuByte, pDevByte, 1, cudaMemcpyDeviceToHost, cuStr.Get()));
     CudaMain::FlushWddm(cuStr.Get());
     CUDA_MUST(cudaStreamSynchronize(cuStr.Get()));
     cpuByte |= (1 << (_activeQuestion & 7));
+    //TODO: cudaHostRegister(cudaHostAllocPortable) to let copying be really asynchronous
     CUDA_MUST(cudaMemcpyAsync(pDevByte, &cpuByte, 1, cudaMemcpyHostToDevice, cuStr.Get()));
 
     SRRWLock<false> rwl(pEngine->GetRws());
