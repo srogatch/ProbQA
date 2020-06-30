@@ -61,7 +61,9 @@ You can try integrating the engine into your systems. If not too busy, I may be 
 To compile you need MSVS2017 v15.4.2 or higher. An external dependency is gtest: https://github.com/google/googletest (only if you want to run tests or dislike compilation errors in unrelated projects too much).
 
 Earlier I published the results of experiments for top 10 targets (where a target is considered to have been guessed correctly if it's listed among 10 most probable targets). Here's the result for more challenging task - guessing the targets among top 1, i.e. it must be selected as the single most probable target. After many experiments and tuning, currently the learning curve of accuracy looks like the following for learning binary search algorithm:
+
 ![Accuracy Top1](https://raw.githubusercontent.com/srogatch/ProbQA/master/ProbQA/Notes/Metrics/TrainingProgress/top1/SquareCounts/lack/best_2017-11-19.png)
+
 So for KB of size 1000 questions by 5 answer options by 1000 targets, the accuracy reaches 100% after about 4.5 millions of questions answered, and then stays at 100% too.
 
 # References
