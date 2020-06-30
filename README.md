@@ -64,4 +64,6 @@ Earlier I published the results of experiments for top 10 targets (where a targe
 ![Accuracy Top1](https://raw.githubusercontent.com/srogatch/ProbQA/master/ProbQA/Notes/Metrics/TrainingProgress/top1/SquareCounts/lack/best_2017-11-19.png)
 So for KB of size 1000 questions by 5 answer options by 1000 targets, the accuracy reaches 100% after about 4.5 millions of questions answered, and then stays at 100% too.
 
-More introduction to this program can be found in my articles: https://www.linkedin.com/in/sergerogatch/detail/recent-activity/posts/
+# References
+
+I'm analyzing memory leaks with Deleaker: https://www.deleaker.com/
