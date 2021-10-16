@@ -278,12 +278,12 @@ pqa_core.PqaEngine_RemoveTargets.argtypes = (ctypes.c_void_p, ctypes.c_int64, ct
 #   int64_t *pnTargets, int64_t const ** const ppOldTargets);
 pqa_core.PqaEngine_Compact.restype = ctypes.c_void_p
 pqa_core.PqaEngine_Compact.argtypes = (ctypes.c_void_p,
-   ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.POINTER(ctypes.c_int64)),
-   ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.POINTER(ctypes.c_int64)))
+   ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.c_void_p),
+   ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.c_void_p))
 
 # PQACORE_API void CiReleaseCompaction(const int64_t *p);
 pqa_core.CiReleaseCompaction.restype = None
-pqa_core.CiReleaseCompaction.argtypes = (ctypes.POINTER(ctypes.c_int64),)
+pqa_core.CiReleaseCompaction.argtypes = (ctypes.c_void_p,)
 
 # PQACORE_API void* PqaEngine_Shutdown(void *pvEngine, const char* const saveFilePath = nullptr);
 pqa_core.PqaEngine_Shutdown.restype = ctypes.c_void_p
@@ -700,11 +700,13 @@ class PqaEngine:
     def compact(self) -> Tuple[List[int], List[int]]:
         n_questions = ctypes.c_int64()
         n_targets = ctypes.c_int64()
-        p_questions = ctypes.POINTER(ctypes.c_int64)()
-        p_targets = ctypes.POINTER(ctypes.c_int64)()
+        vp_questions = ctypes.c_void_p()
+        vp_targets = ctypes.c_void_p()
         c_err = ctypes.c_void_p()
-        c_err.value = pqa_core.PqaEngine_Compact(self.c_engine, ctypes.byref(n_questions), ctypes.byref(p_questions),
-             ctypes.byref(n_targets), ctypes.byref(p_targets))
+        c_err.value = pqa_core.PqaEngine_Compact(self.c_engine, ctypes.byref(n_questions), ctypes.byref(vp_questions),
+             ctypes.byref(n_targets), ctypes.byref(vp_targets))
+        p_questions = ctypes.cast(vp_questions, ctypes.POINTER(ctypes.c_int64))
+        p_targets = ctypes.cast(vp_targets, ctypes.POINTER(ctypes.c_int64))
         err = PqaError.factor(c_err)
         if err:
             # C Interop layer releases compaction result in case of an error
@@ -713,8 +715,8 @@ class PqaEngine:
             old_questions = PqaEngine.from_c_ids(p_questions, n_questions.value)
             old_targets = PqaEngine.from_c_ids(p_targets, n_targets.value)
         finally:
-            pqa_core.CiReleaseCompaction(p_questions)
-            pqa_core.CiReleaseCompaction(p_targets)
+            pqa_core.CiReleaseCompaction(vp_questions)
+            pqa_core.CiReleaseCompaction(vp_targets)
         return old_questions, old_targets
 
     def shutdown(self, save_file_path: str = None, throw: bool = True) -> PqaError:
