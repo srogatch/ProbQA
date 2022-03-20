@@ -1,3 +1,7 @@
+# Contact
+
+For cooperation you can contact serge dot rogatch at gmail dot com.
+
 # Interoperability
 
 .NET: https://github.com/srogatch/ProbQA/tree/master/ProbQA/ProbQANetCore
