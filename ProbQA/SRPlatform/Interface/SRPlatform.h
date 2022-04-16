@@ -4,11 +4,15 @@
 
 #pragma once
 
-#ifdef SRPLATFORM_EXPORTS
-#define SRPLATFORM_API __declspec(dllexport)
-#else
-#define SRPLATFORM_API __declspec(dllimport)
-#endif // SRPLATFORM_EXPORTS
+#if defined(_WIN32)
+  #ifdef SRPLATFORM_EXPORTS
+    #define SRPLATFORM_API __declspec(dllexport)
+  #else
+    #define SRPLATFORM_API __declspec(dllimport)
+  #endif // SRPLATFORM_EXPORTS
+#elif defined(__unix__)
+  #define SRPLATFORM_API [[gnu::visibility("default")]]
+#endif // OS
 
 #pragma warning( push )
 #pragma warning( disable : 4251 ) // needs to have dll-interface to be used by clients of class
@@ -28,21 +32,17 @@ template class SRPLATFORM_API std::queue<SRPlat::SRBaseSubtask*>;
 #pragma warning( pop )
 
 //// IS_CPU_X86_32 , IS_CPU_X86_64
-#ifdef _MSC_VER
-  #if _M_IX86
-    static_assert(sizeof(void*) == 4, "Double-checking for CPU bit-width detection");
-    #define IS_CPU_X86_32 1
-    #define IS_CPU_X86_64 0
-  #elif _M_X64
-    static_assert(sizeof(void*) == 8, "Double-checking for CPU bit-width detection");
-    #define IS_CPU_X86_32 0
-    #define IS_CPU_X86_64 1
-  #else
-    #error This CPU is not supported yet.
-  #endif /* CPU selection under MSVC++ compiler */
+#if UINTPTR_MAX == 0xffffffff
+  static_assert(sizeof(void*) == 4, "Double-checking for CPU bit-width detection");
+  #define IS_CPU_X86_32 1
+  #define IS_CPU_X86_64 0
+#elif UINTPTR_MAX == 0xffffffffffffffff
+  static_assert(sizeof(void*) == 8, "Double-checking for CPU bit-width detection");
+  #define IS_CPU_X86_32 0
+  #define IS_CPU_X86_64 1
 #else
-  #error This compiler is not supported yet.
-#endif /* Compiler selection */
+  #error "Unsupported CPU bit width"
+#endif
 
 #if IS_CPU_X86_32
 inline int _rdrand64_step(unsigned __int64* val) {

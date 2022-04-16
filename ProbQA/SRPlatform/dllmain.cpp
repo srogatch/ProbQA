@@ -2,7 +2,6 @@
 // @2017 Sarge Rogatch
 // This software is distributed under GNU AGPLv3 license. See file LICENSE in repository root for details.
 
-#include "stdafx.h"
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReasonForCall, LPVOID lpReserved) {
   (void)hModule; (void)lpReserved; // Remove when implemented more

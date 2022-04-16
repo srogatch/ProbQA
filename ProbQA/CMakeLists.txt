@@ -1,0 +1,5 @@
+add_subdirectory(SRPlatform)
+add_subdirectory(SRPlatformTests)
+add_subdirectory(PqaCore)
+add_subdirectory(PqaCoreTests)
+add_subdirectory(PqaClient)
