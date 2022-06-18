@@ -20,7 +20,7 @@ class SRPLATFORM_API SRString final {
 
 private: // methods
   SRString(const char *PTR_RESTRICT const pData, const bool bOwned, const size_t length);
-  ATTR_RESTRICT static char* DupData(const char *PTR_RESTRICT const pData, const size_t length);
+  static char* ATTR_RESTRICT DupData(const char *PTR_RESTRICT const pData, const size_t length);
   void setSameData(const char *PTR_RESTRICT const pData);
 
 public: // methods

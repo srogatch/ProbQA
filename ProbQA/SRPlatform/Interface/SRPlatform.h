@@ -12,23 +12,29 @@
   #endif // SRPLATFORM_EXPORTS
 #elif defined(__unix__)
   #define SRPLATFORM_API [[gnu::visibility("default")]]
+#else
+  #error "Unsupported OS"
 #endif // OS
 
 #pragma warning( push )
 #pragma warning( disable : 4251 ) // needs to have dll-interface to be used by clients of class
+#if defined(_WIN32)
 class SRPLATFORM_API std::exception_ptr;
 template struct SRPLATFORM_API std::atomic<int32_t>;
 template struct SRPLATFORM_API std::atomic<size_t>;
 class SRPLATFORM_API std::thread;
 template SRPLATFORM_API class std::allocator<std::thread>;
+#endif // defined(_WIN32)
 
 namespace SRPlat {
   class SRBaseSubtask;
 }
 
+#if defined(_WIN32)
 template class SRPLATFORM_API std::allocator<SRPlat::SRBaseSubtask*>;
 template class SRPLATFORM_API std::deque<SRPlat::SRBaseSubtask*>;
 template class SRPLATFORM_API std::queue<SRPlat::SRBaseSubtask*>;
+#endif // defined(_WIN32)
 #pragma warning( pop )
 
 //// IS_CPU_X86_32 , IS_CPU_X86_64
@@ -42,7 +48,7 @@ template class SRPLATFORM_API std::queue<SRPlat::SRBaseSubtask*>;
   #define IS_CPU_X86_64 1
 #else
   #error "Unsupported CPU bit width"
-#endif
+#endif // UINTPTR_MAX
 
 #if IS_CPU_X86_32
 inline int _rdrand64_step(unsigned __int64* val) {

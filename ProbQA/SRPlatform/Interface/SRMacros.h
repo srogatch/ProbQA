@@ -21,7 +21,15 @@
 #define SR_FILE_LINE __FILE__ "(" SR_LINE_STRING "): "
 
 #define ATTR_NOALIAS __declspec(noalias)
+
+#if defined(_WIN32)
 #define ATTR_RESTRICT __declspec(restrict)
+#elif defined(__unix__)
+#define ATTR_RESTRICT __restrict__
+#else
+#error "Unhandled OS"
+#endif // OS
+
 #define ATTR_NORETURN __declspec(noreturn)
 #define ATTR_NOINLINE __declspec(noinline)
 #define ATTR_NOVTABLE __declspec(novtable)

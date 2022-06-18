@@ -10,7 +10,14 @@ namespace SRPlat {
 
 class SRPLATFORM_API SRCriticalSection {
   friend class SRConditionVariable;
+
+#if defined(_WIN32)
   CRITICAL_SECTION _block;
+#elif defined(__unix__)
+  std::recursive_mutex _mu;
+#else
+  #error "Unhandled OS"
+#endif
 public:
   explicit SRCriticalSection();
   explicit SRCriticalSection(const uint32_t spinCount);

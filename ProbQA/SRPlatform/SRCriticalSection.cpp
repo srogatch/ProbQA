@@ -6,6 +6,7 @@
 
 namespace SRPlat {
 
+#if defined(_WIN32)
 SRCriticalSection::SRCriticalSection() {
   InitializeCriticalSection(&_block);
 }
@@ -25,5 +26,26 @@ void SRCriticalSection::Acquire() {
 void SRCriticalSection::Release() {
   LeaveCriticalSection(&_block);
 }
+#elif defined(__unix__)
+SRCriticalSection::SRCriticalSection() {
+}
+
+SRCriticalSection::SRCriticalSection(const uint32_t spinCount) {
+  (void)spinCount;
+}
+
+SRCriticalSection::~SRCriticalSection() {
+}
+
+void SRCriticalSection::Acquire() {
+  _mu.lock();
+}
+
+void SRCriticalSection::Release() {
+  _mu.unlock();
+}
+#else
+  #error "Unhandled OS"
+#endif
 
 } // namespace SRPlat
