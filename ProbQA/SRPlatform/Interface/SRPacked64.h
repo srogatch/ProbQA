@@ -22,7 +22,7 @@ union SRPLATFORM_API SRPacked64 {
 
   SRPacked64() { }
 
-  constexpr SRPacked64(const __m128i& vect, const uint8_t at) : _u64(vect.m128i_u64[at]) { }
+  SRPacked64(const __m128i& vect, const uint8_t at) : _u64(reinterpret_cast<const uint64_t*>(&vect)[at]) { }
   SRPacked64(const __m128d& vect, const uint8_t at) : SRPacked64(_mm_castpd_si128(vect), at) { }
   SRPacked64(const __m128& vect, const uint8_t at) : SRPacked64(_mm_castps_si128(vect), at) { }
 
@@ -37,7 +37,7 @@ union SRPLATFORM_API SRPacked64 {
   }
   template<uint8_t taAt> constexpr static SRPacked64 __vectorcall SetToComp(const __m128d& vect) {
     static_assert(taAt <= 1, "There are 2 components, 64 bit in each.");
-    Packed64 ans;
+    SRPacked64 ans;
     taAt ? _mm_storeh_pd(&ans._f64, vect) : _mm_storel_pd(&ans._f64, vect);
     return ans;
   }

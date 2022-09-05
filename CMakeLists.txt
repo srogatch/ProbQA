@@ -1,9 +1,11 @@
-cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 project(ProbQA LANGUAGES CXX)
 
 include(CTest)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -march=native")
 
 string(COMPARE NOTEQUAL "${CMAKE_CUDA_ARCHITECTURES}" "" PROBQA_CUDA)
 if(PROBQA_CUDA)

@@ -10,7 +10,15 @@ namespace SRPlat {
 
 class SRPLATFORM_API SRReaderWriterSync {
   friend class SRConditionVariable;
+
+#if defined(_WIN32)
   SRWLOCK _block = SRWLOCK_INIT;
+#elif defined(__unix__)
+  std::shared_mutex _shmu;
+#else
+  #error "Unhandled OS"
+#endif // OS
+
 public:
   explicit SRReaderWriterSync() { }
   ~SRReaderWriterSync() { }

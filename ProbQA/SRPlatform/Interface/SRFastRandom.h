@@ -21,7 +21,7 @@ private: // methods
   inline void InitWithRD(const uint8_t since) {
     std::random_device rd;
     for (uint8_t i = since; i < sizeof(_s) / sizeof(uint32_t); i++) {
-      _s[i >> 3].m256i_u32[i & 7] = rd();
+      reinterpret_cast<uint32_t*>(_s + (i >> 3))[i & 7] = rd();
     }
   }
 
@@ -30,7 +30,7 @@ public: // methods
 
   explicit SRFastRandom() {
     for (uint8_t i = 0; i < sizeof(_s) / sizeof(uint64_t); i++) {
-      if (!_rdrand64_step(_s[i>>2].m256i_u64 + (i&3))) {
+      if (!_rdrand64_step(reinterpret_cast<long long unsigned int*>(_s + (i>>2)) + (i&3))) {
         // Can't log this because this likely happens because of too many hardware randoms per second.
         // printf("Oops: hardware random didn't succeed.\n");
         InitWithRD(i<<1);
@@ -42,22 +42,20 @@ public: // methods
   }
 
   // Use entropy adapters for generating random values smaller that 64 bits.
-  template<typename taResult> taResult Generate();
-
-  template<> uint64_t Generate() {
+  uint64_t Generate64() {
     if (_iNextGen == 0) {
-      const __m256i rn = Generate<__m256i>();
+      const __m256i rn = Generate256();
       _mm256_store_si256(&_preGen, rn);
       _iNextGen = 1;
-      return rn.m256i_u64[0];
+      return *reinterpret_cast<const uint64_t*>(&rn);
     }
-    const uint64_t answer = _preGen.m256i_u64[_iNextGen];
+    const uint64_t answer = reinterpret_cast<const uint64_t*>(&_preGen)[_iNextGen];
     _iNextGen = (_iNextGen+1) & 3;
     return answer;
   }
 
   // Generate 4 random numbers at once with AVX2
-  template<> __m256i __vectorcall Generate() {
+  __m256i __vectorcall Generate256() {
     __m256i x = _mm256_load_si256(_s+0);
     const __m256i y = _mm256_load_si256(_s+1);
     _mm256_store_si256(_s + 0, y);

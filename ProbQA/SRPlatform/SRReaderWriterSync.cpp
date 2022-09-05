@@ -6,6 +6,7 @@
 
 namespace SRPlat {
 
+#if defined(_WIN32)
 template<> SRPLATFORM_API void SRReaderWriterSync::Acquire<true>() {
   AcquireSRWLockExclusive(&_block);
 }
@@ -29,6 +30,33 @@ template<> SRPLATFORM_API void SRReaderWriterSync::Release<true>() {
 template<> SRPLATFORM_API void SRReaderWriterSync::Release<false>() {
   ReleaseSRWLockShared(&_block);
 }
+#elif defined(__unix__)
+template<> SRPLATFORM_API void SRReaderWriterSync::Acquire<true>() {
+  _shmu.lock();
+}
+
+template<> SRPLATFORM_API void SRReaderWriterSync::Acquire<false>() {
+  _shmu.lock_shared();
+}
+
+template<> SRPLATFORM_API bool SRReaderWriterSync::TryAcquire<true>() {
+  return _shmu.try_lock();
+}
+
+template<> SRPLATFORM_API bool SRReaderWriterSync::TryAcquire<false>() {
+  return _shmu.try_lock_shared();
+}
+
+template<> SRPLATFORM_API void SRReaderWriterSync::Release<true>() {
+  _shmu.unlock();
+}
+
+template<> SRPLATFORM_API void SRReaderWriterSync::Release<false>() {
+  _shmu.unlock_shared();
+}
+#else
+  #error "Unhandled OS"
+#endif // OS
 
 void SRReaderWriterSync::Acquire(const bool bExclusive) {
   bExclusive ?  Acquire<true>() : Acquire<false>();

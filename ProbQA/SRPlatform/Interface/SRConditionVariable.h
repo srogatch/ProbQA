@@ -10,7 +10,13 @@
 namespace SRPlat {
 
 class SRPLATFORM_API SRConditionVariable {
+#if defined(_WIN32)
   CONDITION_VARIABLE _block;
+#elif defined(__unix__)
+  std::condition_variable _cv;
+#else
+  #error "Unhandled OS"
+#endif // OS
 public:
   explicit SRConditionVariable();
   ~SRConditionVariable();

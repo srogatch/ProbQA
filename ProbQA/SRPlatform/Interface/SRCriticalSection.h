@@ -17,7 +17,8 @@ class SRPLATFORM_API SRCriticalSection {
   std::recursive_mutex _mu;
 #else
   #error "Unhandled OS"
-#endif
+#endif // OS
+
 public:
   explicit SRCriticalSection();
   explicit SRCriticalSection(const uint32_t spinCount);

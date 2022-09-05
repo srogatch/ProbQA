@@ -32,6 +32,7 @@
 #include <atomic>
 #include <cassert>
 #include <cinttypes>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -53,8 +54,10 @@
   #define stricmp strcasecmp
 #endif // OS
 
+#include <mutex>
 #include <queue>
 #include <random>
+#include <shared_mutex>
 #include <sstream>
 #include <string>
 #include <thread>

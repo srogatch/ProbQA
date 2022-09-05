@@ -12,6 +12,8 @@
   #endif // SRPLATFORM_EXPORTS
 #elif defined(__unix__)
   #define SRPLATFORM_API [[gnu::visibility("default")]]
+  #define INFINITE 4294967295u
+  #define __vectorcall
 #else
   #error "Unsupported OS"
 #endif // OS
