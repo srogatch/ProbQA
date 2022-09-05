@@ -179,7 +179,7 @@ void BenchmarkFastRandFill() {
   SRPlat::SRFastRandom fr;
   auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 0; i < cnDoubles; i++) {
-    gpdInput[i] = fr.Generate<uint64_t>() / (double(fr.Generate<uint64_t>()) + 1);
+    gpdInput[i] = fr.Generate64() / (double(fr.Generate64()) + 1);
   }
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   double nSec = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -1055,7 +1055,7 @@ class FastRandomAdapter : public SRPlat::SRFastRandom {
 public:
   static constexpr uint64_t min() { return 0; }
   static constexpr uint64_t max() { return std::numeric_limits<uint64_t>::max(); }
-  uint64_t operator()() { return Generate<uint64_t>(); }
+  uint64_t operator()() { return Generate64(); }
 };
 
 void AsyncBucketing() {

@@ -14,6 +14,40 @@
   #define SRPLATFORM_API [[gnu::visibility("default")]]
   #define INFINITE 4294967295u
   #define __vectorcall
+
+  // https://github.com/shines77/strlen_fast/blob/master/src/strlen_fast/bitscan_forward.h
+  static inline unsigned char _BitScanForward(unsigned long * index, unsigned long mask) {
+    assert(index != nullptr);
+    unsigned int trailing_zeros;
+    trailing_zeros = __builtin_ctz((unsigned int)mask);
+    *index = trailing_zeros;
+    return (unsigned char)(mask != 0);
+  }
+
+  static inline unsigned char _BitScanForward64(unsigned long * index, unsigned long long mask) {
+    assert(index != nullptr);
+    unsigned int trailing_zeros;
+    trailing_zeros = __builtin_ctzll((unsigned long long)mask);
+    *index = trailing_zeros;
+    return (unsigned char)(mask != 0);
+  }
+
+  // https://github.com/shines77/strlen_fast/blob/master/src/strlen_fast/bitscan_reverse.h
+  static inline unsigned char _BitScanReverse(unsigned long * index, unsigned long mask) {
+    assert(index != nullptr);
+    unsigned int leading_zeros;
+    leading_zeros = __builtin_clz((unsigned int)mask);
+    *index = 32 - leading_zeros;
+    return (unsigned char)(mask != 0);
+  }
+
+  static inline unsigned char _BitScanReverse64(unsigned long * index, unsigned long long mask) {
+    assert(index != nullptr);
+    unsigned int leading_zeros;
+    leading_zeros = __builtin_clzll((unsigned long long)mask);
+    *index = 64 - leading_zeros;
+    return (unsigned char)(mask != 0);
+  }
 #else
   #error "Unsupported OS"
 #endif // OS

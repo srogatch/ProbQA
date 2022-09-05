@@ -34,7 +34,7 @@ public:
   // Set to random number between 0 and |upper| inclusively. 
   static SRDoubleNumber MakeRandom(const SRDoubleNumber upper, SRFastRandom& fr) {
     SRDoubleNumber ans;
-    ans._value = upper.GetValue() * fr.Generate<uint64_t>() / std::numeric_limits<uint64_t>::max();
+    ans._value = upper.GetValue() * fr.Generate64() / std::numeric_limits<uint64_t>::max();
     return ans;
   }
 

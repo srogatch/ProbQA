@@ -19,7 +19,7 @@ extern "C" {
 // pFirstCl and pLimCl must be cache-line-aligned pointers, so that the distance between them is a multiple of clSize .
 // clSize is the CPU cache line size passed here to simplify assembly code.
 // This function always flushes pFirstCl, then checks whether the address (plus cache line size) exceeds pLimCl .
-SRPLATFORM_API ATTR_NOALIAS void __fastcall SRFlushCache(const void *PTR_RESTRICT pFirstCl,
+SRPLATFORM_API ATTR_NOALIAS void SRFlushCache(const void *PTR_RESTRICT pFirstCl,
   const void *PTR_RESTRICT pLimCl, const size_t clSize);
 
 }

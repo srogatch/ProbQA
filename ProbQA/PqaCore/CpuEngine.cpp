@@ -229,7 +229,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::CreateQuizInternal(CECre
                   dims._nAnswers - 1), SRString::MakeUnowned(SR_FILE_LINE "Answer index is not in KB range.")));
                 return;
               }
-              *(SRCast::Ptr<uint8_t>(pQAsked) + (iQuestion >> 3)) |= (1ui8 << (iQuestion & 7));
+              *(SRCast::Ptr<uint8_t>(pQAsked) + (iQuestion >> 3)) |= (uint8_t(1) << (iQuestion & 7));
             }
           }
         });
@@ -425,7 +425,7 @@ template<typename taNumber> TPqaId CpuEngine<taNumber>::ListTopTargetsSpec(PqaEr
   // This estimate is for algorithm that radix-sorts pieces, then uses a head heap to merge the pieces. However, there
   //   is also an much less cache friendly option to apply parallel radix sort to the whole array.
   const uint64_t nRadixSortOps = 9 * std::max<uint64_t>(nTargPerThread, ltta._cnRadixSortBuckets)
-    + uint64_t(maxCount) * std::max(SRMath::CeilLog2(ltta._nWorkers), 1ui8);
+    + uint64_t(maxCount) * std::max(SRMath::CeilLog2(ltta._nWorkers), uint8_t(1));
   const uint64_t nHeapifyOps = 3 * nTargPerThread + uint64_t(maxCount) * SRMath::CeilLog2(ltta._nTargets);
   
   // Currently holds if maxCount > 6 * a / log2(a), where a=nTargets/nWorkers and a>=nRadixSortBuckets

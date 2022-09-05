@@ -232,7 +232,7 @@ template<typename taNumber> TPqaId CudaEngine<taNumber>::NextQuestionSpec(PqaErr
       return cInvalidPqaId;
     }
     std::make_heap(heap.Get(), heap.Get() + nInHeap);
-    const double selected = (grandTotal * SRFastRandom::ThreadLocal().Generate<uint64_t>())
+    const double selected = (grandTotal * SRFastRandom::ThreadLocal().Generate64())
       / std::numeric_limits<uint64_t>::max();
     double poppedSum = heap.Get()[0]._priority;
     while (poppedSum < selected && nInHeap > 1) {

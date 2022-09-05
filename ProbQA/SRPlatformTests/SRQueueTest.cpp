@@ -15,12 +15,12 @@ TEST(SRQueue, Intense) {
   for (int64_t i = 0; i < cnItems; i++) {
     bool bPush = true;
     if (reference.size() > 0) {
-      if (fr.Generate<uint64_t>() % 3 == 0) {
+      if (fr.Generate64() % 3 == 0) {
         bPush = false;
       }
     }
     if (bPush) {
-      const uint64_t item = fr.Generate<uint64_t>();
+      const uint64_t item = fr.Generate64();
       tested.Push(item);
       reference.push(item);
     }

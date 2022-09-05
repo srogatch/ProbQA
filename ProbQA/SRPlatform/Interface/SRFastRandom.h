@@ -80,7 +80,7 @@ public:
   template<typename T> T Generate(const T lim) {
     assert(lim > 0);
     if (_remaining < uint64_t(lim-1)) {
-      _remaining = _fr.Generate<uint64_t>();
+      _remaining = _fr.Generate64();
     }
     const T answer = _remaining % lim;
     _remaining /= lim;
